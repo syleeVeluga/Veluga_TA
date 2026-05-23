@@ -21,6 +21,7 @@ function makePhase3Policy(overrides: {
   allowedScopes?: string[];
   kbScopes?: string[];
   retentionDays?: number;
+  project?: boolean;
 } = {}): PolicyContext {
   return new PolicyContextStore(
     mergePolicies({
@@ -44,11 +45,14 @@ function makePhase3Policy(overrides: {
         kb_scopes: overrides.kbScopes ?? ['law:public', 'policy:internal', 'audit:confidential'],
         active_mcp_connectors: ['external-kb']
       },
-      project: {
-        project_id: 'phase3',
-        allowed_scopes: overrides.allowedScopes ?? ['law:public', 'policy:internal', 'audit:confidential'],
-        active_skills: overrides.activeSkills ?? ['gov-proposal', 'docx', 'pptx', 'xlsx']
-      },
+      project:
+        overrides.project === false
+          ? null
+          : {
+              project_id: 'phase3',
+              allowed_scopes: overrides.allowedScopes ?? ['law:public', 'policy:internal', 'audit:confidential'],
+              active_skills: overrides.activeSkills ?? ['gov-proposal', 'docx', 'pptx', 'xlsx']
+            },
       user: {},
       session: { kb_token_budget: 50000 }
     })
@@ -168,6 +172,7 @@ describe('Phase3 KB integration', () => {
     });
 
     expect(draft.citation_count).toBeGreaterThanOrEqual(5);
+    expect(draft.text).not.toContain('nb_project-facts.md');
     const verification = verifyProjectCitations({
       projectRoot: os.tmpdir(),
       policy,
@@ -177,6 +182,29 @@ describe('Phase3 KB integration', () => {
     });
     expect(verification.total_citations).toBeGreaterThanOrEqual(5);
     expect(verification.matched).toBeGreaterThanOrEqual(5);
+  });
+
+  it('verifies KB citations from evidence even when no project is active', () => {
+    const policy = makePhase3Policy({ clearance: 'internal', project: false });
+    const verification = verifyProjectCitations({
+      projectRoot: os.tmpdir(),
+      policy,
+      text:
+        'Proposal controls are required [src:kb_policy_1|kb|as_of:2026-01-01]. Local file claim [src:nb_project-facts.md#0|nb].',
+      kbEvidence: [
+        {
+          doc_id: 'kb_policy_1',
+          as_of: '2026-01-01',
+          text: 'Proposal controls are required',
+          classification: 'internal',
+          scope: 'policy:internal'
+        }
+      ]
+    });
+
+    expect(verification.total_citations).toBe(2);
+    expect(verification.matched).toBe(1);
+    expect(verification.unmatched).toEqual([expect.objectContaining({ reason: 'project_not_active' })]);
   });
 
   it('runs the compliance-checker basic rule catalog', () => {
@@ -203,6 +231,28 @@ describe('Phase3 KB integration', () => {
     expect(result.violations.map((violation) => violation.rule_id)).toEqual(
       expect.arrayContaining(['clr-001', 'clr-002', 'ret-001', 'src-002', 'prm-001', 'ext-001', 'fmt-001'])
     );
+  });
+
+  it('requires KB compliance evidence to match both document and as-of date', () => {
+    const policy = makePhase3Policy({ clearance: 'internal' });
+    const result = checkCompliance({
+      text: 'Supported claim [src:kb_policy_1|kb|as_of:2026-02-01]',
+      policy,
+      kbEvidence: [
+        {
+          doc_id: 'kb_policy_1',
+          as_of: '2026-01-01',
+          text: 'Supported claim',
+          classification: 'internal',
+          scope: 'policy:internal'
+        }
+      ],
+      usedKb: true
+    });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({ rule_id: 'src-001', message: expect.stringContaining('no local evidence') })
+    ]);
   });
 
   it('keeps the PolicyService fetchAll contract compatible for RPC sources', async () => {

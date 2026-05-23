@@ -36,7 +36,7 @@ export async function draftGovProposal(input: GovProposalInput): Promise<GovProp
   }));
 
   const facts = input.projectFacts?.length
-    ? input.projectFacts.map((fact, index) => `${index + 1}. ${fact} [src:nb_project-facts.md#${index}|nb]`).join('\n')
+    ? input.projectFacts.map((fact, index) => `${index + 1}. ${fact}`).join('\n')
     : '1. Project capabilities and execution history should be filled from the active project files.';
 
   const kbParagraphs = evidence.map(

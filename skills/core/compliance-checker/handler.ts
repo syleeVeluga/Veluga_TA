@@ -44,7 +44,7 @@ const SUPPORTED_FORMATS = new Set(['docx', 'pptx', 'xlsx', 'text']);
 
 export function checkCompliance(input: ComplianceInput): ComplianceResult {
   const violations: ComplianceViolation[] = [];
-  const evidenceByDoc = new Map((input.kbEvidence ?? []).map((evidence) => [evidence.doc_id, evidence]));
+  const evidenceByCitation = new Map((input.kbEvidence ?? []).map((evidence) => [kbEvidenceKey(evidence.doc_id, evidence.as_of), evidence]));
   let maxClassification: Clearance = input.documentClassification ?? 'public';
 
   for (const evidence of input.kbEvidence ?? []) {
@@ -64,7 +64,7 @@ export function checkCompliance(input: ComplianceInput): ComplianceResult {
   }
 
   for (const match of input.text.matchAll(KB_TAG_RE)) {
-    const evidence = evidenceByDoc.get(match[1]);
+    const evidence = evidenceByCitation.get(kbEvidenceKey(match[1], match[2]));
     if (!evidence) {
       violations.push({ rule_id: 'src-001', level: 'warn', message: `${match[0]} has no local evidence record` });
     }
@@ -112,4 +112,8 @@ export function checkCompliance(input: ComplianceInput): ComplianceResult {
     passed: !violations.some((violation) => violation.level === 'error'),
     violations
   };
+}
+
+function kbEvidenceKey(docId: string, asOf: string): string {
+  return `${docId}|${asOf}`;
 }

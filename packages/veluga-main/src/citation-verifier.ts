@@ -17,7 +17,7 @@ export interface VerifyCitationsInput {
 }
 
 export function verifyProjectCitations(input: VerifyCitationsInput): VerificationResult {
-  if (!input.policy.veluga.enable_veluga_orchestration || !input.policy.project) {
+  if (!input.policy.veluga.enable_veluga_orchestration) {
     return { total_citations: 0, matched: 0, unmatched: [], modified_text: input.text };
   }
 
@@ -38,14 +38,16 @@ export function verifyProjectCitations(input: VerifyCitationsInput): Verificatio
     const docId = match[4];
     const asOf = match[5];
     const result = isNotebook
-      ? matchCitation({
-          projectRoot: input.projectRoot,
-          fileId,
-          chunkId,
-          claim,
-          chunkSize: input.chunkSize ?? 800,
-          threshold: input.threshold ?? 0.28
-        })
+      ? input.policy.project
+        ? matchCitation({
+            projectRoot: input.projectRoot,
+            fileId,
+            chunkId,
+            claim,
+            chunkSize: input.chunkSize ?? 800,
+            threshold: input.threshold ?? 0.28
+          })
+        : { ok: false as const, reason: 'project_not_active' }
       : matchKbCitation({
           evidence: kbEvidence.get(`${docId}|${asOf}`),
           claim,
