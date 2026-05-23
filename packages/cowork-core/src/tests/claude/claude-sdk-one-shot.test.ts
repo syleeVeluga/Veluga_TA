@@ -33,6 +33,7 @@ function makeConfig(): AppConfig {
     globalSkillsPath: '',
     enableDevLogs: false,
     theme: 'light',
+    language: 'ko',
     sandboxEnabled: false,
     memoryEnabled: true,
     memoryRuntime: {

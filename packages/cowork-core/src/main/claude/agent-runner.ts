@@ -2511,11 +2511,15 @@ Tool routing:
       // If the SDK swallowed the AbortError and returned void, detect timeout here
       if (controller.signal.aborted && abortedByTimeout) {
         logCtx('[ClaudeAgentRunner] Aborted due to timeout (detected after prompt returned)');
+        const timeoutText = toUserFacingErrorText(
+          'first_response_timeout',
+          configStore.get('language')
+        );
         const errorMsg: Message = {
           id: uuidv4(),
           sessionId: session.id,
           role: 'assistant',
-          content: [{ type: 'text', text: '**请求超时**：长时间未收到响应，操作已中止。' }],
+          content: [{ type: 'text', text: `**Error**: ${timeoutText}` }],
           timestamp: Date.now(),
         };
         this.sendMessage(session.id, errorMsg);
@@ -2534,11 +2538,15 @@ Tool routing:
       if (error instanceof Error && error.name === 'AbortError') {
         if (abortedByTimeout) {
           logCtx('[ClaudeAgentRunner] Aborted due to timeout');
+          const timeoutText = toUserFacingErrorText(
+            'first_response_timeout',
+            configStore.get('language')
+          );
           const errorMsg: Message = {
             id: uuidv4(),
             sessionId: session.id,
             role: 'assistant',
-            content: [{ type: 'text', text: '**请求超时**：长时间未收到响应，操作已中止。' }],
+            content: [{ type: 'text', text: `**Error**: ${timeoutText}` }],
             timestamp: Date.now(),
           };
           this.sendMessage(session.id, errorMsg);
