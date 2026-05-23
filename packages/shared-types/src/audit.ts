@@ -18,7 +18,12 @@ export type AuditEventType =
   | 'kb.queried'
   | 'kb.over_classification'
   | 'gate.decided'
-  | 'compliance.checked';
+  | 'compliance.checked'
+  | 'approval.submitted'
+  | 'approval.granted'
+  | 'approval.rejected'
+  | 'seal.verify_failed'
+  | 'sandbox.run';
 
 export interface AuditEventInput {
   session_id: string;

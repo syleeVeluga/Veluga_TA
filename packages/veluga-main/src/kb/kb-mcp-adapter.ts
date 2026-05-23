@@ -6,19 +6,24 @@ import type {
   KbMetadataOutput,
   KbSearchInput,
   KbSearchOutput,
+  KbTraverseInput,
+  KbTraverseOutput,
   PolicyContext
 } from '../../../shared-types/src/index.js';
 import {
+  hasClearance,
   normalizeKbHybridInput,
   normalizeKbMetadataInput,
   normalizeKbSearchInput,
+  normalizeKbTraverseInput,
   parseKbHybridOutput,
   parseKbMetadataOutput,
-  parseKbSearchOutput
+  parseKbSearchOutput,
+  parseKbTraverseOutput
 } from './kb-contract.js';
 import { redactOverClassifiedChunks } from './kb-redactor.js';
 
-export type KbToolName = 'kb_search' | 'kb_metadata' | 'kb_hybrid';
+export type KbToolName = 'kb_search' | 'kb_metadata' | 'kb_hybrid' | 'kb_traverse';
 
 export interface KbMcpClient {
   listTools(): Promise<string[]>;
@@ -57,6 +62,10 @@ export class KbMcpAdapter {
 
   get listedTools(): string[] {
     return [...this.tools].sort();
+  }
+
+  hasTraverseTool(): boolean {
+    return this.tools.has('kb_traverse');
   }
 
   async healthCheck(policy?: PolicyContext): Promise<boolean> {
@@ -98,6 +107,19 @@ export class KbMcpAdapter {
     const parsed = parseKbHybridOutput(await this.call('kb_hybrid', normalized));
     const redacted = redactOverClassifiedChunks(parsed, policy, this.auditOptions()).output;
     this.auditQuery(policy, 'kb_hybrid', normalized.scopes, redacted.mixed.length, parsed.routing_explain);
+    return redacted;
+  }
+
+  async traverse(input: KbTraverseInput, policy: PolicyContext): Promise<KbTraverseOutput> {
+    this.ensureAvailable(policy);
+    if (!this.hasTraverseTool()) {
+      this.markUnavailable(policy, 'missing_kb_traverse');
+      throw new KbUnavailableError('KB traverse tool is not available');
+    }
+    const normalized = normalizeKbTraverseInput(input, policy);
+    const parsed = parseKbTraverseOutput(await this.call('kb_traverse', normalized));
+    const redacted = this.redactTraverseOutput(parsed, normalized.as_of_date, policy);
+    this.auditQuery(policy, 'kb_traverse', normalized.user_scopes, redacted.nodes.length, parsed.summary);
     return redacted;
   }
 
@@ -146,6 +168,34 @@ export class KbMcpAdapter {
 
   private auditOptions(): { audit?: AuditLogger; sessionId?: string } {
     return { audit: this.options.audit, sessionId: this.options.sessionId };
+  }
+
+  private redactTraverseOutput(output: KbTraverseOutput, asOf: string, policy: PolicyContext): KbTraverseOutput {
+    const allowedNodes = output.nodes.filter((node) => {
+      const scopeAllowed = !node.scope || policy.hasKbScope(node.scope);
+      const clearanceAllowed = !node.classification || hasClearance(policy.user.clearance, node.classification);
+      if (scopeAllowed && clearanceAllowed) return true;
+      this.options.audit?.append({
+        session_id: this.options.sessionId ?? 'kb-adapter',
+        user_id: policy.user.user_id,
+        event_type: 'kb.over_classification',
+        payload: {
+          doc_id: node.id,
+          scope: node.scope,
+          classification: node.classification,
+          user_clearance: policy.user.clearance,
+          reason: !scopeAllowed ? 'scope_not_allowed' : 'classification_exceeds_clearance'
+        },
+        policy_version_id: policy.policy_version_id
+      });
+      return false;
+    });
+    const allowedNodeIds = new Set(allowedNodes.map((node) => node.id));
+    return {
+      nodes: allowedNodes,
+      edges: output.edges.filter((edge) => allowedNodeIds.has(edge.from_node) && allowedNodeIds.has(edge.to_node)),
+      summary: output.summary
+    };
   }
 
   private async withTimeout<T>(promise: Promise<T>): Promise<T> {

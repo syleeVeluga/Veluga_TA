@@ -9,6 +9,7 @@ export const SKILL_DEPENDENCIES: Record<string, string[]> = {
   pptx: [],
   xlsx: [],
   'style-card': [],
+  'citation-tracer': [],
   'citation-verifier': [],
   'compliance-checker': []
 };
@@ -19,6 +20,7 @@ export const SKILL_ORDER: Record<string, number> = {
   'policy-research': 3,
   'legal-opinion': 3,
   'budget-review': 3,
+  'citation-tracer': 4,
   'citation-verifier': 4,
   'compliance-checker': 5,
   docx: 6,

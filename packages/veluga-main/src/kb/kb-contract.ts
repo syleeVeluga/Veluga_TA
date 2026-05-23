@@ -3,10 +3,14 @@ import type {
   KbDocChunk,
   KbHybridInput,
   KbHybridOutput,
+  KbGraphEdge,
+  KbGraphNode,
   KbMetadataInput,
   KbMetadataOutput,
   KbSearchInput,
   KbSearchOutput,
+  KbTraverseInput,
+  KbTraverseOutput,
   PolicyContext
 } from '../../../shared-types/src/index.js';
 
@@ -88,6 +92,24 @@ export function normalizeKbHybridInput(input: KbHybridInput, policy: PolicyConte
   };
 }
 
+export function normalizeKbTraverseInput(input: KbTraverseInput, policy: PolicyContext): Required<KbTraverseInput> {
+  assertString(input.start_node, 'start_node');
+  const edge_types = assertArray(input.edge_types, 'edge_types').map((edge, index) => assertString(edge, `edge_types.${index}`));
+  if (!edge_types.length) throw new KbContractError('must contain at least one edge type', 'edge_types');
+  const user_scopes = assertScopes(input.user_scopes, 'user_scopes');
+  const depth = input.depth ?? 2;
+  assertIntegerRange(depth, 'depth', 1, 3);
+  assertOptionalIsoDate(input.as_of_date, 'as_of_date');
+  return {
+    start_node: input.start_node,
+    edge_types,
+    depth,
+    as_of_date: input.as_of_date ?? new Date().toISOString().slice(0, 10),
+    user_scopes,
+    policy_token: input.policy_token ?? policy.policy_version_id
+  };
+}
+
 export function parseKbSearchOutput(value: unknown): KbSearchOutput {
   const record = assertRecord(value, '$');
   const chunks = assertArray(record.chunks, 'chunks').map((chunk, index) => parseChunk(chunk, `chunks.${index}`));
@@ -106,6 +128,17 @@ export function parseKbHybridOutput(value: unknown): KbHybridOutput {
   return {
     mixed: assertArray(record.mixed, 'mixed').map((chunk, index) => parseChunk(chunk, `mixed.${index}`)),
     routing_explain: assertString(record.routing_explain, 'routing_explain')
+  };
+}
+
+export function parseKbTraverseOutput(value: unknown): KbTraverseOutput {
+  const record = assertRecord(value, '$');
+  const nodes = assertArray(record.nodes, 'nodes').map((node, index) => parseGraphNode(node, `nodes.${index}`));
+  const edges = assertArray(record.edges, 'edges').map((edge, index) => parseGraphEdge(edge, `edges.${index}`));
+  return {
+    nodes,
+    edges,
+    summary: typeof record.summary === 'string' ? record.summary : ''
   };
 }
 
@@ -136,8 +169,50 @@ function parseChunk(value: unknown, path: string): KbDocChunk {
   };
 }
 
+function parseGraphNode(value: unknown, path: string): KbGraphNode {
+  const record = assertRecord(value, path);
+  const classification = optionalClearance(record.classification, `${path}.classification`);
+  const valid_from = optionalIsoDate(record.valid_from, `${path}.valid_from`);
+  const valid_to = record.valid_to === undefined || record.valid_to === null ? null : optionalIsoDate(record.valid_to, `${path}.valid_to`);
+  return {
+    id: assertString(record.id, `${path}.id`),
+    label: assertString(record.label, `${path}.label`),
+    scope: record.scope === undefined ? undefined : assertString(record.scope, `${path}.scope`),
+    classification,
+    valid_from,
+    valid_to,
+    properties: assertRecord(record.properties ?? {}, `${path}.properties`)
+  };
+}
+
+function parseGraphEdge(value: unknown, path: string): KbGraphEdge {
+  const record = assertRecord(value, path);
+  return {
+    type: assertString(record.type, `${path}.type`),
+    from_node: assertString(record.from_node, `${path}.from_node`),
+    to_node: assertString(record.to_node, `${path}.to_node`),
+    properties: assertRecord(record.properties ?? {}, `${path}.properties`)
+  };
+}
+
 function isClearance(value: string): value is Clearance {
   return CLASSIFICATIONS.includes(value as Clearance);
+}
+
+function optionalClearance(value: unknown, path: string): Clearance | undefined {
+  if (value === undefined || value === null) return undefined;
+  const classification = assertString(value, path);
+  if (!isClearance(classification)) {
+    throw new KbContractError('must be one of public, internal, confidential, secret', path);
+  }
+  return classification;
+}
+
+function optionalIsoDate(value: unknown, path: string): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  const date = assertString(value, path);
+  assertIsoDate(date, path);
+  return date;
 }
 
 function assertScopes(value: unknown, path: string): string[] {
