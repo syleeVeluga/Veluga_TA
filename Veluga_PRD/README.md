@@ -31,7 +31,7 @@ Veluga_PRD/
 
 - `00_Overview.md`는 미션, Non-goal, 5대 원칙, Phase 의존성, 페르소나, 용어를 정의한다.
 - `01`~`04` Phase PRD는 각 Phase별 Scope, Acceptance Criteria, 구현 명세, 데이터 흐름, 테스트 전략, 위험, 작업 순서, DoD를 포함한다.
-- `01_Phase1_Foundation.md`와 `02_Phase2_Project.md`는 각 문서의 `PRD 완료 상태` 섹션에서 문서 완료 판정을 별도 명시한다. 본문 AC/DoD 체크박스는 실제 구현 검증 전까지 미완료 상태로 둔다.
+- `01_Phase1_Foundation.md`~`04_Phase4_Approval.md`는 각 문서의 `PRD 완료 상태` 섹션에서 문서 완료 판정과 구현 검증 근거를 별도 명시한다. 외부 KB·결재시스템·운영 SLA처럼 Veluga가 소유하지 않는 항목은 구현 완료 후에도 `98_Gap_Analysis.md`의 운영 게이트로 추적한다.
 - `99_Appendix.md`는 공유 타입, LLM Gateway, 외부 KB consumer contract, SQLite 스키마, 디렉터리 구조, 테스트 카탈로그를 포함한다.
 - `98_Gap_Analysis.md`는 코드 작업 전 PM·보안·인프라·외부 KB 운영 주체와 합의해야 할 결정 항목을 추적한다. Gap은 PRD 미완성이 아니라 **의도적으로 남긴 의사결정 게이트**다.
 
@@ -60,3 +60,4 @@ Veluga_PRD/
 - v1.2 (2026-05-23) — PRD 완성 점검: Phase 2/3 KB consumer 표현 정합성, Phase 4 작업 순서, Gap Analysis 우선순위 카운트, 완성 기준 문구 정리.
 - v1.3 (2026-05-23) — Phase 1/2 문서 완료 상태 명시: 구현 AC 체크박스와 PRD 완료 판정을 분리하고, 각 문서에 구현 착수 전 필수 확인 항목 추가.
 - v1.4 (2026-05-23) — **Phase 1·2 구현 완료 반영**: AC/DoD 체크박스 전수 완료 처리, 문서 상태 "구현 완료"로 갱신, Overview Phase 표에 상태 컬럼 추가, Gap Analysis Phase 1·2 항목 RESOLVED 처리.
+- v1.5 (2026-05-23) — **Phase 3·4 구현 완료 반영**: KB consumer, approval line, compliance full, sandbox, seal 검증 결과를 Phase 문서·Overview·Gap Analysis·Appendix 결정 로그에 반영. 외부 KB SLA, 실제 결재시스템 어댑터, 코드 서명 등 운영 항목은 별도 미해결 Gap으로 유지.

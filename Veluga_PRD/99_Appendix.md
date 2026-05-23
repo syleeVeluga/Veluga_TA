@@ -312,8 +312,8 @@ export interface ChatResponse {
 | `VELUGA_POLICY_SOURCE` | `mock` 또는 `rpc` | Phase 3 |
 | `VELUGA_POLICY_SIMULATE_OUTAGE` | 장애 시뮬레이션 (테스트 전용) | Phase 1 |
 | `VELUGA_KB_MCP_URL` | **외부** KB MCP 서버 URL (consumer 어댑터 연결용; 미설정 시 KB connector 비활성) | Phase 3 |
-| `VELUGA_KB_MCP_CMD` | 외부 KB MCP를 stdio로 spawn해야 하는 환경에서의 실행 커맨드 (선택) | Phase 3 |
-| `VELUGA_KB_TIMEOUT_MS` | 외부 KB 호출 timeout (consumer측) | Phase 3 |
+| `VELUGA_KB_MCP_CMD` | 예약 항목. stdio 기반 외부 KB connector가 필요한 기관용 후속 확장 후보이며, Phase 3 완료 구현은 URL 기반 `VELUGA_KB_MCP_URL` 또는 injected `KbMcpClient`를 사용한다. | Phase 3+ |
+| `VELUGA_KB_TIMEOUT_MS` | 예약 항목. 현재 구현은 `KbMcpAdapter({ timeoutMs })` 옵션과 기본 1500ms timeout을 사용한다. 환경변수 wiring은 후속 운영 확장. | Phase 3+ |
 
 ### 6.3 호환성
 
@@ -385,12 +385,11 @@ veluga/
 │   │   └── index.ts
 │   # NOTE: 외부 KB MCP 서버 패키지는 본 PRD 범위 밖이다.
 │   #       Veluga측 consumer 어댑터는 packages/veluga-main/src/kb/ 에 있다.
-│   #       외부 KB가 stdio로 spawn되어야 하는 환경이라면
-│   #       VELUGA_KB_MCP_CMD 환경변수로 실행 커맨드를 주입한다.
+│   #       Phase 3 완료 구현은 URL 기반이며, stdio connector는 후속 확장 후보이다.
 │   ├── policy-service/             # mock + RPC 서버
 │   │   ├── src/
 │   │   │   ├── mock-server.ts
-│   │   │   ├── rpc-server.ts       # Phase 3
+│   │   │   ├── rpc-client.ts       # Phase 3 client contract
 │   │   │   ├── sso/
 │   │   │   │   ├── saml.ts
 │   │   │   │   ├── oidc.ts
@@ -574,6 +573,9 @@ jobs:
 | Docker rootless + cap_drop=ALL + network none | Kuse 패턴 보안 강도 보존 | Phase 4 |
 | 봉인 파일은 결재 통과 시점에 생성 (사후 변조 검증) | 결재 신뢰 계약 | Phase 4 |
 | kb-ingest Skill 제거 — KB 적재 게이트는 외부 운영 주체 책임 | "안 만들기" 원칙 강화 | Phase 3 (v1.1) |
+| Phase 3 KB consumer는 URL 기반 `KbMcpClient` + mock client contract로 완료 처리 | Veluga는 외부 KB 서버를 소유하지 않으므로 실서비스 SLA는 Gap으로 분리 | Phase 3 구현 완료 |
+| Phase 4 approval-line은 mock approval connector + HMAC seal + Docker args hardening으로 1차 완료 | 기관별 결재시스템·PKI·base image 승인은 운영 인수 항목 | Phase 4 구현 완료 |
+| approval-queue 기본 정렬은 녹색 먼저, 제출일 오름차순 | 오래된 결재 대기를 먼저 해소하고 위험 항목은 별도 집중 검토 | Phase 4 구현 완료 |
 
 신규 결정은 본 카탈로그에 추가.
 
@@ -669,8 +671,8 @@ export async function handle(ctx: SkillContext): Promise<SkillOutput> {
 | `VELUGA_POLICY_RPC_URL` | Phase 3 | RPC PolicyService URL |
 | `VELUGA_POLICY_SIMULATE_OUTAGE` | Phase 1 | 장애 시뮬레이션 |
 | `VELUGA_KB_MCP_URL` | Phase 3 | **외부** KB MCP 서버 URL (consumer 어댑터 연결용; 미설정 시 KB 비활성) |
-| `VELUGA_KB_MCP_CMD` | Phase 3 | 외부 KB MCP를 stdio로 spawn해야 하는 환경의 실행 커맨드 (선택) |
-| `VELUGA_KB_TIMEOUT_MS` | Phase 3 | 외부 KB 호출 timeout (consumer측) |
+| `VELUGA_KB_MCP_CMD` | Phase 3+ | 예약 항목. stdio 기반 외부 KB connector 후속 확장 후보 |
+| `VELUGA_KB_TIMEOUT_MS` | Phase 3+ | 예약 항목. 현재 구현은 `KbMcpAdapter({ timeoutMs })` 옵션과 기본 1500ms timeout 사용 |
 | `VELUGA_SANDBOX_IMAGE` | Phase 4 | Docker 샌드박스 이미지 태그 |
 | `VELUGA_SEAL_HMAC_KEY` | Phase 4 | 봉인 HMAC 키 (PKI 미도입 시) |
 | `VELUGA_APPROVAL_CONNECTOR` | Phase 4 | 사용 중인 결재시스템 어댑터 식별자 |
