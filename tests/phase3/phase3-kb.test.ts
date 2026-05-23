@@ -276,6 +276,74 @@ describe('Phase3 KB integration', () => {
   });
 });
 
+describe('KB connector plugin — disabled state', () => {
+  it('knowledge-gate returns kb_connector_disabled reason when connector is off', () => {
+    const policy = makePhase3Policy();
+    const intent = {
+      intent_class: 'compare_project_vs_kb' as const,
+      answer_mode: 'mixed' as const,
+      use_kb: true,
+      kb_scopes: ['law:public'],
+      suggested_skills: ['gov-proposal'],
+      needs_clarification: false,
+      clarification_questions: []
+    };
+
+    const decision = knowledgeGate(intent, policy, { kbAvailable: false, kbConnectorEnabled: false });
+    expect(decision.allow).toBe(false);
+    expect(decision.reason).toBe('kb_connector_disabled');
+    expect(decision.alternatives[0]).toContain('No KB connector');
+  });
+
+  it('knowledge-gate still distinguishes temporary unavailability from disabled', () => {
+    const policy = makePhase3Policy();
+    const intent = {
+      intent_class: 'compare_project_vs_kb' as const,
+      answer_mode: 'mixed' as const,
+      use_kb: true,
+      kb_scopes: ['law:public'],
+      suggested_skills: [],
+      needs_clarification: false,
+      clarification_questions: []
+    };
+
+    const tempDown = knowledgeGate(intent, policy, { kbAvailable: false, kbConnectorEnabled: true });
+    expect(tempDown.reason).toContain('temporarily unavailable');
+
+    const configured = knowledgeGate(intent, policy, { kbAvailable: false });
+    expect(configured.reason).toContain('temporarily unavailable');
+  });
+
+  it('gov-proposal returns project-only draft when kb is null', async () => {
+    const policy = makePhase3Policy({ clearance: 'internal' });
+    const draft = await draftGovProposal({
+      query: 'R&D proposal',
+      policy,
+      kb: null,
+      projectFacts: ['The company has prior deployment records.']
+    });
+
+    expect(draft.kb_disabled).toBe(true);
+    expect(draft.kbEvidence).toHaveLength(0);
+    expect(draft.citation_count).toBe(0);
+    expect(draft.text).toContain('No KB connector');
+    expect(draft.text).toContain('[src:nb_project|nb]');
+  });
+
+  it('gov-proposal returns project-only draft when kb adapter is not yet available', async () => {
+    const policy = makePhase3Policy({ clearance: 'internal' });
+    const unconnectedAdapter = new KbMcpAdapter(); // no client, not available
+    const draft = await draftGovProposal({
+      query: 'R&D proposal',
+      policy,
+      kb: unconnectedAdapter
+    });
+
+    expect(draft.kb_disabled).toBe(true);
+    expect(draft.citation_count).toBe(0);
+  });
+});
+
 function unavailablePolicyIntent() {
   return {
     intent_class: 'compare_project_vs_kb' as const,

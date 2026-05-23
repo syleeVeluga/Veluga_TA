@@ -4,7 +4,8 @@ import type { KbEvidence, PolicyContext } from '../../../packages/shared-types/s
 export interface GovProposalInput {
   query: string;
   policy: PolicyContext;
-  kb: KbMcpAdapter;
+  /** Omit (or pass null) when no KB connector is configured — produces a project-only draft. */
+  kb?: KbMcpAdapter | null;
   projectFacts?: string[];
   asOfDate?: string;
   minCitations?: number;
@@ -14,9 +15,15 @@ export interface GovProposalDraft {
   text: string;
   kbEvidence: KbEvidence[];
   citation_count: number;
+  /** True when the draft was produced without a KB connection. */
+  kb_disabled: boolean;
 }
 
 export async function draftGovProposal(input: GovProposalInput): Promise<GovProposalDraft> {
+  if (!input.kb || !input.kb.isAvailable()) {
+    return projectOnlyDraft(input);
+  }
+
   const result = await input.kb.hybrid(
     {
       query: input.query,
@@ -57,7 +64,30 @@ export async function draftGovProposal(input: GovProposalInput): Promise<GovProp
       `## Routing Note\n${result.routing_explain}`
     ].join('\n'),
     kbEvidence: evidence,
-    citation_count: evidence.length
+    citation_count: evidence.length,
+    kb_disabled: false
+  };
+}
+
+function projectOnlyDraft(input: GovProposalInput): GovProposalDraft {
+  const facts = input.projectFacts?.length
+    ? input.projectFacts.map((fact, index) => `${index + 1}. ${fact}`).join('\n')
+    : '1. Project capabilities and execution history should be filled from the active project files.';
+
+  return {
+    text: [
+      '# Government Proposal Draft',
+      '',
+      '## Project Fit',
+      facts,
+      '',
+      '> **Note**: No KB connector is configured for this deployment.',
+      '> This draft is grounded in project files only. [src:nb_project|nb]',
+      '> KB-grounded citations ([src:...|kb|...]) require a connected KB connector.'
+    ].join('\n'),
+    kbEvidence: [],
+    citation_count: 0,
+    kb_disabled: true
   };
 }
 

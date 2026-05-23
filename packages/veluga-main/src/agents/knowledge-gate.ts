@@ -4,6 +4,12 @@ import { hasClearance, requiredClearanceForScope } from '../kb/kb-contract.js';
 
 export interface KnowledgeGateOptions {
   kbAvailable: boolean;
+  /**
+   * Set to false when no KB connector is configured for this deployment (intentional absence).
+   * Produces a distinct reason code ('kb_connector_disabled') so callers and audit logs can
+   * differentiate a config-time off from a runtime outage.
+   */
+  kbConnectorEnabled?: boolean;
   audit?: AuditLogger;
   sessionId?: string;
 }
@@ -13,6 +19,12 @@ export function knowledgeGate(intent: IntentPlan, policy: PolicyContext, options
 
   if (!intent.use_kb) {
     decision = { allow: true, reason: 'kb_not_requested', alternatives: [] };
+  } else if (options.kbConnectorEnabled === false) {
+    decision = {
+      allow: false,
+      reason: 'kb_connector_disabled',
+      alternatives: ['No KB connector is configured for this deployment. Continue with project files and general guidance only.']
+    };
   } else if (!options.kbAvailable) {
     decision = {
       allow: false,

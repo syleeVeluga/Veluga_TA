@@ -1,5 +1,6 @@
 import type { IntentPlan, PolicyContext } from '../../../shared-types/src/index.js';
 import type { LlmGateway } from '../llm-gateway.js';
+import type { KbConnectorRegistry } from '../kb/kb-connector-registry.js';
 
 export interface IntentRouterMetrics {
   llm_invocations_count: number;
@@ -56,11 +57,20 @@ export function tryFastPath(message: string, policy: PolicyContext): IntentPlan 
 export class IntentRouter {
   readonly metrics: IntentRouterMetrics = { llm_invocations_count: 0 };
 
-  constructor(private readonly gateway?: LlmGateway) {}
+  constructor(
+    private readonly gateway?: LlmGateway,
+    /**
+     * When supplied, overrides the useKbToggle argument: if no plugin is enabled,
+     * KB intent is suppressed regardless of what the caller passes in.
+     */
+    private readonly kbRegistry?: KbConnectorRegistry
+  ) {}
 
   async classify(message: string, policy: PolicyContext, useKbToggle = true): Promise<IntentPlan> {
     const fast = tryFastPath(message, policy);
     if (fast) return fast;
+
+    const effectiveKbToggle = useKbToggle && (this.kbRegistry ? this.kbRegistry.isEnabled() : true);
 
     if (this.gateway) {
       this.metrics.llm_invocations_count += 1;
@@ -69,13 +79,13 @@ export class IntentRouter {
         messages: [{ role: 'user', content: message }]
       });
       try {
-        return sanitizePlan(JSON.parse(result.text) as IntentPlan, policy, useKbToggle);
+        return sanitizePlan(JSON.parse(result.text) as IntentPlan, policy, effectiveKbToggle);
       } catch {
-        return heuristicPlan(message, policy, useKbToggle);
+        return heuristicPlan(message, policy, effectiveKbToggle);
       }
     }
 
-    return heuristicPlan(message, policy, useKbToggle);
+    return heuristicPlan(message, policy, effectiveKbToggle);
   }
 }
 

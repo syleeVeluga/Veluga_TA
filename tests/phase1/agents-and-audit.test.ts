@@ -10,6 +10,7 @@ import { PolicyGuard } from '../../packages/veluga-main/src/agents/policy-guard.
 import { interceptTools } from '../../packages/veluga-main/src/tool-interceptor.js';
 import { handleUserMessage } from '../../packages/veluga-main/src/ipc-middleware.js';
 import { handleSystemSelfHelp } from '../../skills/core/system-self-help/handler.js';
+import { KbConnectorRegistry, HttpKbConnectorPlugin, NullKbConnector } from '../../packages/veluga-main/src/kb/kb-connector-registry.js';
 import { makePolicy } from './helpers.js';
 
 describe('Phase1 agents, audit, guard, and skills', () => {
@@ -141,5 +142,54 @@ describe('Phase1 agents, audit, guard, and skills', () => {
 
     const offPolicy = makePolicy({ session: { enable_veluga_orchestration: false } });
     await expect(handleUserMessage('안녕', offPolicy, () => 'open cowork fallback')).resolves.toBe('open cowork fallback');
+  });
+});
+
+describe('KbConnectorRegistry plugin switch', () => {
+  it('registry with no plugins reports disabled', () => {
+    const registry = new KbConnectorRegistry();
+    expect(registry.isEnabled()).toBe(false);
+    expect(registry.getActive()).toBeNull();
+    expect(registry.createAdapter()).toBeNull();
+  });
+
+  it('NullKbConnector is always disabled', () => {
+    const registry = new KbConnectorRegistry().register(NullKbConnector);
+    expect(registry.isEnabled()).toBe(false);
+  });
+
+  it('HttpKbConnectorPlugin is enabled when constructed with enabled=true', () => {
+    const registry = new KbConnectorRegistry().register(new HttpKbConnectorPlugin('test-kb', 'http://kb.local', true));
+    expect(registry.isEnabled()).toBe(true);
+    expect(registry.getActive()?.id).toBe('test-kb');
+  });
+
+  it('setEnabled toggles a registered plugin on and off', () => {
+    const registry = new KbConnectorRegistry().register(new HttpKbConnectorPlugin('test-kb', 'http://kb.local', false));
+    expect(registry.isEnabled()).toBe(false);
+    registry.setEnabled('test-kb', true);
+    expect(registry.isEnabled()).toBe(true);
+    registry.setEnabled('test-kb', false);
+    expect(registry.isEnabled()).toBe(false);
+  });
+
+  it('IntentRouter with disabled registry suppresses use_kb regardless of message content', async () => {
+    const policy = makePolicy();
+    const disabledRegistry = new KbConnectorRegistry().register(NullKbConnector);
+    const router = new IntentRouter(undefined, disabledRegistry);
+
+    // KB-intent keywords — would normally produce use_kb: true
+    const plan = await router.classify('올해 세액공제 법령 근거 최신', policy);
+    expect(plan.use_kb).toBe(false);
+    expect(plan.kb_scopes).toEqual([]);
+  });
+
+  it('IntentRouter with enabled registry allows use_kb classification', async () => {
+    const policy = makePolicy();
+    const enabledRegistry = new KbConnectorRegistry().register(new HttpKbConnectorPlugin('test-kb', 'http://kb.local', true));
+    const router = new IntentRouter(undefined, enabledRegistry);
+
+    const plan = await router.classify('올해 세액공제 법령 근거 최신', policy);
+    expect(plan.use_kb).toBe(true);
   });
 });

@@ -576,6 +576,7 @@ jobs:
 | Phase 3 KB consumer는 URL 기반 `KbMcpClient` + mock client contract로 완료 처리 | Veluga는 외부 KB 서버를 소유하지 않으므로 실서비스 SLA는 Gap으로 분리 | Phase 3 구현 완료 |
 | Phase 4 approval-line은 mock approval connector + HMAC seal + Docker args hardening으로 1차 완료 | 기관별 결재시스템·PKI·base image 승인은 운영 인수 항목 | Phase 4 구현 완료 |
 | approval-queue 기본 정렬은 녹색 먼저, 제출일 오름차순 | 오래된 결재 대기를 먼저 해소하고 위험 항목은 별도 집중 검토 | Phase 4 구현 완료 |
+| **KB 연결을 `KbConnectorPlugin` 플러그인 패턴으로 추상화 — 기본값 OFF** | 외부 KB API 미확정 상태에서도 Veluga 실행 가능, API 변경 시 플러그인만 교체, 기관별 다른 백엔드 수용 | Phase 3 이후 (2026-05-23) |
 
 신규 결정은 본 카탈로그에 추가.
 
@@ -670,7 +671,7 @@ export async function handle(ctx: SkillContext): Promise<SkillOutput> {
 | `VELUGA_POLICY_SOURCE` | Phase 3 | `mock` 또는 `rpc` |
 | `VELUGA_POLICY_RPC_URL` | Phase 3 | RPC PolicyService URL |
 | `VELUGA_POLICY_SIMULATE_OUTAGE` | Phase 1 | 장애 시뮬레이션 |
-| `VELUGA_KB_MCP_URL` | Phase 3 | **외부** KB MCP 서버 URL (consumer 어댑터 연결용; 미설정 시 KB 비활성) |
+| `VELUGA_KB_MCP_URL` | Phase 3 | `HttpKbConnectorPlugin` 생성 시 사용할 외부 KB MCP 서버 URL. **미설정이면 `KbConnectorRegistry`에 플러그인이 등록되지 않아 KB가 완전 비활성화됨.** |
 | `VELUGA_KB_MCP_CMD` | Phase 3+ | 예약 항목. stdio 기반 외부 KB connector 후속 확장 후보 |
 | `VELUGA_KB_TIMEOUT_MS` | Phase 3+ | 예약 항목. 현재 구현은 `KbMcpAdapter({ timeoutMs })` 옵션과 기본 1500ms timeout 사용 |
 | `VELUGA_SANDBOX_IMAGE` | Phase 4 | Docker 샌드박스 이미지 태그 |
