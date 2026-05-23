@@ -22,6 +22,25 @@ export interface IntentPlan {
   fast_path_hit?: 'greeting' | 'thanks' | 'ack' | 'self_help' | 'explicit_skill';
 }
 
+export interface GateDecision {
+  allow: boolean;
+  reason: string;
+  alternatives: string[];
+  scope_overrides?: string[];
+}
+
+export interface SkillStep {
+  id: string;
+  mode: 'read' | 'write';
+}
+
+export interface SkillActivationPlan {
+  ordered_skills: SkillStep[];
+  data_passing: 'memory' | 'project_temp';
+  rationale: string;
+  unresolved_skills: string[];
+}
+
 export interface GeneralPlan {
   confidence: 'high' | 'medium' | 'low' | 'refuse';
   category: 'conversational' | 'common_knowledge' | 'how_to' | 'user_planning' | 'out_of_scope';

@@ -13,7 +13,12 @@ export type AuditEventType =
   | 'session.summary'
   | 'citation.linked'
   | 'style_card.extracted'
-  | 'unverified.detected';
+  | 'unverified.detected'
+  | 'kb.unavailable'
+  | 'kb.queried'
+  | 'kb.over_classification'
+  | 'gate.decided'
+  | 'compliance.checked';
 
 export interface AuditEventInput {
   session_id: string;

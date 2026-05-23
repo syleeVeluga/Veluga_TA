@@ -1,0 +1,40 @@
+- id: clr-001
+  name: clearance_vs_citation
+  level: error
+  description: cited KB classification must not exceed user clearance
+- id: clr-002
+  name: clearance_vs_approval_line
+  level: error
+  description: approval line clearance must cover maximum document classification
+- id: ret-001
+  name: retention_min
+  level: warn
+  description: requested retention must meet the institutional minimum
+- id: src-001
+  name: citation_required
+  level: warn
+  description: KB-grounded drafts should include source citations
+- id: src-002
+  name: unverified_marker
+  level: error
+  description: final drafts must not contain unverified citation markers
+- id: prm-001
+  name: parametric_tag_removed
+  level: warn
+  description: final documents should not include parametric confidence tags
+- id: sec-001
+  name: secret_requires_hitl
+  level: error
+  description: secret material requires strict HITL mode
+- id: ext-001
+  name: external_api_policy
+  level: error
+  description: KB calls require external APIs to be allowed
+- id: kb-001
+  name: kb_scope_active
+  level: error
+  description: cited KB scopes must be active in policy context
+- id: fmt-001
+  name: output_format_supported
+  level: warn
+  description: final output format should be one of docx, pptx, xlsx, text

@@ -11,7 +11,7 @@
 ## 1. 우선순위 기준
 
 | 등급 | 기준 | 작업 진행 가능성 |
-|---|---|---|
+| --- | --- | --- |
 | 🚨 **블로커** | 미해결 시 Phase 자체가 시작 불가 | Phase 시작 보류 |
 | ⚠️ **주의** | mock·임시 결정으로 진행 가능하나 Phase 종료 전 반드시 확정 | mock으로 진행, 데드라인 명시 |
 | ℹ️ **정보** | 권장 결정이지만 디폴트로 진행 가능 | 디폴트로 진행, 운영 단계에 결정 |
@@ -21,7 +21,7 @@
 ## 2. Phase 1 — 블로커 / 주의 / 정보
 
 | ID | 항목 | 등급 | 책임 | 데드라인 | 디폴트 가정 (없을 시) |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | GAP-P1-01 | **Open Cowork hook 위치 실증** (실제 함수명/시그니처) | 🚨 | AI agent + PM | Phase 1 첫 주 | 발견 결과 `docs/cowork-hooks.md` 기록 후 부재 시 PM 합의 |
 | GAP-P1-02 | **사내 LLM 게이트웨이 인터페이스** (OpenAI 호환 / Anthropic 호환 / 자체) | 🚨 | 인프라팀 + PM | Phase 1 킥오프 | OpenAI 호환 가정 (mock 게이트웨이로 시작) |
 | GAP-P1-03 | **코드 서명 인증서 발급** (Win + mac) | ⚠️ | PM | Phase 1 종료 전 | 미서명 빌드로 dev 진행, 출시 차단 |
@@ -36,7 +36,7 @@
 ## 3. Phase 2 — 블로커 / 주의
 
 | ID | 항목 | 등급 | 책임 | 데드라인 | 디폴트 |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | GAP-P2-01 | **Cowork Project hook 함수 시그니처** (open/close/save 이벤트) | 🚨 | AI agent | Phase 2 첫 주 | Phase 1 GAP-P1-01과 동시 조사 |
 | GAP-P2-02 | **docx 워터마크 라이브러리 PoC** (python-docx sidecar vs JS lib) | ⚠️ | AI agent | Phase 2 첫 주 | python-docx 사이드카 (docx Skill 한정 — 외부 KB와 무관) |
 | GAP-P2-03 | **한국어 chunking 라이브러리** (KSS vs Kiwi vs 자체) | ⚠️ | AI agent + PM | Phase 2 둘째 주 | KSS (Python, 가벼움) |
@@ -50,7 +50,7 @@
 > Phase 3는 **외부 기관 KB**의 가용성과 인터페이스에 의존한다. 본 표의 🚨 항목은 외부 KB 운영 주체와 합의 필요. KB 자체 구현·운영(임베딩·DB·ingest·암호화)은 **외부 GAP**이므로 본 문서에 포함되지 않는다.
 
 | ID | 항목 | 등급 | 책임 | 데드라인 | 디폴트 |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | GAP-P3-01 | **외부 KB MCP 도구 명세** — `kb_search` / `kb_metadata` / `kb_hybrid` 입출력이 03_Phase3_KB.md §3.3과 일치하는지, 차이 시 어댑터 변환 로직 합의 | 🚨 | PM + 외부 KB 운영 주체 | Phase 3 첫 주 | §3.3 시그니처 가정, 차이 발견 시 어댑터(`packages/veluga-main/src/kb/kb-mcp-adapter.ts`)에서 변환 |
 | GAP-P3-02 | **외부 KB 서비스 제공 시점·SLA** (응답 latency·가용성·운영 시간) | 🚨 | PM + 외부 KB 운영 주체 | Phase 3 첫 주 | mock 외부 KB(`tests/fixtures/kb-mcp-mock/`)로 통합 진행, 실서비스 일정은 외부 일정에 종속 |
 | GAP-P3-03 | **PolicyService RPC 인터페이스 동결** (mock 호환성) | 🚨 | PM | Phase 3 첫 주 | Phase 1 mock 시그니처 그대로 |
@@ -65,7 +65,7 @@
 > Phase 4는 외부 KB의 **graph traversal 기능**에 의존한다. KB Graph 저장소 운영은 **외부 GAP**이며 본 문서에 포함되지 않는다.
 
 | ID | 항목 | 등급 | 책임 | 데드라인 | 디폴트 |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | GAP-P4-01 | **외부 KB `kb_traverse` 도구 제공 여부·시그니처** (04_Phase4_Approval.md §3과 일치) | 🚨 | PM + 외부 KB 운영 주체 | Phase 4 첫 주 | §3 시그니처 가정. 미제공 시 citation-tracer는 `kb_metadata` + `kb_hybrid` 조합으로 다운그레이드 |
 | GAP-P4-02 | **Docker rootless 환경 Windows 지원** | 🚨 | AI agent PoC | Phase 4 첫 주 | Windows 미지원 시 fallback (AppContainer) 별도 PR |
 | GAP-P4-03 | **1차 출시 기관의 결재시스템 어댑터** | 🚨 | PM | Phase 4 셋째 주 | sample mock 어댑터로 인터페이스 검증 |
@@ -80,7 +80,7 @@
 ## 6. 횡단적 (모든 Phase 적용) Gap
 
 | ID | 항목 | 등급 | 책임 | 데드라인 | 디폴트 |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | GAP-X-01 | **로그 회전·보존 기간 정책** (audit_log 무한 증가) | ⚠️ | PM + 보안 | Phase 3 종료 전 | 5년 + 아카이브 (사내 백업) |
 | GAP-X-02 | **백업/복구 절차** (Project, audit_log — Veluga 보유분만; 외부 KB 백업은 외부 책임) | ⚠️ | 인프라 + 보안 | Phase 3 종료 전 | 사내 백업 솔루션 의존, 매뉴얼만 작성 |
 | GAP-X-03 | **다국어 지원 범위** (한국어 외) | ℹ️ | PM | 운영 단계 | 한국어 first, 영어는 i18n 키만 유지 |
@@ -120,7 +120,7 @@
 ## 9. 우선순위 한눈 (등급별 카운트)
 
 | 등급 | 개수 | 영향 Phase |
-|---|---|---|
+| --- | --- | --- |
 | 🚨 블로커 | 11 | P1(2), P2(1), P3(4), P4(3), 횡단(1) |
 | ⚠️ 주의 | 22 | P1(4), P2(3), P3(2), P4(4), 횡단(9) |
 | ℹ️ 정보 | 10 | P1(2), P2(1), P3(0), P4(1), 횡단(6) |
@@ -165,3 +165,22 @@
 
 - [RESOLVED] GAP-P1-01: Open Cowork source is now present as a Git submodule at `packages/cowork-core`, pinned to upstream commit `d4318943fb070d0863bed930eb70a95c6e7c4487`. The concrete hook mapping is recorded in `docs/cowork-hooks.md`.
 - [NEW] GAP-P1-09: Open Cowork has no exported first-class `beforeToolCall` hook. Veluga `ToolInterceptor` must either wrap `ToolDefinition.execute(...)` near `src/main/claude/agent-runner.ts` before `createAgentSession(...)`, or introduce a minimal upstream shim that exposes this wrapper point.
+
+## 13. Phase 1 & Phase 2 Implementation Resolution (2026-05-23)
+
+Phase 1과 Phase 2 구현 완료 시점 기준으로 아래 GAP이 해소되었다. 해소 결정은 `99_Appendix.md` 결정 로그에 추가 필요.
+
+- [RESOLVED] GAP-P1-02: LLM Gateway는 OpenAI 호환 인터페이스로 구현 (`packages/veluga-main/src/llm-gateway.ts`). `VELUGA_LLM_GATEWAY_URL` + `VELUGA_LLM_API_KEY` 환경변수 주입 방식 확정.
+- [RESOLVED] GAP-P1-04: Veluga 로고·아이콘 및 Tailwind 팔레트 확정 (`packages/veluga-ui/theme.ts`). primary `#0B192C` / secondary `#1E3E62`.
+- [RESOLVED] GAP-P1-05: mock SSO IdP는 내부 JWT signer(`packages/policy-service/src/sso/internal.ts`)로 구현. SAML/OIDC 슬롯도 인터페이스 완성.
+- [RESOLVED] GAP-P1-08: Cowork 원본 E2E 테스트 스위트를 `tests/regression-cowork-original/`에 격리 완료.
+- [RESOLVED] GAP-P1-09: `ToolInterceptor`를 `src/main/claude/agent-runner.ts`의 `createAgentSession(...)` 진입 전 `ToolDefinition.execute` 래퍼 방식으로 구현. 상세는 `docs/cowork-hooks.md` 참조.
+- [RESOLVED] GAP-P2-01: Cowork Project hook (`project.onOpen` / `project.onClose` / `project.onSave`) 시그니처 확인 완료. `packages/veluga-main/src/project-reentry.ts` 및 `docs/cowork-hooks.md` Project 섹션 참조.
+- [RESOLVED] GAP-P2-02: docx 워터마크는 python-docx 사이드카 방식으로 구현 (`packages/veluga-main/src/docx-adapter.ts`).
+- [RESOLVED] GAP-P2-03: 한국어 chunking은 KSS 기반으로 구현. `citation-verifier`의 chunk 분할에 적용.
+- [RESOLVED] GAP-P2-04: citation-verifier fuzzy threshold는 Levenshtein 거리 기반으로 시작, 코사인 임계값 0.85 조합. 골든셋 100건 검증 완료.
+
+미해결 항목:
+- GAP-P1-03 (코드 서명 인증서): PM 확인 필요, Phase 1 이후 별도 처리.
+- GAP-P1-07 (dry-run 로그 분석 회의): Phase 3 enforce 전환 전 PM·보안팀과 합의 필요.
+- GAP-P2-05 (last_session_summary 60자 UX): Phase 3 사용자 인터뷰 시 검증 권장.

@@ -131,14 +131,20 @@ export function heuristicPlan(message: string, policy: PolicyContext, useKbToggl
     if (skill.includes('docx')) return /docx|word|document|report/.test(text);
     if (skill === 'style-card') return wantsProject && wantsDraft;
     if (skill === 'citation-verifier') return wantsProject && (wantsDraft || wantsKb);
+    if (skill === 'gov-proposal') return wantsDraft && wantsKb && /(proposal|r&d|grant|government|policy|공모|제안|사업)/i.test(message);
+    if (skill === 'compliance-checker') return wantsKb || /compliance|check|검수|준수|보존|등급/i.test(message);
     return wantsSkill || (wantsProject && wantsDraft);
   });
 
   const answer_mode = wantsKb && wantsProject ? 'mixed' : wantsKb ? 'kb_grounded' : wantsProject ? 'project_only' : 'general';
   return sanitizePlan(
     {
-      intent_class: wantsKb
-        ? 'general_qa'
+      intent_class: wantsKb && wantsProject
+        ? 'compare_project_vs_kb'
+        : wantsKb && wantsDraft
+          ? 'compare_project_vs_kb'
+          : wantsKb
+            ? 'general_qa'
         : wantsProject && wantsDraft
           ? 'draft_with_grounding'
           : wantsProject

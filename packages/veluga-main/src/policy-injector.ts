@@ -1,10 +1,13 @@
 import type { PolicyContext } from '../../shared-types/src/index.js';
-import type { MockPolicyService } from '../../policy-service/src/mock-server.js';
+
+export interface PolicyContextSource {
+  fetchAll(): Promise<PolicyContext>;
+}
 
 export class PolicyContextInjector {
   private current: PolicyContext | null = null;
 
-  constructor(private readonly service: MockPolicyService) {}
+  constructor(private readonly service: PolicyContextSource) {}
 
   async initialize(): Promise<PolicyContext> {
     this.current = await this.service.fetchAll();

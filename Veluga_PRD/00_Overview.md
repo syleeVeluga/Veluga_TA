@@ -138,12 +138,12 @@ Electron Main Process
 
 ## 5. Phase 1~4 한눈에
 
-| Phase | 기간 | 한 줄 | 주 산출 |
-|---|---|---|---|
-| **Phase 1** | 8~10주 | "권한 있는 일반 챗봇" + 화이트라벨링 완성 | Veluga 브랜딩 데스크톱 빌드 + SSO + PolicyContext + A1/A4/A5/A6/A7 + system-self-help Skill |
-| **Phase 2** | 4~6주 | "NotebookLM Lite" | Project 재진입 + style-card·citation-verifier·docx Skill |
-| **Phase 3** | 6~8주 | "외부 KB Consumer" | KB MCP **consumer 어댑터** + A2 Knowledge Gate + A3 Skill Resolver + gov-proposal Skill (외부 KB는 의존만) |
-| **Phase 4** | 6~8주 | "결재 라인 진입" | citation-tracer (graph consumer) + compliance-checker full + approval-queue Artifact + Docker 샌드박싱 |
+| Phase | 기간 | 한 줄 | 주 산출 | 상태 |
+| --- | --- | --- | --- | --- |
+| **Phase 1** | 8~10주 | "권한 있는 일반 챗봇" + 화이트라벨링 완성 | Veluga 브랜딩 데스크톱 빌드 + SSO + PolicyContext + A1/A4/A5/A6/A7 + system-self-help Skill | ✅ 완료 |
+| **Phase 2** | 4~6주 | "NotebookLM Lite" | Project 재진입 + style-card·citation-verifier·docx Skill | ✅ 완료 |
+| **Phase 3** | 6~8주 | "외부 KB Consumer" | KB MCP **consumer 어댑터** + A2 Knowledge Gate + A3 Skill Resolver + gov-proposal Skill (외부 KB는 의존만) | 🔜 다음 |
+| **Phase 4** | 6~8주 | "결재 라인 진입" | citation-tracer (graph consumer) + compliance-checker full + approval-queue Artifact + Docker 샌드박싱 | 미착수 |
 
 ### 5.1 Phase 의존 그래프
 

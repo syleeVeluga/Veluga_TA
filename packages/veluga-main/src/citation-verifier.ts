@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { AuditLogger } from './audit-logger.js';
-import type { PolicyContext, VerificationResult } from '../../shared-types/src/index.js';
+import type { KbEvidence, PolicyContext, VerificationResult } from '../../shared-types/src/index.js';
 
-const CITATION_RE = /\[src:nb_([^\]#|]+)#(\d+)\|nb\]/g;
+const ANY_CITATION_RE = /\[src:(nb_([^\]#|]+)#(\d+)\|nb|([^|\]]+)\|kb\|as_of:(\d{4}-\d{2}-\d{2}))\]/g;
 
 export interface VerifyCitationsInput {
   text: string;
@@ -13,6 +13,7 @@ export interface VerifyCitationsInput {
   audit?: AuditLogger;
   chunkSize?: number;
   threshold?: number;
+  kbEvidence?: KbEvidence[];
 }
 
 export function verifyProjectCitations(input: VerifyCitationsInput): VerificationResult {
@@ -25,20 +26,31 @@ export function verifyProjectCitations(input: VerifyCitationsInput): Verificatio
   let modified = '';
   let cursor = 0;
 
-  for (const match of input.text.matchAll(CITATION_RE)) {
+  const kbEvidence = new Map((input.kbEvidence ?? []).map((evidence) => [`${evidence.doc_id}|${evidence.as_of}`, evidence]));
+
+  for (const match of input.text.matchAll(ANY_CITATION_RE)) {
     const tag = match[0];
     const position = match.index ?? 0;
-    const fileId = match[1];
-    const chunkId = Number(match[2]);
+    const isNotebook = Boolean(match[2]);
     const claim = precedingClaim(input.text, position);
-    const result = matchCitation({
-      projectRoot: input.projectRoot,
-      fileId,
-      chunkId,
-      claim,
-      chunkSize: input.chunkSize ?? 800,
-      threshold: input.threshold ?? 0.28
-    });
+    const fileId = match[2];
+    const chunkId = Number(match[3]);
+    const docId = match[4];
+    const asOf = match[5];
+    const result = isNotebook
+      ? matchCitation({
+          projectRoot: input.projectRoot,
+          fileId,
+          chunkId,
+          claim,
+          chunkSize: input.chunkSize ?? 800,
+          threshold: input.threshold ?? 0.28
+        })
+      : matchKbCitation({
+          evidence: kbEvidence.get(`${docId}|${asOf}`),
+          claim,
+          threshold: input.threshold ?? 0.28
+        });
 
     modified += input.text.slice(cursor, position);
     if (result.ok) {
@@ -48,7 +60,7 @@ export function verifyProjectCitations(input: VerifyCitationsInput): Verificatio
         session_id: input.sessionId ?? 'citation-verifier',
         user_id: input.policy.user.user_id,
         event_type: 'citation.linked',
-        payload: { tag, file_id: fileId, chunk_id: chunkId },
+        payload: isNotebook ? { tag, file_id: fileId, chunk_id: chunkId } : { tag, doc_id: docId, as_of: asOf, source: 'kb' },
         policy_version_id: input.policy.policy_version_id
       });
     } else {
@@ -72,6 +84,23 @@ export function verifyProjectCitations(input: VerifyCitationsInput): Verificatio
     unmatched,
     modified_text: modified
   };
+}
+
+function matchKbCitation(input: {
+  evidence: KbEvidence | undefined;
+  claim: string;
+  threshold: number;
+}): { ok: true } | { ok: false; reason: string } {
+  if (!input.evidence) {
+    return { ok: false, reason: 'kb_evidence_missing' };
+  }
+  const normalizedClaim = normalize(input.claim);
+  const normalizedEvidence = normalize(input.evidence.text);
+  if (!normalizedClaim || normalizedEvidence.includes(normalizedClaim)) {
+    return { ok: true };
+  }
+  const score = diceCoefficient(normalizedClaim, normalizedEvidence);
+  return score >= input.threshold ? { ok: true } : { ok: false, reason: 'claim_not_supported_by_kb' };
 }
 
 function matchCitation(input: {

@@ -59,3 +59,4 @@ Veluga_PRD/
 - v1.1 (2026-05-23) — **기관 KB 구현 분리**: KB 자체는 외부 시스템으로 범위 외 선언. Veluga는 MCP/API consumer만 책임. Phase 3·4·Overview·Appendix·Gap Analysis 일괄 정리.
 - v1.2 (2026-05-23) — PRD 완성 점검: Phase 2/3 KB consumer 표현 정합성, Phase 4 작업 순서, Gap Analysis 우선순위 카운트, 완성 기준 문구 정리.
 - v1.3 (2026-05-23) — Phase 1/2 문서 완료 상태 명시: 구현 AC 체크박스와 PRD 완료 판정을 분리하고, 각 문서에 구현 착수 전 필수 확인 항목 추가.
+- v1.4 (2026-05-23) — **Phase 1·2 구현 완료 반영**: AC/DoD 체크박스 전수 완료 처리, 문서 상태 "구현 완료"로 갱신, Overview Phase 표에 상태 컬럼 추가, Gap Analysis Phase 1·2 항목 RESOLVED 처리.

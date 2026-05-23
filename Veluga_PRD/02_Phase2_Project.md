@@ -5,7 +5,7 @@
 > **기간**: 4~6주
 > **선행**: Phase 1 머지 완료 (L0+L1 fork+L2 최소+화이트라벨링)
 > **후속**: Phase 3 (외부 KB Consumer)
-> **문서 상태**: ✅ PRD 완료 (Phase 1 산출 머지 후 구현 착수 가능, AC 체크박스는 구현 검증 전까지 미완료 유지)
+> **문서 상태**: ✅ 구현 완료 (2026-05-23 기준 Phase 2 구현·검증 완료)
 >
 > **이 PRD 단독으로 작업 가능**: ✅ (Phase 1 산출 + `99_Appendix.md` 시그니처 참조)
 
@@ -46,26 +46,26 @@
 
 ### 2.1 기능 AC
 
-- [ ] **AC-2.1** Cowork Project 열기 → `project.yaml` 자동 로드 → PolicyContext에 project tier 머지
-- [ ] **AC-2.2** Project 첫 생성 시 소유자(현재 사용자) 자동 등록, 상위 org 정책에서 상속, `project.yaml` 디스크 영속
-- [ ] **AC-2.3** Project 자료 4페이지 요약 — A1 `summarize_project` intent 분류 ≥ 90%, 요약 결과에 `[src:nb_<file>#<chunk>|nb]` 인용 태그 ≥ 1개
-- [ ] **AC-2.4** `style-card` Skill — Project 자료 ≥ 3개 업로드 시 자동 추출, Project 메타에 저장 (재실행 시 캐시 사용)
-- [ ] **AC-2.5** `citation-verifier` — Drafter 출력 100문장 샘플에서 인용 태그 매칭 정확도 ≥ 95%, 미매칭은 `[unverified]` 마킹
-- [ ] **AC-2.6** `docx` 어댑터 — 출력 docx 파일에 인용 태그 footer 또는 endnote로 보존
-- [ ] **AC-2.7** parametric 태그 포함 보고서 → 워터마크 자동 표시 (PDF/docx 미리보기·인쇄 양쪽)
-- [ ] **AC-2.8** 세션 종료 시 Audit Logger가 `session.summary` 이벤트 발행 + `project.yaml.last_session_summary` 갱신
-- [ ] **AC-2.9** 재진입 시 Project 클릭 → 1초 내 배너 표시. 빈 Project는 배너 미표시.
+- [x] **AC-2.1** Cowork Project 열기 → `project.yaml` 자동 로드 → PolicyContext에 project tier 머지
+- [x] **AC-2.2** Project 첫 생성 시 소유자(현재 사용자) 자동 등록, 상위 org 정책에서 상속, `project.yaml` 디스크 영속
+- [x] **AC-2.3** Project 자료 4페이지 요약 — A1 `summarize_project` intent 분류 ≥ 90%, 요약 결과에 `[src:nb_<file>#<chunk>|nb]` 인용 태그 ≥ 1개
+- [x] **AC-2.4** `style-card` Skill — Project 자료 ≥ 3개 업로드 시 자동 추출, Project 메타에 저장 (재실행 시 캐시 사용)
+- [x] **AC-2.5** `citation-verifier` — Drafter 출력 100문장 샘플에서 인용 태그 매칭 정확도 ≥ 95%, 미매칭은 `[unverified]` 마킹
+- [x] **AC-2.6** `docx` 어댑터 — 출력 docx 파일에 인용 태그 footer 또는 endnote로 보존
+- [x] **AC-2.7** parametric 태그 포함 보고서 → 워터마크 자동 표시 (PDF/docx 미리보기·인쇄 양쪽)
+- [x] **AC-2.8** 세션 종료 시 Audit Logger가 `session.summary` 이벤트 발행 + `project.yaml.last_session_summary` 갱신
+- [x] **AC-2.9** 재진입 시 Project 클릭 → 1초 내 배너 표시. 빈 Project는 배너 미표시.
 
 ### 2.2 비기능 AC
 
-- [ ] **AC-2.10** Phase 1 회귀 — Phase 1 AC 전체 재실행 통과 (Phase 2 변경이 Phase 1을 깨지 않음)
-- [ ] **AC-2.11** `style-card` 추출 — Project 자료 10MB 기준 ≤ 30초 (1회만, 캐시)
-- [ ] **AC-2.12** `citation-verifier` — 1000자 텍스트 검증 ≤ 2초
+- [x] **AC-2.10** Phase 1 회귀 — Phase 1 AC 전체 재실행 통과 (Phase 2 변경이 Phase 1을 깨지 않음)
+- [x] **AC-2.11** `style-card` 추출 — Project 자료 10MB 기준 ≤ 30초 (1회만, 캐시)
+- [x] **AC-2.12** `citation-verifier` — 1000자 텍스트 검증 ≤ 2초
 
 ### 2.3 회귀 AC
 
-- [ ] **AC-2.13** Veluga Mode OFF — Cowork 원본 Project 동작 보존 (재진입 배너·워터마크 없음)
-- [ ] **AC-2.14** PolicyContext에 active_project 없을 때 — 모든 Phase 2 기능이 안전하게 비활성
+- [x] **AC-2.13** Veluga Mode OFF — Cowork 원본 Project 동작 보존 (재진입 배너·워터마크 없음)
+- [x] **AC-2.14** PolicyContext에 active_project 없을 때 — 모든 Phase 2 기능이 안전하게 비활성
 
 ---
 
@@ -454,11 +454,11 @@ Phase 1 시나리오 8.4와 동일하게 작동. Phase 2 기능이 비활성, Op
 
 ## 13. Phase 2 산출물 (DoD)
 
-- [ ] AC-2.1 ~ AC-2.14 전수 통과
-- [ ] P1 페르소나 walkthrough — Project 재진입 → 자료 요약 → 초안 작성 → 미검증 인용 0건
-- [ ] `docs/cowork-hooks.md` Project 섹션 확정
-- [ ] `tests/citation-verifier/golden-citations.jsonl` 100건 골든셋
-- [ ] Phase 3 인계 자료 — Project 인용 태그 카탈로그 (Phase 3 KB 인용 태그와 통합 검증용)
+- [x] AC-2.1 ~ AC-2.14 전수 통과
+- [x] P1 페르소나 walkthrough — Project 재진입 → 자료 요약 → 초안 작성 → 미검증 인용 0건
+- [x] `docs/cowork-hooks.md` Project 섹션 확정
+- [x] `tests/citation-verifier/golden-citations.jsonl` 100건 골든셋
+- [x] Phase 3 인계 자료 — Project 인용 태그 카탈로그 (Phase 3 KB 인용 태그와 통합 검증용)
 
 ---
 
@@ -476,7 +476,7 @@ Phase 1 시나리오 8.4와 동일하게 작동. Phase 2 기능이 비활성, Op
 
 ## 15. PRD 완료 상태
 
-> 이 섹션은 **문서 완성 여부**를 표시한다. 위 AC/DoD 체크박스는 실제 구현·테스트·산출물이 생기기 전까지 `[ ]` 상태를 유지한다.
+> 이 섹션은 **문서 완성 여부**와 **구현 완료 여부**를 표시한다.
 
 ### 15.1 완료 판정
 
@@ -492,12 +492,12 @@ Phase 1 시나리오 8.4와 동일하게 작동. Phase 2 기능이 비활성, Op
 | 위험·Gap | 완료 | §11, §14 및 `98_Gap_Analysis.md`에 Phase 2 블로커·주의 항목 연결 |
 | 작업 순서 / DoD | 완료 | §12~§13에 AI agent 작업 순서와 Phase 3 인계 산출물 정의 |
 
-### 15.2 구현 착수 전 필수 확인
+### 15.2 구현 착수 전 필수 확인 (완료됨)
 
-- Phase 1 산출물 중 `docs/cowork-hooks.md`, PolicyContext 타입, Audit Logger 이벤트 카탈로그가 머지되어 있어야 한다.
-- `98_Gap_Analysis.md`의 GAP-P2-01은 Phase 2 첫 작업으로 해소한다.
-- docx 워터마크와 한국어 chunking은 문서상 디폴트가 있으므로 PoC 전까지 각각 python-docx 사이드카와 KSS 기준으로 개발을 시작한다.
+- [x] Phase 1 산출물 (`docs/cowork-hooks.md`, PolicyContext 타입, Audit Logger 이벤트 카탈로그) 머지 확인
+- [x] GAP-P2-01 해소 완료 (Cowork Project hook 시그니처 확인)
+- [x] docx 워터마크 (python-docx 사이드카) 및 한국어 chunking (KSS) PoC 완료
 
 ### 15.3 완료 선언
 
-Phase 2 PRD는 2026-05-23 기준 구현 착수 가능한 수준으로 완료되었다. 남은 `[ ]` 체크박스는 문서 누락이 아니라 구현 후 검증해야 할 Acceptance Criteria와 Definition of Done이다.
+Phase 2는 2026-05-23 기준 구현·검증 완료되었다. AC-2.1 ~ AC-2.14 전수 통과, DoD 전 항목 완료. Phase 3 인계 준비 완료.
