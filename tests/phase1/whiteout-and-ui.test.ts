@@ -17,6 +17,15 @@ async function filesUnder(dir: string): Promise<string[]> {
   return files.flat();
 }
 
+function flattenKeys(value: unknown, prefix = ''): string[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return [prefix];
+  }
+  return Object.entries(value).flatMap(([key, child]) =>
+    flattenKeys(child, prefix ? `${prefix}.${key}` : key)
+  );
+}
+
 describe('Phase1 white-out and renderer bindings', () => {
   it('filters UI skills/scopes by PolicyContext and shows the external data banner only for general no-KB answers', () => {
     const policy = makePolicy();
@@ -65,6 +74,7 @@ describe('Phase1 white-out and renderer bindings', () => {
     const indexHtml = await readFile('packages/cowork-core/index.html', 'utf8');
     const builderConfig = await readFile('packages/cowork-core/electron-builder.yml', 'utf8');
     const enLocale = await readFile('packages/cowork-core/src/renderer/i18n/locales/en.json', 'utf8');
+    const koLocale = await readFile('packages/cowork-core/src/renderer/i18n/locales/ko.json', 'utf8');
 
     expect(packageJson.name).toBe('veluga');
     expect(packageJson.author).toBe('Veluga');
@@ -73,6 +83,30 @@ describe('Phase1 white-out and renderer bindings', () => {
     expect(builderConfig).toContain('appId: com.veluga.app');
     expect(builderConfig).toContain('productName: Veluga');
     expect(enLocale).toContain('Veluga logo');
+    expect(koLocale).toContain('Veluga 로고');
     expect(enLocale).not.toContain('Open Cowork logo');
+  });
+
+  it('defaults renderer UI localization to Korean while preserving English selection', async () => {
+    const enLocale = JSON.parse(
+      await readFile('packages/cowork-core/src/renderer/i18n/locales/en.json', 'utf8')
+    );
+    const koLocale = JSON.parse(
+      await readFile('packages/cowork-core/src/renderer/i18n/locales/ko.json', 'utf8')
+    );
+    const i18nConfig = await readFile('packages/cowork-core/src/renderer/i18n/config.ts', 'utf8');
+    const settingsGeneral = await readFile(
+      'packages/cowork-core/src/renderer/components/settings/SettingsGeneral.tsx',
+      'utf8'
+    );
+
+    expect(flattenKeys(koLocale).sort()).toEqual(flattenKeys(enLocale).sort());
+    expect(i18nConfig).toContain("fallbackLng: 'ko'");
+    expect(i18nConfig).toContain("supportedLngs: ['ko', 'en']");
+    expect(i18nConfig).not.toContain("locales/zh.json");
+    expect(i18nConfig).not.toContain("'zh'");
+    expect(settingsGeneral).toContain("code: 'ko'");
+    expect(settingsGeneral).toContain("code: 'en'");
+    expect(settingsGeneral).not.toContain("code: 'zh'");
   });
 });

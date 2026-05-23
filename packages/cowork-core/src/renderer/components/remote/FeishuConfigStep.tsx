@@ -1,9 +1,5 @@
-/**
- * FeishuConfigStep — Feishu/Lark app credentials and DM policy configuration
- */
-
-import { useTranslation } from 'react-i18next';
 import { ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   feishuAppId: string;
@@ -51,7 +47,9 @@ export function FeishuConfigStep({
 
       <div className="grid gap-4">
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-2">App ID</label>
+          <label className="block text-sm font-medium text-text-secondary mb-2">
+            {t('remote.feishuAppId')}
+          </label>
           <input
             type="text"
             value={feishuAppId}
@@ -62,13 +60,15 @@ export function FeishuConfigStep({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-2">App Secret</label>
+          <label className="block text-sm font-medium text-text-secondary mb-2">
+            {t('remote.feishuAppSecret')}
+          </label>
           <input
             type="password"
             value={feishuAppSecret}
             onChange={(e) => onAppSecretChange(e.target.value)}
             className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-            placeholder="••••••••••••••••"
+            placeholder="****************"
           />
         </div>
 

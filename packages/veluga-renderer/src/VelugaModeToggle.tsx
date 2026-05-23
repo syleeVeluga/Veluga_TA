@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePolicyContext } from './PolicyProvider.js';
+import { velugaText } from './veluga-i18n.js';
 
 export function VelugaModeToggle({ onChange }: { onChange?: (enabled: boolean) => void }) {
   const policy = usePolicyContext();
@@ -11,7 +12,7 @@ export function VelugaModeToggle({ onChange }: { onChange?: (enabled: boolean) =
         checked={enabled}
         onChange={(event) => onChange?.(event.currentTarget.checked)}
       />
-      <span>Veluga Mode</span>
+      <span>{velugaText('mode')}</span>
     </label>
   );
 }

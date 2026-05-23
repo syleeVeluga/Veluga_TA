@@ -261,9 +261,7 @@ export function SettingsConnectors({ isActive }: { isActive: boolean }) {
               <X className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-xs text-text-muted">
-            This connector requires configuration before it can be added.
-          </p>
+          <p className="text-xs text-text-muted">{t('mcp.configureRequired')}</p>
           <div className="space-y-3">
             {configuringPreset.preset.requiresEnv?.map((envKey: string) => (
               <div key={envKey}>
@@ -276,7 +274,7 @@ export function SettingsConnectors({ isActive }: { isActive: boolean }) {
                   onChange={(e) =>
                     setPresetEnvValues((prev) => ({ ...prev, [envKey]: e.target.value }))
                   }
-                  placeholder={`Enter ${envKey}`}
+                  placeholder={t('mcp.envKeyPlaceholder', { key: envKey })}
                   className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
                 />
               </div>

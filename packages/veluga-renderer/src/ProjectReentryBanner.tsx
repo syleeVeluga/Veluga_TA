@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ProjectMeta } from '../../shared-types/src/index.js';
+import { velugaText } from './veluga-i18n.js';
 
 export function ProjectReentryBanner({
   project,
@@ -11,7 +12,7 @@ export function ProjectReentryBanner({
   if (!project?.last_session_summary) return null;
   return (
     <section
-      aria-label="Project reentry"
+      aria-label={velugaText('projectReentry')}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -24,8 +25,8 @@ export function ProjectReentryBanner({
       }}
     >
       <span style={{ color: '#1c5c91', fontSize: 13, lineHeight: 1.4 }}>{project.last_session_summary}</span>
-      <button type="button" onClick={onResume} aria-label="Resume project session">
-        Continue
+      <button type="button" onClick={onResume} aria-label={velugaText('resumeProjectSession')}>
+        {velugaText('continue')}
       </button>
     </section>
   );

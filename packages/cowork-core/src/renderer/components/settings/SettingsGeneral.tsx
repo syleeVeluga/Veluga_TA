@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store';
 
@@ -6,32 +6,35 @@ export function SettingsGeneral() {
   const { i18n, t } = useTranslation();
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
-  const currentLang = i18n.language.startsWith('zh') ? 'zh' : 'en';
+  const currentLang = i18n.language.startsWith('en') ? 'en' : 'ko';
   const [appVer, setAppVer] = useState('');
+
   useEffect(() => {
     try {
-      const v = window.electronAPI?.getVersion?.();
-      if (v instanceof Promise) v.then(setAppVer);
-      else if (v) setAppVer(v);
+      const version = window.electronAPI?.getVersion?.();
+      if (version instanceof Promise) {
+        version.then(setAppVer);
+      } else if (version) {
+        setAppVer(version);
+      }
     } catch {
       /* ignore */
     }
   }, []);
 
   const languages = [
+    { code: 'ko', nativeName: '한국어' },
     { code: 'en', nativeName: 'English' },
-    { code: 'zh', nativeName: '中文' },
   ];
 
   const themeOptions = [
     { value: 'light' as const, label: t('general.themeLight') },
     { value: 'dark' as const, label: t('general.themeDark') },
-    { value: 'system' as const, label: t('general.themeSystem', 'System') },
+    { value: 'system' as const, label: t('general.themeSystem') },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Theme */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-text-primary">{t('general.appearance')}</h4>
         <div className="flex gap-2">
@@ -51,7 +54,6 @@ export function SettingsGeneral() {
         </div>
       </div>
 
-      {/* Language */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-text-primary">{t('general.language')}</h4>
         <div className="flex gap-2">
@@ -71,7 +73,6 @@ export function SettingsGeneral() {
         </div>
       </div>
 
-      {/* About */}
       {appVer && (
         <div className="pt-4 border-t border-border">
           <p className="text-xs text-text-muted">Veluga v{appVer}</p>

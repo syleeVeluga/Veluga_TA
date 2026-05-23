@@ -107,7 +107,7 @@ describe('Phase2 project layer', () => {
     expect(opened.reentry_banner?.summary).toContain('Draft ready');
     const markup = renderToStaticMarkup(ProjectReentryBanner({ project: opened.project, onResume: () => undefined }));
     expect(markup).toContain('Draft ready');
-    expect(markup).toContain('Continue');
+    expect(markup).toContain('계속');
   });
 
   it('extracts and caches a style card after three source files', async () => {
