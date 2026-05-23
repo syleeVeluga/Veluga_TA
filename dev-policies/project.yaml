@@ -1,0 +1,5 @@
+{
+  "project_id": "phase1-demo",
+  "allowed_scopes": ["law:public", "tax:public"],
+  "active_skills": ["docx-format"]
+}

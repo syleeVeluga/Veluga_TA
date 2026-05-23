@@ -1,0 +1,3 @@
+[submodule "packages/cowork-core"]
+	path = packages/cowork-core
+	url = https://github.com/OpenCoworkAI/open-cowork

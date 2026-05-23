@@ -1,0 +1,6 @@
+{
+  "extra_skills": ["system-self-help"],
+  "denied_skills": ["style-card"],
+  "kb_extra_scopes": ["audit:confidential"],
+  "external_apis": "allow"
+}

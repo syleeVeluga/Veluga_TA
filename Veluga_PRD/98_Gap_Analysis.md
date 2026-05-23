@@ -159,3 +159,9 @@
 ## 11. 한 줄 결론
 
 > *PRD가 명시하지 않은 모든 결정은 본 Gap Analysis 또는 `99_Appendix.md` 결정 로그에 등록된 후에만 코드에 반영한다. AI agent의 임의 결정은 reject.*
+---
+
+## 12. Baseline Resolution Notes (2026-05-23)
+
+- [RESOLVED] GAP-P1-01: Open Cowork source is now present as a Git submodule at `packages/cowork-core`, pinned to upstream commit `d4318943fb070d0863bed930eb70a95c6e7c4487`. The concrete hook mapping is recorded in `docs/cowork-hooks.md`.
+- [NEW] GAP-P1-09: Open Cowork has no exported first-class `beforeToolCall` hook. Veluga `ToolInterceptor` must either wrap `ToolDefinition.execute(...)` near `src/main/claude/agent-runner.ts` before `createAgentSession(...)`, or introduce a minimal upstream shim that exposes this wrapper point.

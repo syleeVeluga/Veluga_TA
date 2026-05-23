@@ -1,0 +1,10 @@
+{
+  "external_apis": "deny",
+  "audit_log": "required",
+  "unverified_quotes": "warn",
+  "approval_for_destructive": "required",
+  "retention_default_days": 1825,
+  "default_veluga_mode": true,
+  "policy_guard_mode": "dry-run",
+  "hitl_mode": "normal"
+}

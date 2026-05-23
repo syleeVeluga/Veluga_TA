@@ -1,0 +1,6 @@
+{
+  "org_id": "finance",
+  "default_skills": ["system-self-help", "style-card"],
+  "kb_scopes": ["law:public", "tax:public", "policy:internal"],
+  "active_mcp_connectors": []
+}

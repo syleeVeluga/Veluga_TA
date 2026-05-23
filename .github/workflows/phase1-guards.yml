@@ -1,0 +1,33 @@
+name: Phase1 Guards
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  phase1-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run verify
+      - name: Reject forbidden telemetry packages
+        run: |
+          if grep -rE "(posthog|@sentry|@vercel/analytics|datadog|@segment|mixpanel|react-ga)" packages/veluga-* package.json; then
+            echo "::error::Telemetry package forbidden in Veluga-owned code."
+            exit 1
+          fi
+      - name: Reject hardcoded public LLM endpoints
+        run: |
+          if grep -rE "api\.(anthropic|openai)\.com" packages/veluga-*; then
+            echo "::error::Use VELUGA_LLM_GATEWAY_URL."
+            exit 1
+          fi
+      - name: Preserve Open Cowork MIT license
+        run: |
+          test -f packages/cowork-core/LICENSE
