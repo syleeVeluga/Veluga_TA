@@ -123,7 +123,7 @@ describe('api config set helpers', () => {
       configSets: [
         {
           id: 'default',
-          name: '默认方案',
+          name: 'Legacy Default',
           isSystem: true,
           provider: 'openrouter',
           customProtocol: 'anthropic',

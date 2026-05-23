@@ -57,11 +57,11 @@ describe('ClaudeAgentRunner pi-coding-agent integration', () => {
   });
 
   it('reuses the shared user-facing error helper', () => {
+    expect(agentRunnerContent).toContain('getAgentErrorFollowupText');
+    expect(agentRunnerContent).toContain('resolveMessageEndPayload');
+    expect(agentRunnerContent).toContain('toUserFacingErrorText');
     expect(agentRunnerContent).toContain(
-      "import { resolveMessageEndPayload, toUserFacingErrorText } from './agent-runner-message-end'"
-    );
-    expect(agentRunnerContent).toContain(
-      'const errorText = toUserFacingErrorText(toErrorText(error));'
+      "const errorText = toUserFacingErrorText(toErrorText(error), configStore.get('language'));"
     );
   });
 

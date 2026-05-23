@@ -173,6 +173,7 @@
     "settingsSubtitle": "Manage provider, key, and model settings",
     "configSet": "Config Set",
     "defaultSetTag": "Default",
+    "defaultConfigSetName": "Default Config Set",
     "saveAs": "Save As",
     "renameSet": "Rename",
     "deleteSet": "Delete Set",
@@ -195,6 +196,17 @@
     "apiKey": "API Key",
     "enterApiKey": "Enter your API Key",
     "apiKeyDescription": "Saved locally and scoped to the active configuration set.",
+    "keyPlaceholder": {
+      "ollama": "Optional"
+    },
+    "keyHint": {
+      "openrouter": "Get it from openrouter.ai/keys",
+      "anthropic": "Get it from console.anthropic.com",
+      "openai": "Get it from platform.openai.com",
+      "gemini": "Get it from aistudio.google.com",
+      "ollama": "Most Ollama deployments can leave this empty. Enter a key only if your proxy requires authentication.",
+      "custom": "Enter the API key for your service"
+    },
     "protocol": "Protocol",
     "baseUrl": "Base URL",
     "model": "Model",

@@ -37,6 +37,7 @@ import { API_PROVIDER_PRESETS, PI_AI_CURATED_PRESETS } from '../../shared/api-mo
 export type ProviderType = 'openrouter' | 'anthropic' | 'custom' | 'openai' | 'gemini' | 'ollama';
 export type CustomProtocolType = 'anthropic' | 'openai' | 'gemini';
 export type AppTheme = 'dark' | 'light' | 'system';
+export type AppLanguage = 'ko' | 'en';
 export type ProviderProfileKey =
   | 'openrouter'
   | 'anthropic'
@@ -112,6 +113,9 @@ export interface AppConfig {
   // UI theme preference
   theme: AppTheme;
 
+  // UI language preference
+  language: AppLanguage;
+
   // Sandbox mode (WSL/Lima isolation)
   sandboxEnabled: boolean;
 
@@ -167,6 +171,7 @@ const DIRECT_READ_KEYS = new Set<keyof AppConfig>([
   'globalSkillsPath',
   'enableDevLogs',
   'theme',
+  'language',
   'sandboxEnabled',
   'memoryEnabled',
   'enableThinking',
@@ -218,7 +223,7 @@ const defaultProfiles: Record<ProviderProfileKey, ProviderProfile> = {
 
 const defaultConfigSet: ApiConfigSet = {
   id: DEFAULT_CONFIG_SET_ID,
-  name: '默认方案',
+  name: 'Default Config Set',
   isSystem: true,
   provider: 'openrouter',
   customProtocol: 'anthropic',
@@ -243,6 +248,7 @@ const defaultConfig: AppConfig = {
   globalSkillsPath: '',
   enableDevLogs: false,
   theme: 'light',
+  language: 'ko',
   sandboxEnabled: false,
   memoryEnabled: true,
   memoryRuntime: {
@@ -341,6 +347,7 @@ const PROFILE_KEYS: ProviderProfileKey[] = [
   'custom:gemini',
 ];
 const VALID_THEMES: AppTheme[] = ['dark', 'light', 'system'];
+const VALID_LANGUAGES: AppLanguage[] = ['ko', 'en'];
 
 function isProviderType(value: unknown): value is ProviderType {
   return (
@@ -363,6 +370,10 @@ function isProfileKey(value: unknown): value is ProviderProfileKey {
 
 function isAppTheme(value: unknown): value is AppTheme {
   return typeof value === 'string' && VALID_THEMES.includes(value as AppTheme);
+}
+
+function isAppLanguage(value: unknown): value is AppLanguage {
+  return typeof value === 'string' && VALID_LANGUAGES.includes(value as AppLanguage);
 }
 
 function isMemoryModelRuntimeConfig(value: unknown): value is Partial<MemoryModelRuntimeConfig> {
@@ -856,7 +867,7 @@ export class ConfigStore {
 
       const normalizedSet = this.normalizeConfigSet(rawSet, {
         id: nextId,
-        name: toNonEmptyString(rawSet.name) || `方案 ${index + 1}`,
+        name: toNonEmptyString(rawSet.name) || `Config Set ${index + 1}`,
         provider: legacy.provider,
         customProtocol: legacy.customProtocol,
         activeProfileKey: legacy.activeProfileKey,
@@ -972,6 +983,7 @@ export class ConfigStore {
           : defaultConfig.globalSkillsPath,
       enableDevLogs: toBoolean(raw.enableDevLogs, defaultConfig.enableDevLogs),
       theme: isAppTheme(raw.theme) ? raw.theme : defaultConfig.theme,
+      language: isAppLanguage(raw.language) ? raw.language : defaultConfig.language,
       sandboxEnabled: toBoolean(raw.sandboxEnabled, defaultConfig.sandboxEnabled),
       memoryEnabled: toBoolean(raw.memoryEnabled, defaultConfig.memoryEnabled),
       memoryRuntime: normalizeMemoryRuntimeConfig(raw.memoryRuntime),
@@ -1109,6 +1121,9 @@ export class ConfigStore {
           return defaultConfig[key];
         }
         if (key === 'theme' && !isAppTheme(rawValue)) {
+          return defaultConfig[key];
+        }
+        if (key === 'language' && !isAppLanguage(rawValue)) {
           return defaultConfig[key];
         }
         if (
@@ -1386,6 +1401,7 @@ export class ConfigStore {
       enableDevLogs:
         updates.enableDevLogs !== undefined ? updates.enableDevLogs : current.enableDevLogs,
       theme: updates.theme !== undefined ? updates.theme : current.theme,
+      language: updates.language !== undefined ? updates.language : current.language,
       sandboxEnabled:
         updates.sandboxEnabled !== undefined ? updates.sandboxEnabled : current.sandboxEnabled,
       memoryEnabled:
@@ -1504,9 +1520,9 @@ export class ConfigStore {
    * Apply config to environment variables
    * This should be called before creating sessions
    *
-   * 环境变量映射：
-   * - OpenAI 直连: OPENAI_API_KEY = apiKey, OPENAI_BASE_URL 可选
-   * - Anthropic 直连: ANTHROPIC_API_KEY = apiKey
+   * Environment variable mapping:
+   * - Direct OpenAI: OPENAI_API_KEY = apiKey, OPENAI_BASE_URL optional
+   * - Direct Anthropic: ANTHROPIC_API_KEY = apiKey
    * - Custom Anthropic: ANTHROPIC_API_KEY = apiKey
    * - OpenRouter: ANTHROPIC_AUTH_TOKEN = apiKey, ANTHROPIC_API_KEY = '' (proxy mode)
    */

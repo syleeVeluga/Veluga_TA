@@ -55,7 +55,10 @@ import {
   normalizeGeneratedTitle,
 } from './session-title-utils';
 import { generateTitleWithClaudeSdk } from '../claude/claude-sdk-one-shot';
-import { buildScheduledTaskTitle } from '../../shared/schedule/task-title';
+import {
+  buildScheduledTaskTitle,
+  type ScheduleTitleLanguage,
+} from '../../shared/schedule/task-title';
 
 interface AgentRunner {
   run(session: Session, prompt: string, existingMessages: Message[]): Promise<void>;
@@ -429,9 +432,12 @@ export class SessionManager {
     return normalizedGenerated ?? getDefaultTitleFromPrompt(normalizedPrompt);
   }
 
-  async generateScheduledTaskTitle(prompt: string): Promise<string> {
+  async generateScheduledTaskTitle(
+    prompt: string,
+    language?: ScheduleTitleLanguage
+  ): Promise<string> {
     const sessionTitle = await this.generateSessionTitleFromPrompt(prompt);
-    return buildScheduledTaskTitle(sessionTitle);
+    return buildScheduledTaskTitle(sessionTitle, language);
   }
 
   /**

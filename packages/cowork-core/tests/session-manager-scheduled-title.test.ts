@@ -47,40 +47,40 @@ describe('SessionManager scheduled title generation', () => {
   it('uses session title generation flow and prefixes scheduled title', async () => {
     const proto = SessionManager.prototype as unknown as {
       generateSessionTitleFromPrompt(prompt: string, cwd?: string): Promise<string>;
-      generateScheduledTaskTitle(prompt: string, cwd?: string): Promise<string>;
+      generateScheduledTaskTitle(prompt: string, language?: 'ko' | 'en'): Promise<string>;
     };
     const fakeManager = {
       withTimeout: vi.fn(async (promise: Promise<string | null>) => await promise),
-      generateTitleWithConfig: vi.fn(async () => '论文检索总结'),
+      generateTitleWithConfig: vi.fn(async () => 'Paper search summary'),
       generateSessionTitleFromPrompt: proto.generateSessionTitleFromPrompt,
     };
 
     const title = await proto.generateScheduledTaskTitle.call(
       fakeManager,
-      '请帮我总结过去一周 Agent 论文',
-      '/tmp/project'
+      'Find recent Agent papers',
+      'en'
     );
 
     expect(fakeManager.generateTitleWithConfig).toHaveBeenCalledWith(
-      buildTitlePrompt('请帮我总结过去一周 Agent 论文')
+      buildTitlePrompt('Find recent Agent papers')
     );
-    expect(title).toBe('[定时任务] 论文检索总结');
+    expect(title).toBe('[Scheduled Task] Paper search summary');
   });
 
   it('falls back to default prompt title when model title generation returns null', async () => {
     const proto = SessionManager.prototype as unknown as {
       generateSessionTitleFromPrompt(prompt: string, cwd?: string): Promise<string>;
-      generateScheduledTaskTitle(prompt: string, cwd?: string): Promise<string>;
+      generateScheduledTaskTitle(prompt: string, language?: 'ko' | 'en'): Promise<string>;
     };
-    const prompt = '请帮我使用 Chrome 搜索并总结 2026 年最近一天内与 [Agent] 相关的论文';
+    const prompt = 'Open Chrome and summarize Agent papers from 2026';
     const fakeManager = {
       withTimeout: vi.fn(async (promise: Promise<string | null>) => await promise),
       generateTitleWithConfig: vi.fn(async () => null),
       generateSessionTitleFromPrompt: proto.generateSessionTitleFromPrompt,
     };
 
-    const title = await proto.generateScheduledTaskTitle.call(fakeManager, prompt, '/tmp/project');
+    const title = await proto.generateScheduledTaskTitle.call(fakeManager, prompt, 'en');
 
-    expect(title).toBe(buildScheduledTaskTitle(getDefaultTitleFromPrompt(prompt)));
+    expect(title).toBe(buildScheduledTaskTitle(getDefaultTitleFromPrompt(prompt), 'en'));
   });
 });

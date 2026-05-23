@@ -1,5 +1,6 @@
 import type { AssistantMessage, TextContent, ThinkingContent, ToolCall } from '@mariozechner/pi-ai';
 import { splitThinkTagBlocks } from './think-tag-parser';
+import type { AppLanguage } from '../config/config-store';
 
 type MessageEndContentBlock = TextContent | ThinkingContent | ToolCall;
 
@@ -8,6 +9,7 @@ type MessageEndMessage = Pick<AssistantMessage, 'role' | 'content' | 'stopReason
 interface ResolveMessageEndPayloadOptions {
   message?: MessageEndMessage;
   streamedText: string;
+  language?: AppLanguage;
 }
 
 interface ResolvedMessageEndPayload {
@@ -17,34 +19,92 @@ interface ResolvedMessageEndPayload {
   shouldEmitMessage: boolean;
 }
 
-export function toUserFacingErrorText(errorText: string): string {
+const ERROR_TEXT = {
+  en: {
+    timeout:
+      'Model response timed out. No upstream response was received for a long time. Try again later or check the current model/gateway load.',
+    empty:
+      'The model returned an empty successful result. The current model or gateway may have a compatibility issue. Try again or switch protocol.',
+    badRequest:
+      'The upstream rejected the request (400), likely due to incompatible model or protocol settings. Check the model name, protocol settings, and API endpoint.',
+    auth:
+      'Authentication failed. Check whether the API key is correct, expired, or lacks access to the current model.',
+    rateLimit:
+      'The request was rate limited (429). The current model or API endpoint has reached its request limit. Try again later.',
+    server:
+      'The upstream service returned an error, likely due to overload or a temporary failure. The SDK will retry automatically.',
+    network:
+      'Network connection interrupted. The proxy or gateway may be unstable. The SDK will retry automatically.',
+    originalError: 'Original error',
+    checkConfig: '_Check the configuration and try again._',
+    retrying: '_Agent is retrying automatically. Please wait..._',
+  },
+  ko: {
+    timeout:
+      '모델 응답 시간이 초과되었습니다. 오랫동안 upstream 응답을 받지 못했습니다. 잠시 후 다시 시도하거나 현재 모델/게이트웨이 부하를 확인하세요.',
+    empty:
+      '모델이 빈 성공 결과를 반환했습니다. 현재 모델 또는 게이트웨이 호환성에 문제가 있을 수 있습니다. 다시 시도하거나 프로토콜을 바꿔 보세요.',
+    badRequest:
+      'upstream이 요청을 거부했습니다(400). 모델 또는 프로토콜 설정이 호환되지 않을 수 있습니다. 모델 이름, 프로토콜 설정, API endpoint를 확인하세요.',
+    auth:
+      '인증에 실패했습니다. API key가 올바른지, 만료되었는지, 현재 모델 접근 권한이 있는지 확인하세요.',
+    rateLimit:
+      '요청이 rate limit에 걸렸습니다(429). 현재 모델 또는 API endpoint의 호출 한도에 도달했습니다. 잠시 후 다시 시도하세요.',
+    server:
+      'upstream 서비스 오류가 발생했습니다. 모델 서비스 과부하 또는 일시적 장애일 수 있으며 SDK가 자동으로 재시도합니다.',
+    network:
+      '네트워크 연결이 중단되었습니다. 프록시 또는 게이트웨이가 불안정할 수 있으며 SDK가 자동으로 재시도합니다.',
+    originalError: '원본 오류',
+    checkConfig: '_설정을 확인한 뒤 다시 시도하세요._',
+    retrying: '_Agent가 자동으로 재시도 중입니다. 잠시 기다려 주세요..._',
+  },
+} satisfies Record<AppLanguage, Record<string, string>>;
+
+function normalizeLanguage(language: AppLanguage | undefined): AppLanguage {
+  return language === 'en' ? 'en' : 'ko';
+}
+
+function withOriginalError(message: string, errorText: string, language: AppLanguage): string {
+  return `${message}\n${ERROR_TEXT[language].originalError}: ${errorText}`;
+}
+
+export function getAgentErrorFollowupText(errorText: string, language?: AppLanguage): string {
+  const normalizedLanguage = normalizeLanguage(language);
+  return /\b4\d{2}\b/.test(errorText)
+    ? ERROR_TEXT[normalizedLanguage].checkConfig
+    : ERROR_TEXT[normalizedLanguage].retrying;
+}
+
+export function toUserFacingErrorText(errorText: string, language?: AppLanguage): string {
+  const normalizedLanguage = normalizeLanguage(language);
+  const text = ERROR_TEXT[normalizedLanguage];
   const lower = errorText.toLowerCase();
   if (lower.includes('first_response_timeout')) {
-    return '模型响应超时：长时间未收到上游返回，请稍后重试或检查当前模型/网关负载。';
+    return text.timeout;
   }
   if (lower.includes('empty_success_result')) {
-    return '模型返回了一个空的成功结果，当前模型或网关兼容性可能有问题，请重试或切换协议后再试。';
+    return text.empty;
   }
   if (
     /\b400\b/.test(errorText) ||
     lower.includes('bad request') ||
     lower.includes('invalid request')
   ) {
-    return `请求被上游拒绝（400），可能是模型/协议配置不兼容。请检查模型名称、协议设置和 API 端点。\n原始错误: ${errorText}`;
+    return withOriginalError(text.badRequest, errorText, normalizedLanguage);
   }
   if (
     /\b(401|403)\b/.test(errorText) ||
     lower.includes('unauthorized') ||
     lower.includes('forbidden')
   ) {
-    return `认证失败，请检查 API Key 是否正确、是否已过期或无权访问当前模型。\n原始错误: ${errorText}`;
+    return withOriginalError(text.auth, errorText, normalizedLanguage);
   }
   if (
     /\b429\b/.test(errorText) ||
     lower.includes('rate limit') ||
     lower.includes('too many requests')
   ) {
-    return `请求被限流（429），当前模型或 API 端点的调用频率已达上限，请稍后重试。\n原始错误: ${errorText}`;
+    return withOriginalError(text.rateLimit, errorText, normalizedLanguage);
   }
   if (
     /\b(5\d{2})\b/.test(errorText) ||
@@ -53,7 +113,7 @@ export function toUserFacingErrorText(errorText: string): string {
     lower.includes('service unavailable') ||
     lower.includes('overloaded')
   ) {
-    return `上游服务异常，可能是模型服务过载或临时故障，SDK 将自动重试。\n原始错误: ${errorText}`;
+    return withOriginalError(text.server, errorText, normalizedLanguage);
   }
   if (
     lower.includes('terminated') ||
@@ -67,7 +127,7 @@ export function toUserFacingErrorText(errorText: string): string {
     lower.includes('upstream connect') ||
     lower.includes('retry delay')
   ) {
-    return `网络连接中断（${errorText}），可能是代理/网关不稳定，SDK 将自动重试。`;
+    return `${text.network} (${errorText})`;
   }
   return errorText;
 }
@@ -75,13 +135,13 @@ export function toUserFacingErrorText(errorText: string): string {
 export function resolveMessageEndPayload(
   options: ResolveMessageEndPayloadOptions
 ): ResolvedMessageEndPayload {
-  const { message, streamedText } = options;
+  const { message, streamedText, language } = options;
   const nextStreamedText = '';
 
   if (message?.stopReason === 'error' && message.errorMessage) {
     return {
       effectiveContent: [],
-      errorText: toUserFacingErrorText(message.errorMessage),
+      errorText: toUserFacingErrorText(message.errorMessage, language),
       nextStreamedText,
       shouldEmitMessage: false,
     };
@@ -97,7 +157,7 @@ export function resolveMessageEndPayload(
   if (rawContent.length === 0) {
     return {
       effectiveContent: [],
-      errorText: toUserFacingErrorText('empty_success_result'),
+      errorText: toUserFacingErrorText('empty_success_result', language),
       nextStreamedText,
       shouldEmitMessage: false,
     };

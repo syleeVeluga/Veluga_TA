@@ -53,7 +53,11 @@ import type { SkillsAdapter } from '../skills/skills-adapter';
 import { AgentRuntimeExtensionManager } from '../extensions/agent-runtime-extension-manager';
 import { configStore } from '../config/config-store';
 import { normalizeOpenAICompatibleBaseUrl } from '../config/auth-utils';
-import { resolveMessageEndPayload, toUserFacingErrorText } from './agent-runner-message-end';
+import {
+  getAgentErrorFollowupText,
+  resolveMessageEndPayload,
+  toUserFacingErrorText,
+} from './agent-runner-message-end';
 import {
   applyPiModelRuntimeOverrides,
   buildSyntheticPiModel,
@@ -2245,6 +2249,7 @@ Tool routing:
               const resolvedPayload = resolveMessageEndPayload({
                 message: msg as Parameters<typeof resolveMessageEndPayload>[0]['message'],
                 streamedText,
+                language: configStore.get('language'),
               });
               streamedText = resolvedPayload.nextStreamedText;
               if (provider === 'ollama') {
@@ -2278,11 +2283,10 @@ Tool routing:
                     content: [
                       {
                         type: 'text',
-                        text: `**Error**: ${resolvedPayload.errorText}\n\n${
-                          /\b4\d{2}\b/.test(resolvedPayload.errorText)
-                            ? '_请检查配置后重试。_'
-                            : '_Agent 正在自动重试，请稍候..._'
-                        }`,
+                        text: `**Error**: ${resolvedPayload.errorText}\n\n${getAgentErrorFollowupText(
+                          resolvedPayload.errorText,
+                          configStore.get('language')
+                        )}`,
                       },
                     ],
                     timestamp: Date.now(),
@@ -2455,7 +2459,10 @@ Tool routing:
           }
           if (!hasEmittedError) {
             hasEmittedError = true;
-            const errorText = toUserFacingErrorText(toErrorText(subscribeErr));
+            const errorText = toUserFacingErrorText(
+              toErrorText(subscribeErr),
+              configStore.get('language')
+            );
             this.sendMessage(session.id, {
               id: uuidv4(),
               sessionId: session.id,
@@ -2549,7 +2556,7 @@ Tool routing:
       } else {
         logCtxError('[ClaudeAgentRunner] Error:', error);
 
-        const errorText = toUserFacingErrorText(toErrorText(error));
+        const errorText = toUserFacingErrorText(toErrorText(error), configStore.get('language'));
         const errorMsg: Message = {
           id: uuidv4(),
           sessionId: session.id,

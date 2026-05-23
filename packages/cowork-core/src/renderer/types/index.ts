@@ -560,6 +560,7 @@ export interface ExecutionContext {
 export type ProviderType = 'openrouter' | 'anthropic' | 'custom' | 'openai' | 'gemini' | 'ollama';
 export type CustomProtocolType = 'anthropic' | 'openai' | 'gemini';
 export type AppTheme = 'dark' | 'light' | 'system';
+export type AppLanguage = 'ko' | 'en';
 export type ProviderProfileKey =
   | 'openrouter'
   | 'anthropic'
@@ -637,6 +638,7 @@ export interface AppConfig {
   defaultWorkdir?: string;
   globalSkillsPath?: string;
   theme?: AppTheme;
+  language?: AppLanguage;
   sandboxEnabled?: boolean;
   memoryEnabled?: boolean;
   memoryRuntime?: MemoryRuntimeConfig;

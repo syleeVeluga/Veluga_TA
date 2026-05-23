@@ -6,6 +6,16 @@ import type { ApiConfigSet } from '../types';
 type PendingConfigSetAction =
   | { type: 'switch'; targetSetId: string };
 
+const DEFAULT_CONFIG_SET_NAMES = new Set(['Default Config Set', '\u9ed8\u8ba4\u65b9\u6848']);
+
+function shouldUseLocalizedDefaultName(set: ApiConfigSet | null | undefined): boolean {
+  if (!set?.isSystem) {
+    return false;
+  }
+  const storedName = set.name.trim();
+  return !storedName || DEFAULT_CONFIG_SET_NAMES.has(storedName);
+}
+
 interface ApiConfigSetManagerProps {
   configSets: ApiConfigSet[];
   activeConfigSetId: string;
@@ -51,19 +61,24 @@ export function ApiConfigSetManager(props: ApiConfigSetManagerProps) {
   const [activeLocalDialog, setActiveLocalDialog] = useState<'none' | 'delete'>('none');
   const [renameName, setRenameName] = useState('');
   const [isInlineRenaming, setIsInlineRenaming] = useState(false);
+  const displayConfigSetName = (set: ApiConfigSet | null | undefined) =>
+    shouldUseLocalizedDefaultName(set) ? t('api.defaultConfigSetName') : set?.name || '-';
+  const currentConfigSetDisplayName = displayConfigSetName(currentConfigSet);
 
   useEffect(() => {
     setActiveLocalDialog('none');
-    setRenameName(currentConfigSet?.name || '');
+    setRenameName(currentConfigSet ? currentConfigSetDisplayName : '');
     setIsInlineRenaming(false);
-  }, [activeConfigSetId, currentConfigSet?.name]);
+  }, [activeConfigSetId, currentConfigSet?.name, currentConfigSetDisplayName]);
 
-  const pendingActionMessage = t('api.unsavedSwitchPrompt', { name: pendingConfigSet?.name || '-' });
+  const pendingActionMessage = t('api.unsavedSwitchPrompt', {
+    name: displayConfigSetName(pendingConfigSet),
+  });
   const hasDialogOpen = activeLocalDialog !== 'none';
   const canRenameCurrentConfigSet = Boolean(currentConfigSet);
 
   const cancelInlineRename = () => {
-    setRenameName(currentConfigSet?.name || '');
+    setRenameName(currentConfigSet ? currentConfigSetDisplayName : '');
     setIsInlineRenaming(false);
   };
 
@@ -73,14 +88,14 @@ export function ApiConfigSetManager(props: ApiConfigSetManagerProps) {
       return;
     }
     const nextName = renameName.trim();
-    if (!nextName || nextName === currentConfigSet.name) {
-      setRenameName(currentConfigSet.name);
+    if (!nextName || nextName === currentConfigSetDisplayName) {
+      setRenameName(currentConfigSetDisplayName);
       setIsInlineRenaming(false);
       return;
     }
     const renamed = await onRenameSet(currentConfigSet.id, nextName);
     if (renamed === false) {
-      setRenameName(currentConfigSet.name);
+      setRenameName(currentConfigSetDisplayName);
       return;
     }
     setIsInlineRenaming(false);
@@ -126,7 +141,9 @@ export function ApiConfigSetManager(props: ApiConfigSetManagerProps) {
           >
             {configSets.map((set) => (
               <option key={set.id} value={set.id}>
-                {set.isSystem ? `${set.name} (${t('api.defaultSetTag')})` : set.name}
+                {set.isSystem
+                  ? `${displayConfigSetName(set)} (${t('api.defaultSetTag')})`
+                  : displayConfigSetName(set)}
               </option>
             ))}
           </select>
@@ -159,7 +176,7 @@ export function ApiConfigSetManager(props: ApiConfigSetManagerProps) {
               if (!currentConfigSet) {
                 return;
               }
-              setRenameName(currentConfigSet.name);
+              setRenameName(currentConfigSetDisplayName);
               setIsInlineRenaming(true);
             }}
             disabled={isMutatingConfigSet || !canRenameCurrentConfigSet || hasDialogOpen || isInlineRenaming}
@@ -184,7 +201,7 @@ export function ApiConfigSetManager(props: ApiConfigSetManagerProps) {
       {activeLocalDialog === 'delete' && currentConfigSet && (
         <div className="space-y-3 rounded-lg border border-error/30 bg-error/10 px-3 py-3">
           <p className="text-xs text-text-primary">
-            {t('api.configSetDeleteConfirm', { name: currentConfigSet.name })}
+            {t('api.configSetDeleteConfirm', { name: currentConfigSetDisplayName })}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button

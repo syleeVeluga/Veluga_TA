@@ -135,14 +135,15 @@ async function resolveScheduledTaskTitle(
   fallbackTitle?: string
 ): Promise<string> {
   const normalizedPrompt = prompt.trim();
+  const language = configStore.get('language');
   const fallback = fallbackTitle
-    ? buildScheduledTaskTitle(fallbackTitle)
-    : buildScheduledTaskFallbackTitle(normalizedPrompt);
+    ? buildScheduledTaskTitle(fallbackTitle, language)
+    : buildScheduledTaskFallbackTitle(normalizedPrompt, language);
   if (!sessionManager) {
     return fallback;
   }
   try {
-    return await sessionManager.generateScheduledTaskTitle(normalizedPrompt);
+    return await sessionManager.generateScheduledTaskTitle(normalizedPrompt, language);
   } catch (error) {
     logWarn('[Schedule] Failed to generate title via session title flow, using fallback', error);
     return fallback;
@@ -439,7 +440,7 @@ function createWindow() {
     try {
       allowedOrigins.add(new URL(process.env.VITE_DEV_SERVER_URL).origin);
     } catch {
-      // 忽略无效的开发服务地址
+      // Ignore invalid development server URLs.
     }
   }
   const allowedProtocols = new Set<string>(['file:', 'devtools:']);
@@ -675,7 +676,7 @@ async function startSandboxBootstrap(): Promise<void> {
   }
 }
 
-// 发送事件到渲染进程（含远程会话拦截）
+// Send events to the renderer, including remote session interception.
 function sendToRenderer(event: ServerEvent) {
   const payload =
     'payload' in event
@@ -683,25 +684,25 @@ function sendToRenderer(event: ServerEvent) {
       : undefined;
   const sessionId = payload?.sessionId;
 
-  // 判断是否远程会话
+  // Check whether this is a remote session.
   if (sessionId && remoteManager.isRemoteSession(sessionId)) {
-    // 处理远程会话事件
+    // Handle remote session events.
 
-    // 拦截 stream.message，用于回传到远程通道
+    // Intercept stream.message for forwarding back to the remote channel.
     if (event.type === 'stream.message') {
       const message = payload.message as {
         role?: string;
         content?: Array<{ type: string; text?: string }>;
       };
       if (message?.role === 'assistant' && message?.content) {
-        // 提取助手文本内容
+        // Extract assistant text content.
         const textContent = message.content
           .filter((c) => c.type === 'text' && c.text)
           .map((c) => c.text)
           .join('\n');
 
         if (textContent) {
-          // 发送到远程通道（带缓冲）
+          // Send to the remote channel with buffering.
           remoteManager.sendResponseToChannel(sessionId, textContent).catch((err: Error) => {
             logError('[Remote] Failed to send response to channel:', err);
           });
@@ -709,7 +710,7 @@ function sendToRenderer(event: ServerEvent) {
       }
     }
 
-    // 拦截 trace.step 作为工具进度
+    // Intercept trace.step as tool progress.
     if (event.type === 'trace.step') {
       const step = payload.step as {
         type?: string;
@@ -734,20 +735,20 @@ function sendToRenderer(event: ServerEvent) {
       }
     }
 
-    // trace.update 预留；当前主要用 trace.step
+    // trace.update is reserved; trace.step is the primary path for now.
 
-    // 拦截 session.status 用于清理
+    // Intercept session.status for cleanup.
     if (event.type === 'session.status') {
       const status = payload.status as string;
       if (status === 'idle' || status === 'error') {
-        // 会话结束，清空缓冲
+        // The session ended; clear buffered output.
         remoteManager.clearSessionBuffer(sessionId).catch((err: Error) => {
           logError('[Remote] Failed to clear session buffer:', err);
         });
       }
     }
 
-    // 拦截 permission.request
+    // Intercept permission.request.
     if (event.type === 'permission.request' && payload.toolUseId && payload.toolName) {
       log('[Remote] Intercepting permission for remote session:', sessionId);
       remoteManager
@@ -771,11 +772,11 @@ function sendToRenderer(event: ServerEvent) {
         .catch((err) => {
           logError('[Remote] Failed to handle permission request:', err);
         });
-      return; // 不发送到本地 UI
+      return; // Do not send to the local UI.
     }
   }
 
-  // 发送到本地 UI
+  // Send to the local UI.
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('server-event', event);
   }
@@ -826,7 +827,7 @@ app
     // Initialize default working directory
     initializeDefaultWorkingDir();
     log('Working directory:', currentWorkingDir);
-    // 远程会话默认使用全局工作目录
+    // Remote sessions use the global working directory by default.
     remoteManager.setDefaultWorkingDirectory(currentWorkingDir || undefined);
 
     // Initialize database
@@ -916,6 +917,7 @@ app
     const scheduledTaskStore = createScheduledTaskStore(db);
     scheduledTaskManager = new ScheduledTaskManager({
       store: scheduledTaskStore,
+      getLanguage: () => configStore.get('language'),
       executeTask: async (task) => {
         if (!sessionManager) {
           throw new Error('Session manager not initialized');
@@ -924,16 +926,19 @@ app
         if (unsupportedReason) {
           throw new Error(unsupportedReason);
         }
-        const fallbackTitle = buildScheduledTaskFallbackTitle(task.prompt);
+        const fallbackTitle = buildScheduledTaskFallbackTitle(
+          task.prompt,
+          configStore.get('language')
+        );
         const needsRegeneratedTitle = !task.title?.trim() || task.title === fallbackTitle;
         const title = needsRegeneratedTitle
           ? await resolveScheduledTaskTitle(task.prompt, task.cwd, task.title)
-          : buildScheduledTaskTitle(task.title);
+          : buildScheduledTaskTitle(task.title, configStore.get('language'));
         if (title !== task.title) {
           scheduledTaskStore.update(task.id, { title });
         }
         const started = await sessionManager.startSession(title, task.prompt, task.cwd);
-        // 定时任务创建的新会话需要主动同步到前端会话列表
+        // Sessions created by scheduled tasks must be synchronized to the frontend list.
         sendToRenderer({
           type: 'session.update',
           payload: { sessionId: started.id, updates: started },
@@ -950,7 +955,7 @@ app
     });
     scheduledTaskManager.start();
 
-    // 初始化远程管理器
+    // Initialize the remote manager.
     remoteManager.setRendererCallback(sendToRenderer);
     const agentExecutor: AgentExecutor = {
       startSession: async (title, prompt, cwd) => {
@@ -988,7 +993,7 @@ app
     };
     remoteManager.setAgentExecutor(agentExecutor);
 
-    // 远程控制启用时启动
+    // Start remote control when enabled.
     if (remoteConfigStore.isEnabled()) {
       remoteManager.start().catch((error) => {
         logError('[App] Failed to start remote control:', error);
@@ -1005,7 +1010,7 @@ app
   .catch((error) => {
     logError('[App] Startup failed:', error);
     const message = error instanceof Error ? error.message : 'Unknown startup error';
-    dialog.showErrorBox('Veluga 启动失败', `${message}\n\n请查看日志获取更多信息。`);
+    dialog.showErrorBox('Veluga startup failed', `${message}\n\nCheck the logs for more information.`);
     app.quit();
   });
 
@@ -1045,7 +1050,7 @@ async function cleanupSandboxResources(): Promise<void> {
   tray?.destroy();
   tray = null;
 
-  // 停止远程控制
+  // Stop remote control.
   try {
     log('[App] Stopping remote control...');
     await withTimeout(remoteManager.stop(), 5000, 'Remote control shutdown');
@@ -2260,7 +2265,7 @@ ipcMain.handle('logs.isEnabled', () => {
 });
 
 // ============================================================================
-// 远程控制 IPC 处理
+// Remote control IPC handlers
 // ============================================================================
 
 ipcMain.handle('remote.getConfig', () => {
@@ -2464,7 +2469,7 @@ ipcMain.handle('schedule.update', async (_event, id: string, updates: ScheduledT
       updates.title ?? existing.title
     );
   } else if (updates.title !== undefined) {
-    normalizedUpdates.title = buildScheduledTaskTitle(updates.title);
+    normalizedUpdates.title = buildScheduledTaskTitle(updates.title, configStore.get('language'));
   }
 
   return scheduledTaskManager.update(id, normalizedUpdates);
@@ -2663,7 +2668,7 @@ async function handleClientEvent(event: ClientEvent): Promise<unknown> {
     sendToRenderer({
       type: 'error',
       payload: {
-        message: '当前方案未配置可用凭证，请先在 API 设置中完成配置',
+        message: 'The current config set does not have usable credentials. Finish setup in API Settings first.',
         code: 'CONFIG_REQUIRED_ACTIVE_SET',
         action: 'open_api_settings',
       },

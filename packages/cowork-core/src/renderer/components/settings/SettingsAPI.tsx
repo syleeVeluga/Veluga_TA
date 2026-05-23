@@ -20,6 +20,19 @@ interface ModelOptionItem {
   name: string;
 }
 
+function getApiKeyHintKey(provider: string): string {
+  if (
+    provider === 'openrouter' ||
+    provider === 'anthropic' ||
+    provider === 'openai' ||
+    provider === 'gemini' ||
+    provider === 'ollama'
+  ) {
+    return `api.keyHint.${provider}`;
+  }
+  return 'api.keyHint.custom';
+}
+
 // ==================== API Settings Tab ====================
 
 export function SettingsAPI() {
@@ -87,6 +100,11 @@ export function SettingsAPI() {
     handleDeepDiagnose,
     shouldShowOllamaManualModelToggle,
   } = useApiConfigState();
+  const apiKeyPlaceholder =
+    provider === 'ollama'
+      ? t('api.keyPlaceholder.ollama')
+      : currentPreset?.keyPlaceholder || t('api.enterApiKey');
+  const apiKeyHint = t(getApiKeyHintKey(provider));
 
   if (isLoadingConfig) {
     return (
@@ -162,12 +180,10 @@ export function SettingsAPI() {
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder={currentPreset?.keyPlaceholder || t('api.enterApiKey')}
+          placeholder={apiKeyPlaceholder}
           className="w-full px-4 py-3 rounded-lg bg-background border border-border text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
         />
-        {currentPreset?.keyHint && (
-          <p className="text-xs text-text-muted">{currentPreset.keyHint}</p>
-        )}
+        <p className="text-xs text-text-muted">{apiKeyHint}</p>
       </div>
 
       {/* Custom Protocol */}

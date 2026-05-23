@@ -14,6 +14,7 @@
 import {
   buildScheduledTaskFallbackTitle,
   buildScheduledTaskTitle,
+  type ScheduleTitleLanguage,
 } from '../../shared/schedule/task-title';
 import { log, logError } from '../utils/logger';
 
@@ -104,6 +105,7 @@ interface ScheduledTaskManagerOptions {
   store: ScheduledTaskStore;
   executeTask: (task: ScheduledTask) => Promise<ScheduledTaskRunResult>;
   onTaskError?: (taskId: string, error: string) => void;
+  getLanguage?: () => ScheduleTitleLanguage;
   now?: () => number;
 }
 
@@ -111,6 +113,7 @@ export class ScheduledTaskManager {
   private readonly store: ScheduledTaskStore;
   private readonly executeTask: (task: ScheduledTask) => Promise<ScheduledTaskRunResult>;
   private readonly onTaskError?: (taskId: string, error: string) => void;
+  private readonly getLanguage: () => ScheduleTitleLanguage;
   private readonly now: () => number;
   private readonly timers = new Map<string, NodeJS.Timeout>();
   private readonly executingTasks = new Set<string>();
@@ -120,6 +123,7 @@ export class ScheduledTaskManager {
     this.store = options.store;
     this.executeTask = options.executeTask;
     this.onTaskError = options.onTaskError;
+    this.getLanguage = options.getLanguage ?? (() => 'ko');
     this.now = options.now ?? (() => Date.now());
   }
 
@@ -160,9 +164,10 @@ export class ScheduledTaskManager {
 
   create(input: ScheduledTaskCreateInput): ScheduledTask {
     const normalizedPrompt = input.prompt.trim();
+    const language = this.getLanguage();
     const normalizedTitle = input.title
-      ? buildScheduledTaskTitle(input.title)
-      : buildScheduledTaskFallbackTitle(normalizedPrompt);
+      ? buildScheduledTaskTitle(input.title, language)
+      : buildScheduledTaskFallbackTitle(normalizedPrompt, language);
     const normalizedScheduleConfig = normalizeScheduleConfig(input.scheduleConfig);
     const normalizedRepeatEvery = normalizedScheduleConfig
       ? null
@@ -189,10 +194,11 @@ export class ScheduledTaskManager {
     const current = this.store.get(id);
     if (!current) return null;
     const nextPrompt = updates.prompt === undefined ? current.prompt : updates.prompt.trim();
+    const language = this.getLanguage();
     const nextTitle =
       updates.title === undefined
         ? current.title
-        : buildScheduledTaskTitle(updates.title || nextPrompt);
+        : buildScheduledTaskTitle(updates.title || nextPrompt, language);
     const nextScheduleConfig =
       updates.scheduleConfig === undefined
         ? undefined

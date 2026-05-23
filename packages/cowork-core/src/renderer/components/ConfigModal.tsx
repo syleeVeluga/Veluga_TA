@@ -37,6 +37,19 @@ const PROVIDER_LABELS: Record<
   custom: 'Custom',
 };
 
+function getApiKeyHintKey(provider: string): string {
+  if (
+    provider === 'openrouter' ||
+    provider === 'anthropic' ||
+    provider === 'openai' ||
+    provider === 'gemini' ||
+    provider === 'ollama'
+  ) {
+    return `api.keyHint.${provider}`;
+  }
+  return 'api.keyHint.custom';
+}
+
 export function ConfigModal({
   isOpen,
   onClose,
@@ -118,6 +131,12 @@ export function ConfigModal({
   }, [lastSaveCompletedAt, onClose]);
 
   if (!isOpen) return null;
+
+  const apiKeyPlaceholder =
+    provider === 'ollama'
+      ? t('api.keyPlaceholder.ollama')
+      : currentPreset?.keyPlaceholder || t('api.enterApiKey');
+  const apiKeyHint = t(getApiKeyHintKey(provider));
 
   const testErrorMessage = (result: ApiTestResult) => {
     switch (result.errorType) {
@@ -231,12 +250,10 @@ export function ConfigModal({
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={currentPreset?.keyPlaceholder || t('api.enterApiKey')}
+              placeholder={apiKeyPlaceholder}
               className="w-full px-4 py-3 rounded-xl bg-background border border-border text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
             />
-            {currentPreset?.keyHint && (
-              <p className="text-xs text-text-muted">{currentPreset.keyHint}</p>
-            )}
+            <p className="text-xs text-text-muted">{apiKeyHint}</p>
           </div>
 
           {/* Custom Protocol */}

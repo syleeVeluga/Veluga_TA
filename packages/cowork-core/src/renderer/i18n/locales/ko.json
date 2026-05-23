@@ -173,6 +173,7 @@
     "settingsSubtitle": "Provider, key, model 설정을 관리합니다",
     "configSet": "설정 세트",
     "defaultSetTag": "기본값",
+    "defaultConfigSetName": "기본 설정 세트",
     "saveAs": "다른 이름으로 저장",
     "renameSet": "이름 변경",
     "deleteSet": "설정 세트 삭제",
@@ -195,6 +196,17 @@
     "apiKey": "API Key",
     "enterApiKey": "API Key를 입력하세요",
     "apiKeyDescription": "로컬에 저장되며 활성 설정 세트에만 적용됩니다.",
+    "keyPlaceholder": {
+      "ollama": "비워 둘 수 있음"
+    },
+    "keyHint": {
+      "openrouter": "openrouter.ai/keys에서 발급받으세요",
+      "anthropic": "console.anthropic.com에서 발급받으세요",
+      "openai": "platform.openai.com에서 발급받으세요",
+      "gemini": "aistudio.google.com에서 발급받으세요",
+      "ollama": "대부분의 Ollama 배포는 비워 둘 수 있습니다. 프록시에서 인증을 요구할 때만 Key를 입력하세요.",
+      "custom": "사용 중인 서비스의 API Key를 입력하세요"
+    },
     "protocol": "프로토콜",
     "baseUrl": "Base URL",
     "model": "모델",
@@ -722,9 +734,9 @@
     "autoTitleLabel": "자동 제목(세션 식별에 사용)",
     "autoTitleChangedHint": "Prompt가 변경되었습니다. 저장 후 제목이 다시 생성됩니다.",
     "autoTitleUnchangedHint": "Prompt가 그대로면 기존 제목이 유지됩니다.",
-    "autoTitleEditingChanged": "저장 후 prompt에서 [Scheduled Task] prefix가 붙은 제목이 다시 생성됩니다.",
-    "autoTitleEditingUnchanged": "저장 후 [Scheduled Task] prefix가 붙은 제목이 생성됩니다.",
-    "autoTitleCreating": "저장 후 [Scheduled Task] prefix와 모델 요약으로 제목이 생성됩니다.",
+    "autoTitleEditingChanged": "저장 후 prompt에서 [예약 작업] prefix가 붙은 제목이 다시 생성됩니다.",
+    "autoTitleEditingUnchanged": "저장 후 [예약 작업] prefix가 붙은 제목이 생성됩니다.",
+    "autoTitleCreating": "저장 후 [예약 작업] prefix와 모델 요약으로 제목이 생성됩니다.",
     "promptPlaceholder": "예약 시간에 자동 실행할 prompt",
     "cwdPlaceholder": "작업 디렉터리(기본값: 현재 workspace)",
     "executionTime": "실행 시간",
