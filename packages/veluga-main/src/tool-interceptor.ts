@@ -20,7 +20,16 @@ export function interceptTools<T extends ExecutableTool>(
     ...tool,
     execute: async (...args: unknown[]) => {
       const started = Date.now();
-      options.guard.onBeforeCall(tool.name, args, { session: { id: options.sessionId }, policy: options.policy });
+      const decision = options.guard.onBeforeCall(tool.name, args, {
+        session: { id: options.sessionId },
+        policy: options.policy
+      });
+      if (decision.kind === 'deny') {
+        throw new Error(`Tool execution denied by policy: ${decision.reason}`);
+      }
+      if (decision.kind === 'require_approval') {
+        throw new Error(`Tool execution requires approval: ${decision.prompt}`);
+      }
       const result = await tool.execute(...args);
       options.audit.append({
         session_id: options.sessionId,

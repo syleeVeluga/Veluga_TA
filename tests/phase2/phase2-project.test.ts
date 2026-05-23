@@ -12,6 +12,7 @@ import { renderVelugaDocx } from '../../packages/veluga-main/src/docx-adapter.js
 import { IntentRouter } from '../../packages/veluga-main/src/agents/intent-router.js';
 import { initializeProject } from '../../packages/veluga-main/src/project-initializer.js';
 import { openProject } from '../../packages/veluga-main/src/project-reentry.js';
+import { readProjectYaml, writeProjectYaml } from '../../packages/veluga-main/src/project-yaml.js';
 import { extractStyleCard } from '../../packages/veluga-main/src/style-card.js';
 import { updateLastSessionSummary } from '../../packages/veluga-main/src/session-summary.js';
 import { ProjectReentryBanner } from '../../packages/veluga-renderer/src/ProjectReentryBanner.js';
@@ -87,6 +88,11 @@ describe('Phase2 project layer', () => {
     expect(yaml).toContain('project_id: "phase2-demo"');
     expect(openProject(root, baseInput(null)).policy.project?.project_id).toBe('phase2-demo');
 
+    const parsedProject = readProjectYaml(path.join(root, 'project.yaml'));
+    parsedProject.overrides = { ...parsedProject.overrides, retention_default_days: 90 };
+    writeProjectYaml(path.join(root, 'project.yaml'), parsedProject);
+    expect(openProject(root, baseInput(null)).policy.effective.retention_default_days).toBe(90);
+
     const noProject = await tempProject();
     const openedNoProject = openProject(noProject, baseInput(null));
     expect(openedNoProject.project).toBeNull();
@@ -139,6 +145,28 @@ describe('Phase2 project layer', () => {
     expect(result.matched).toBe(1);
     expect(result.unmatched).toHaveLength(1);
     expect(result.modified_text).toContain('[unverified]');
+  });
+
+  it('does not resolve citations outside the project root', async () => {
+    const root = await tempProject();
+    initializeProject(root, policy(null), { projectId: 'citation-containment-demo' });
+    const outsideRoot = `${root}-outside`;
+    mkdirSync(outsideRoot, { recursive: true });
+    writeFileSync(path.join(outsideRoot, 'secret.txt'), 'External secret should never be cited.', 'utf8');
+    const relativeEscape = path.relative(root, path.join(outsideRoot, 'secret.txt')).replace(/\\/g, '/');
+    const activePolicy = policy({ project_id: 'citation-containment-demo', active_skills: ['citation-verifier'] });
+    const result = verifyProjectCitations({
+      projectRoot: root,
+      policy: activePolicy,
+      text: `External secret should never be cited [src:nb_${relativeEscape}#0|nb].`
+    });
+
+    expect(result.matched).toBe(0);
+    expect(result.unmatched).toEqual([
+      expect.objectContaining({
+        reason: 'source_file_missing'
+      })
+    ]);
   });
 
   it('renders docx with citations, strips parametric tags, and records watermark state', async () => {

@@ -46,7 +46,7 @@ export function serializeProjectYaml(project: ProjectYaml): string {
     'retention_default_days'
   ] as const) {
     if (overrides[key] !== undefined) {
-      lines.push(`  ${key}: ${quote(String(overrides[key]))}`);
+      lines.push(`  ${key}: ${formatScalar(overrides[key])}`);
     }
   }
   lines.push(`  active_skills: ${formatArray(overrides.active_skills ?? [])}`);
@@ -61,6 +61,10 @@ export function serializeProjectYaml(project: ProjectYaml): string {
 
 function quote(value: string): string {
   return JSON.stringify(value);
+}
+
+function formatScalar(value: string | number): string {
+  return typeof value === 'number' ? String(value) : quote(value);
 }
 
 function formatArray(values: string[]): string {

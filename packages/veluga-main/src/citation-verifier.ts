@@ -101,15 +101,13 @@ function matchCitation(input: {
 }
 
 function resolveProjectFile(root: string, fileId: string): string | null {
-  const direct = path.resolve(root, fileId);
   const rootResolved = path.resolve(root);
-  if (direct.startsWith(rootResolved) && existsSync(direct)) {
-    return direct;
-  }
-  const decoded = decodeURIComponent(fileId);
-  const decodedPath = path.resolve(root, decoded);
-  if (decodedPath.startsWith(rootResolved) && existsSync(decodedPath)) {
-    return decodedPath;
+  for (const candidateId of [fileId, decodeURIComponent(fileId)]) {
+    const candidate = path.resolve(rootResolved, candidateId);
+    const relative = path.relative(rootResolved, candidate);
+    if (!relative.startsWith('..') && !path.isAbsolute(relative) && existsSync(candidate)) {
+      return candidate;
+    }
   }
   return null;
 }

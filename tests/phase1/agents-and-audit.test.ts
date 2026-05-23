@@ -101,6 +101,37 @@ describe('Phase1 agents, audit, guard, and skills', () => {
     expect(audit.all().filter((row) => row.event_type === 'tool.called')).toHaveLength(1);
   });
 
+  it('blocks wrapped tool execution when enforce-mode policy requires approval', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'veluga-tool-block-'));
+    const audit = new AuditLogger(path.join(dir, 'audit.sqlite'));
+    await audit.init();
+    const policy = makePolicy({
+      institution: {
+        approval_for_destructive: 'required',
+        policy_guard_mode: 'enforce'
+      }
+    });
+    const guard = new PolicyGuard(audit);
+    guard.register({ name: 'write-file', privilege: 'WRITE_LOCAL' });
+    let executed = false;
+    const tools = interceptTools(
+      [
+        {
+          name: 'write-file',
+          execute: (_value: unknown) => {
+            executed = true;
+            return 'wrote';
+          }
+        }
+      ],
+      { guard, audit, sessionId: 's1', policy }
+    );
+
+    await expect(tools[0].execute('hello')).rejects.toThrow(/requires approval/);
+    expect(executed).toBe(false);
+    expect(audit.all().filter((row) => row.event_type === 'tool.called')).toHaveLength(0);
+  });
+
   it('answers self-help from PolicyContext only and preserves mode-off fallback', async () => {
     const policy = makePolicy();
     const selfHelp = handleSystemSelfHelp({ policyContext: policy });

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { PolicyContext } from '../../shared-types/src/index.js';
 
 const PolicyContextReact = createContext<PolicyContext | null>(null);
@@ -11,7 +11,7 @@ export function PolicyProvider({
   children: React.ReactNode;
 }) {
   const [policy, setPolicy] = useState(initialPolicy);
-  useMemo(() => initialPolicy.subscribe(setPolicy), [initialPolicy]);
+  useEffect(() => initialPolicy.subscribe(setPolicy), [initialPolicy]);
   return <PolicyContextReact.Provider value={policy}>{children}</PolicyContextReact.Provider>;
 }
 
