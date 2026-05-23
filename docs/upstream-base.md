@@ -12,6 +12,12 @@
 
 Veluga Phase 1 work should treat `packages/cowork-core` as protected upstream source. Veluga-owned code should be added through adapter packages or explicit hook shims rather than editing upstream files directly, unless a hook shim is unavoidable and documented in `docs/cowork-hooks.md`.
 
+## Attribution Record
+
+Veluga uses Open Cowork as its upstream MIT-licensed foundation. The product-facing app name is Veluga, while Open Cowork attribution is retained separately in this document, `packages/veluga-ui/credits/LICENSES.md`, and the preserved upstream MIT license at `packages/cowork-core/LICENSE`.
+
+Open Cowork references inside runtime code should be limited to compatibility, migration, legacy uninstall cleanup, upstream baseline, or license/credit contexts.
+
 ## Local Baseline Verification
 
 Environment:

@@ -46,9 +46,33 @@ describe('Phase1 white-out and renderer bindings', () => {
 
   it('preserves Open Cowork MIT credit text and records manual verification gaps', async () => {
     const credits = await readFile('packages/veluga-ui/credits/LICENSES.md', 'utf8');
+    const upstream = await readFile('docs/upstream-base.md', 'utf8');
     const verification = await readFile('docs/phase1-verification.md', 'utf8');
+    expect(credits).toContain('Open Cowork');
     expect(credits).toContain('MIT License');
+    expect(upstream).toContain('Attribution Record');
+    expect(upstream).toContain('Open Cowork as its upstream MIT-licensed foundation');
     expect(verification).toContain('mitmproxy');
     expect(verification).toContain('Veluga Mode OFF');
+  });
+
+  it('uses Veluga product branding in packaged app metadata and primary renderer labels', async () => {
+    const packageJson = JSON.parse(await readFile('packages/cowork-core/package.json', 'utf8')) as {
+      name: string;
+      author: string;
+      description: string;
+    };
+    const indexHtml = await readFile('packages/cowork-core/index.html', 'utf8');
+    const builderConfig = await readFile('packages/cowork-core/electron-builder.yml', 'utf8');
+    const enLocale = await readFile('packages/cowork-core/src/renderer/i18n/locales/en.json', 'utf8');
+
+    expect(packageJson.name).toBe('veluga');
+    expect(packageJson.author).toBe('Veluga');
+    expect(packageJson.description).toContain('Veluga AI agent desktop app');
+    expect(indexHtml).toContain('<title>Veluga</title>');
+    expect(builderConfig).toContain('appId: com.veluga.app');
+    expect(builderConfig).toContain('productName: Veluga');
+    expect(enLocale).toContain('Veluga logo');
+    expect(enLocale).not.toContain('Open Cowork logo');
   });
 });
