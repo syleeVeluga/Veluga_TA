@@ -199,3 +199,7 @@ docs(agents): update intent-router decision table
 ```
 
 Common types: `feat`, `fix`, `test`, `docs`, `refactor`, `chore`, `ci`
+
+## 13. User-Facing Settings
+
+Model preset, chat-header model switching, and `thinkingLevel` UI architecture are documented in `docs/model-and-thinking-ui.md`.

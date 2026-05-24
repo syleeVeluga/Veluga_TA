@@ -1010,7 +1010,10 @@ app
   .catch((error) => {
     logError('[App] Startup failed:', error);
     const message = error instanceof Error ? error.message : 'Unknown startup error';
-    dialog.showErrorBox('Veluga startup failed', `${message}\n\nCheck the logs for more information.`);
+    dialog.showErrorBox(
+      'Veluga startup failed',
+      `${message}\n\nCheck the logs for more information.`
+    );
     app.quit();
   });
 
@@ -1418,7 +1421,7 @@ const buildAgentRuntimeSignature = (config: AppConfig): string =>
     baseUrl: config.baseUrl,
     customProtocol: config.customProtocol,
     model: config.model,
-    enableThinking: config.enableThinking,
+    thinkingLevel: config.thinkingLevel,
     memoryEnabled: config.memoryEnabled,
     memoryRuntime: config.memoryRuntime,
   });
@@ -1527,6 +1530,32 @@ ipcMain.handle('config.switchSet', async (_event, payload: { id: string }) => {
   const updatedConfig = await syncConfigAfterMutation(previousConfig);
   return { success: true, config: updatedConfig };
 });
+
+ipcMain.handle(
+  'config.setActiveModel',
+  async (_event, payload: { profileKey: AppConfig['activeProfileKey']; modelId: string }) => {
+    const modelId = typeof payload.modelId === 'string' ? payload.modelId.trim() : '';
+    if (!modelId) {
+      throw new Error('Model is required');
+    }
+
+    const previousConfig = configStore.getAll();
+    if (!previousConfig.profiles?.[payload.profileKey]) {
+      throw new Error('Profile not found');
+    }
+
+    log('[Config] Setting active model:', {
+      profileKey: payload.profileKey,
+      modelId,
+    });
+    configStore.update({
+      activeProfileKey: payload.profileKey,
+      model: modelId,
+    });
+    const updatedConfig = await syncConfigAfterMutation(previousConfig);
+    return { success: true, config: updatedConfig };
+  }
+);
 
 ipcMain.handle('config.isConfigured', () => {
   try {
@@ -2084,6 +2113,7 @@ ipcMain.handle('logs.export', async () => {
         customProtocol: configStore.get('customProtocol') || null,
         sandboxEnabled: !!configStore.get('sandboxEnabled'),
         thinkingEnabled: !!configStore.get('enableThinking'),
+        thinkingLevel: configStore.get('thinkingLevel'),
         apiKeyConfigured: !!configStore.get('apiKey'),
         claudeCodePathConfigured: !!configStore.get('claudeCodePath'),
         defaultWorkdir: configStore.get('defaultWorkdir') || null,
@@ -2668,7 +2698,8 @@ async function handleClientEvent(event: ClientEvent): Promise<unknown> {
     sendToRenderer({
       type: 'error',
       payload: {
-        message: 'The current config set does not have usable credentials. Finish setup in API Settings first.',
+        message:
+          'The current config set does not have usable credentials. Finish setup in API Settings first.',
         code: 'CONFIG_REQUIRED_ACTIVE_SET',
         action: 'open_api_settings',
       },

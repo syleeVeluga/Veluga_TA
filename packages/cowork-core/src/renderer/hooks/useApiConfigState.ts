@@ -14,11 +14,9 @@ import type {
   ProviderType,
 } from '../types';
 import { isLoopbackBaseUrl } from '../../shared/network/loopback';
-import {
-  DEFAULT_OLLAMA_BASE_URL,
-  normalizeOllamaBaseUrl,
-} from '../../shared/ollama-base-url';
+import { DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl } from '../../shared/ollama-base-url';
 import { API_PROVIDER_PRESETS, getModelInputGuidance } from '../../shared/api-model-presets';
+import { deriveThinkingLevel, type SharedThinkingLevel } from '../../shared/thinking';
 import {
   COMMON_PROVIDER_SETUPS,
   detectCommonProviderSetup,
@@ -50,6 +48,7 @@ interface ConfigStateSnapshot {
   activeProfileKey: ProviderProfileKey;
   profiles: Record<ProviderProfileKey, UIProviderProfile>;
   enableThinking: boolean;
+  thinkingLevel: SharedThinkingLevel;
 }
 
 interface ApiConfigBootstrap {
@@ -171,7 +170,7 @@ function isLegacyOllamaConfig(
   }
 }
 
-function modelPresetForProfile(profileKey: ProviderProfileKey, presets: ProviderPresets) {
+export function modelPresetForProfile(profileKey: ProviderProfileKey, presets: ProviderPresets) {
   if (profileKey === 'ollama') {
     return presets.ollama;
   }
@@ -187,6 +186,20 @@ function modelPresetForProfile(profileKey: ProviderProfileKey, presets: Provider
   return presets[profileKey];
 }
 
+export function getModelOptionsForProfile(
+  profileKey: ProviderProfileKey,
+  presets: ProviderPresets,
+  discoveredModels: Partial<Record<ProviderProfileKey, ProviderModelInfo[]>> = {}
+): ProviderModelInfo[] {
+  if (
+    profileKey === 'ollama' &&
+    Object.prototype.hasOwnProperty.call(discoveredModels, profileKey)
+  ) {
+    return discoveredModels[profileKey] || [];
+  }
+  return modelPresetForProfile(profileKey, presets).models;
+}
+
 function defaultProfileForKey(
   profileKey: ProviderProfileKey,
   presets: ProviderPresets
@@ -196,7 +209,7 @@ function defaultProfileForKey(
   return {
     apiKey: '',
     baseUrl: preset.baseUrl,
-    model: profileKey === 'ollama' ? '' : (preset.models[0]?.id || ''),
+    model: profileKey === 'ollama' ? '' : preset.models[0]?.id || '',
     customModel: '',
     useCustomModel: prefersCustomInput,
     contextWindow: '',
@@ -232,8 +245,18 @@ function isPristineCustomProfile(
   const apiKey = profile.apiKey?.trim() || '';
   const baseUrl = profile.baseUrl?.trim() || fallback.baseUrl;
   const model = profile.model?.trim() || fallback.model;
+  const legacyDefaultModel =
+    profileKey === 'custom:openai'
+      ? 'gpt-5.4'
+      : profileKey === 'custom:gemini'
+        ? 'gemini-2.5-flash'
+        : '';
 
-  return apiKey === '' && baseUrl === fallback.baseUrl && model === fallback.model;
+  return (
+    apiKey === '' &&
+    baseUrl === fallback.baseUrl &&
+    (model === fallback.model || model === legacyDefaultModel)
+  );
 }
 
 function normalizeProfile(
@@ -251,6 +274,7 @@ function normalizeProfile(
       ...fallback,
       apiKey: '',
       baseUrl: fallback.baseUrl,
+      model: profile.model?.trim() || fallback.model,
       customModel: '',
       useCustomModel: true,
       contextWindow: '',
@@ -265,9 +289,8 @@ function normalizeProfile(
   );
   return {
     apiKey: profile?.apiKey || '',
-    baseUrl: profileKey === 'ollama'
-      ? (normalizeOllamaBaseUrl(rawBaseUrl) || fallback.baseUrl)
-      : rawBaseUrl,
+    baseUrl:
+      profileKey === 'ollama' ? normalizeOllamaBaseUrl(rawBaseUrl) || fallback.baseUrl : rawBaseUrl,
     model: hasPresetModel ? modelValue : fallback.model,
     customModel: hasPresetModel ? '' : modelValue,
     useCustomModel: !hasPresetModel,
@@ -329,10 +352,16 @@ export function buildApiConfigSnapshot(
     );
   }
 
+  const thinkingLevel = deriveThinkingLevel({
+    thinkingLevel: config?.thinkingLevel,
+    enableThinking: config?.enableThinking,
+  });
+
   return {
     activeProfileKey,
     profiles,
-    enableThinking: Boolean(config?.enableThinking),
+    enableThinking: thinkingLevel !== 'off',
+    thinkingLevel,
   };
 }
 
@@ -359,12 +388,16 @@ function toPersistedProfiles(
 export function buildApiConfigDraftSignature(
   activeProfileKey: ProviderProfileKey,
   profiles: Record<ProviderProfileKey, UIProviderProfile>,
-  enableThinking: boolean
+  thinkingLevel: SharedThinkingLevel | boolean
 ): string {
   const persisted = toPersistedProfiles(profiles);
+  const normalizedThinkingLevel =
+    typeof thinkingLevel === 'boolean'
+      ? deriveThinkingLevel({ enableThinking: thinkingLevel })
+      : thinkingLevel;
   return JSON.stringify({
     activeProfileKey,
-    enableThinking,
+    thinkingLevel: normalizedThinkingLevel,
     profiles: PROFILE_KEYS.map((key) => ({
       key,
       apiKey: persisted[key]?.apiKey || '',
@@ -434,12 +467,21 @@ export function buildApiConfigSets(
       return {
         ...set,
         id: typeof set.id === 'string' && set.id.trim() ? set.id : `set-${index + 1}`,
-        name: typeof set.name === 'string' && set.name.trim() ? set.name : `Config Set ${index + 1}`,
+        name:
+          typeof set.name === 'string' && set.name.trim() ? set.name : `Config Set ${index + 1}`,
         provider,
         customProtocol,
         activeProfileKey,
         profiles: normalizedProfiles,
-        enableThinking: Boolean(set.enableThinking),
+        enableThinking:
+          deriveThinkingLevel({
+            thinkingLevel: set.thinkingLevel,
+            enableThinking: set.enableThinking,
+          }) !== 'off',
+        thinkingLevel: deriveThinkingLevel({
+          thinkingLevel: set.thinkingLevel,
+          enableThinking: set.enableThinking,
+        }),
         updatedAt: typeof set.updatedAt === 'string' && set.updatedAt.trim() ? set.updatedAt : now,
       };
     });
@@ -461,7 +503,8 @@ export function buildApiConfigSets(
       customProtocol: activeMeta.customProtocol,
       activeProfileKey: snapshot.activeProfileKey,
       profiles: toPersistedProfiles(snapshot.profiles),
-      enableThinking: snapshot.enableThinking,
+      enableThinking: snapshot.thinkingLevel !== 'off',
+      thinkingLevel: snapshot.thinkingLevel,
       updatedAt: now,
     },
   ];
@@ -568,8 +611,8 @@ interface ApiConfigState {
   activeConfigSetId: string;
   // Deferred action waiting for unsaved-changes resolution
   pendingConfigSetAction: PendingConfigSetAction | null;
-  // Extended thinking flag
-  enableThinking: boolean;
+  // Extended thinking budget
+  thinkingLevel: SharedThinkingLevel;
   // Remember last custom protocol so switching back to custom restores it
   lastCustomProtocol: CustomProtocolType;
   // Signature of the last persisted state (used for dirty-check)
@@ -610,7 +653,7 @@ type ApiConfigAction =
         presets: ProviderPresets;
         profiles: Record<ProviderProfileKey, UIProviderProfile>;
         activeProfileKey: ProviderProfileKey;
-        enableThinking: boolean;
+        thinkingLevel: SharedThinkingLevel;
         configSets: ApiConfigSet[];
         activeConfigSetId: string;
         lastCustomProtocol: CustomProtocolType;
@@ -619,8 +662,8 @@ type ApiConfigAction =
     }
   // Active profile key
   | { type: 'SET_ACTIVE_PROFILE_KEY'; payload: ProviderProfileKey }
-  // Enable thinking toggle
-  | { type: 'SET_ENABLE_THINKING'; payload: boolean }
+  // Extended thinking budget
+  | { type: 'SET_THINKING_LEVEL'; payload: SharedThinkingLevel }
   // Patch one profile in the profiles map
   | { type: 'PATCH_PROFILE'; profileKey: ProviderProfileKey; patch: Partial<UIProviderProfile> }
   // Replace a profile using a functional updater
@@ -678,7 +721,7 @@ function apiConfigReducer(state: ApiConfigState, action: ApiConfigAction): ApiCo
         presets: action.payload.presets,
         profiles: action.payload.profiles,
         activeProfileKey: action.payload.activeProfileKey,
-        enableThinking: action.payload.enableThinking,
+        thinkingLevel: action.payload.thinkingLevel,
         configSets: action.payload.configSets,
         activeConfigSetId: action.payload.activeConfigSetId,
         pendingConfigSetAction: null,
@@ -689,8 +732,8 @@ function apiConfigReducer(state: ApiConfigState, action: ApiConfigAction): ApiCo
     case 'SET_ACTIVE_PROFILE_KEY':
       return { ...state, activeProfileKey: action.payload };
 
-    case 'SET_ENABLE_THINKING':
-      return { ...state, enableThinking: action.payload };
+    case 'SET_THINKING_LEVEL':
+      return { ...state, thinkingLevel: action.payload };
 
     case 'PATCH_PROFILE':
       return {
@@ -833,7 +876,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
     pendingConfigSetAction: null,
     isMutatingConfigSet: false,
     lastCustomProtocol: initialLastCustomProtocol,
-    enableThinking: Boolean(initialConfig?.enableThinking),
+    thinkingLevel: initialBootstrap.snapshot.thinkingLevel,
     discoveredModels: {},
     isLoadingConfig: true,
     savedDraftSignature: '',
@@ -863,7 +906,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
     pendingConfigSetAction,
     isMutatingConfigSet,
     lastCustomProtocol,
-    enableThinking,
+    thinkingLevel,
     discoveredModels,
     isLoadingConfig,
     savedDraftSignature,
@@ -929,14 +972,9 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
     profiles[activeProfileKey] || defaultProfileForKey(activeProfileKey, presets);
   const modelPreset = modelPresetForProfile(activeProfileKey, presets);
   const currentPreset = modelPreset;
-  const hasDiscoveredOllamaModels =
-    provider === 'ollama' && Object.prototype.hasOwnProperty.call(discoveredModels, activeProfileKey);
-  const modelOptions = provider === 'ollama'
-    ? (discoveredModels[activeProfileKey] || [])
-    : hasDiscoveredOllamaModels
-      ? (discoveredModels[activeProfileKey] || [])
-      : modelPreset.models;
+  const modelOptions = getModelOptionsForProfile(activeProfileKey, presets, discoveredModels);
   const modelInputGuidance = getModelInputGuidance(provider, customProtocol);
+  const enableThinking = thinkingLevel !== 'off';
 
   const currentConfigSet = useMemo(
     () => configSets.find((set) => set.id === activeConfigSetId) || null,
@@ -1111,8 +1149,8 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
         (customProtocol === 'gemini' && isCustomGeminiLoopbackGateway(baseUrl))));
   const requiresApiKey = !allowEmptyApiKey;
   const currentDraftSignature = useMemo(
-    () => buildApiConfigDraftSignature(activeProfileKey, profiles, enableThinking),
-    [activeProfileKey, profiles, enableThinking]
+    () => buildApiConfigDraftSignature(activeProfileKey, profiles, thinkingLevel),
+    [activeProfileKey, profiles, thinkingLevel]
   );
   const hasUnsavedChanges =
     savedDraftSignature !== '' && currentDraftSignature !== savedDraftSignature;
@@ -1137,14 +1175,14 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
           presets: loadedPresets,
           profiles: bootstrap.snapshot.profiles,
           activeProfileKey: bootstrap.snapshot.activeProfileKey,
-          enableThinking: bootstrap.snapshot.enableThinking,
+          thinkingLevel: bootstrap.snapshot.thinkingLevel,
           configSets: bootstrap.configSets,
           activeConfigSetId: bootstrap.activeConfigSetId,
           lastCustomProtocol: resolvedLastCustomProtocol,
           savedDraftSignature: buildApiConfigDraftSignature(
             bootstrap.snapshot.activeProfileKey,
             bootstrap.snapshot.profiles,
-            bootstrap.snapshot.enableThinking
+            bootstrap.snapshot.thinkingLevel
           ),
         },
       });
@@ -1272,8 +1310,8 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
   }, [updateActiveProfile]);
 
   // Public setter exposed to consumers — wraps dispatch so the interface stays stable
-  const setEnableThinking = useCallback((value: boolean) => {
-    dispatch({ type: 'SET_ENABLE_THINKING', payload: value });
+  const setThinkingLevel = useCallback((value: SharedThinkingLevel) => {
+    dispatch({ type: 'SET_THINKING_LEVEL', payload: value });
   }, []);
 
   useEffect(() => {
@@ -1743,6 +1781,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
           profiles: persistedProfiles,
           activeConfigSetId,
           enableThinking,
+          thinkingLevel,
         };
 
         if (onSave) {
@@ -1781,6 +1820,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
       customModel,
       customProtocol,
       enableThinking,
+      thinkingLevel,
       model,
       onSave,
       presets,
@@ -2088,6 +2128,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
     isMutatingConfigSet,
     canDeleteCurrentConfigSet,
     configSetLimit: CONFIG_SET_LIMIT,
+    thinkingLevel,
     setApiKey,
     setBaseUrl,
     setModel,
@@ -2095,7 +2136,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
     setContextWindow,
     setMaxTokens,
     toggleCustomModel,
-    setEnableThinking,
+    setThinkingLevel,
     applyCommonProviderSetup,
     changeProvider,
     changeProtocol,

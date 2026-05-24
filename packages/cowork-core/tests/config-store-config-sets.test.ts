@@ -101,6 +101,47 @@ describe('ConfigStore config sets', () => {
     expect(defaultSetView.apiKey).toBe('sk-openrouter-origin');
   });
 
+  it('lets explicit thinking off override stale enableThinking', () => {
+    mocks.seed = {
+      provider: 'openrouter',
+      customProtocol: 'anthropic',
+      apiKey: 'sk-openrouter-origin',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'anthropic/claude-opus-4-7',
+      enableThinking: true,
+      thinkingLevel: 'high',
+      isConfigured: true,
+    };
+
+    const store = new ConfigStore();
+    store.update({ thinkingLevel: 'off' });
+
+    const config = store.getAll();
+    expect(config.thinkingLevel).toBe('off');
+    expect(config.enableThinking).toBe(false);
+  });
+
+  it('clears thinking when switching to a non-reasoning model', () => {
+    mocks.seed = {
+      provider: 'openrouter',
+      customProtocol: 'anthropic',
+      apiKey: 'sk-openrouter-origin',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'anthropic/claude-opus-4-7',
+      enableThinking: true,
+      thinkingLevel: 'high',
+      isConfigured: true,
+    };
+
+    const store = new ConfigStore();
+    store.update({ model: 'openai/gpt-5.5' });
+
+    const config = store.getAll();
+    expect(config.model).toBe('openai/gpt-5.5');
+    expect(config.thinkingLevel).toBe('off');
+    expect(config.enableThinking).toBe(false);
+  });
+
   it('guards default set deletion and falls back to default after delete', () => {
     const store = new ConfigStore();
     const created = store.createSet({ name: 'My Set', mode: 'clone' });
@@ -171,7 +212,7 @@ describe('ConfigStore config sets', () => {
     expect(blankSet?.provider).toBe('gemini');
     expect(blankSet?.profiles.gemini?.apiKey).toBe('');
     expect(blankSet?.profiles.gemini?.baseUrl).toBe('https://generativelanguage.googleapis.com');
-    expect(blankSet?.profiles.gemini?.model).toBe('gemini-2.5-flash');
+    expect(blankSet?.profiles.gemini?.model).toBe('gemini-3.5-flash');
   });
 
   it('persists theme preference across config mutations', () => {

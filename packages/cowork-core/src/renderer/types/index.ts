@@ -1,3 +1,5 @@
+import type { SharedThinkingLevel } from '../../shared/thinking';
+
 // Session types
 export interface Session {
   id: string;
@@ -589,6 +591,7 @@ export interface ApiConfigSet {
   activeProfileKey: ProviderProfileKey;
   profiles: Partial<Record<ProviderProfileKey, ProviderProfile>>;
   enableThinking: boolean;
+  thinkingLevel?: SharedThinkingLevel;
   updatedAt: string;
 }
 
@@ -643,6 +646,7 @@ export interface AppConfig {
   memoryEnabled?: boolean;
   memoryRuntime?: MemoryRuntimeConfig;
   enableThinking?: boolean;
+  thinkingLevel?: SharedThinkingLevel;
   isConfigured: boolean;
 }
 

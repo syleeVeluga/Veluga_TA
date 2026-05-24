@@ -8,11 +8,11 @@ import {
   useActiveTurn,
   usePendingTurns,
   useActiveExecutionClock,
-  useAppConfig,
 } from '../store/selectors';
 import { useAppStore } from '../store';
 import { useIPC } from '../hooks/useIPC';
 import { MessageCard } from './MessageCard';
+import { ChatHeaderModelSwitcher } from './ChatHeaderModelSwitcher';
 import type { Message, ContentBlock } from '../types';
 import { Send, Square, Plus, Loader2, Plug, X, Clock } from 'lucide-react';
 
@@ -34,7 +34,6 @@ export function ChatView() {
   const activeTurn = useActiveTurn();
   const pendingTurns = usePendingTurns();
   const executionClock = useActiveExecutionClock();
-  const appConfig = useAppConfig();
   const setGlobalNotice = useAppStore((s) => s.setGlobalNotice);
   const { continueSession, stopSession, isElectron } = useIPC();
   const [prompt, setPrompt] = useState('');
@@ -815,10 +814,7 @@ export function ChatView() {
               />
 
               <div className="flex items-center gap-2">
-                {/* Model display */}
-                <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full border border-border-subtle bg-background/60 text-xs text-text-muted">
-                  {appConfig?.model || t('chat.noModel')}
-                </span>
+                <ChatHeaderModelSwitcher />
 
                 {canStop && (
                   <button

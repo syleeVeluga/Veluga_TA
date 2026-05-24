@@ -249,6 +249,17 @@
     "enableThinking": "Enable Thinking Mode",
     "enableThinkingHint": "Show Claude's thinking process step by step. This provides more transparency but may increase token usage.",
     "enableThinkingOllamaHint": "Most Ollama models do not support thinking mode. Enable only if your model explicitly supports it.",
+    "thinkingLevel": "Thinking Level",
+    "thinkingLevelHint": "Controls the extended-thinking budget for reasoning-capable models.",
+    "thinkingLevelUnsupported": "The selected model does not advertise reasoning controls.",
+    "thinkingLevelValues": {
+      "off": "Off",
+      "minimal": "Minimal",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "xhigh": "XHigh"
+    },
     "testSuccess": "Connection successful ({{ms}}ms)",
     "testSuccessNeedSave": "Connection test passed. Save settings before starting a session.",
     "testError": {
@@ -677,6 +688,7 @@
     "startFailed": "Failed to start session. Please try again.",
     "disclaimer": "Veluga is AI-powered and may make mistakes. Please double-check responses.",
     "noModel": "No model",
+    "modelSwitcher": "Switch model",
     "connectorCount": "{{count}} connectors",
     "connectorCount_one": "{{count}} connector",
     "connectorCount_other": "{{count}} connectors"

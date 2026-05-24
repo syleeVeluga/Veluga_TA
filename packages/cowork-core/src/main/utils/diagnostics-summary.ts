@@ -75,6 +75,7 @@ export interface DiagnosticsSummary {
     customProtocol: string | null;
     sandboxEnabled: boolean;
     thinkingEnabled: boolean;
+    thinkingLevel?: string;
     apiKeyConfigured: boolean;
     claudeCodePathConfigured: boolean;
     defaultWorkdir: string | null;
@@ -173,10 +174,7 @@ export function redactFileSystemPath(value?: string | null): string | null {
   if (/AppData[/\\]Local[/\\]Temp/i.test(trimmed)) {
     const appDataTempIdx = normalizedForTmpCheck.search(/appdata\/local\/temp/i);
     if (appDataTempIdx >= 0) {
-      const tmpBase = normalizedForTmpCheck.slice(
-        0,
-        appDataTempIdx + 'AppData/Local/Temp'.length
-      );
+      const tmpBase = normalizedForTmpCheck.slice(0, appDataTempIdx + 'AppData/Local/Temp'.length);
       const tail = getRelativeTail(normalizedForTmpCheck, tmpBase);
       return tail ? `<tmp>/${tail}` : '<tmp>';
     }

@@ -14,6 +14,8 @@ import { useApiConfigState } from '../../hooks/useApiConfigState';
 import { ApiConfigSetManager } from '../ApiConfigSetManager';
 import { CommonProviderSetupsCard, GuidanceInlineHint } from '../ProviderGuidance';
 import ApiDiagnosticsPanel from '../ApiDiagnosticsPanel';
+import { ThinkingLevelSegmentedControl } from '../ThinkingLevelSegmentedControl';
+import { modelSupportsReasoning } from '../../../shared/thinking';
 
 interface ModelOptionItem {
   id: string;
@@ -58,7 +60,7 @@ export function SettingsAPI() {
     successMessage,
     isRefreshingModels,
     isDiscoveringLocalOllama,
-    enableThinking,
+    thinkingLevel,
     isOllamaMode,
     requiresApiKey,
     protocolGuidanceText,
@@ -80,7 +82,7 @@ export function SettingsAPI() {
     setContextWindow,
     setMaxTokens,
     toggleCustomModel,
-    setEnableThinking,
+    setThinkingLevel,
     applyCommonProviderSetup,
     changeProvider,
     changeProtocol,
@@ -105,6 +107,8 @@ export function SettingsAPI() {
       ? t('api.keyPlaceholder.ollama')
       : currentPreset?.keyPlaceholder || t('api.enterApiKey');
   const apiKeyHint = t(getApiKeyHintKey(provider));
+  const selectedModelId = useCustomModel ? customModel : model;
+  const reasoningSupported = modelSupportsReasoning(selectedModelId);
 
   if (isLoadingConfig) {
     return (
@@ -408,26 +412,26 @@ export function SettingsAPI() {
         />
       )}
 
-      {/* Enable Thinking Mode */}
+      {/* Thinking Level */}
       <div className="space-y-3 py-5 border-b border-border-muted">
-        <div className="flex items-start gap-2 text-xs text-text-muted">
-          <input
-            type="checkbox"
-            id="enable-thinking"
-            checked={enableThinking}
-            onChange={(e) => setEnableThinking(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded border-border text-accent focus:ring-accent"
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-medium text-text-primary">
+            {t('api.thinkingLevel')}
+          </legend>
+          <ThinkingLevelSegmentedControl
+            value={thinkingLevel}
+            onChange={setThinkingLevel}
+            disabled={!reasoningSupported}
           />
-          <label htmlFor="enable-thinking" className="space-y-0.5 flex-1">
-            <div className="text-text-primary font-medium">{t('api.enableThinking')}</div>
-            <div>{t('api.enableThinkingHint')}</div>
-            {isOllamaMode && (
-              <div className="text-amber-500 dark:text-amber-400 text-xs mt-1">
-                {t('api.enableThinkingOllamaHint')}
-              </div>
-            )}
-          </label>
-        </div>
+          <p className="text-xs leading-5 text-text-muted">
+            {reasoningSupported ? t('api.thinkingLevelHint') : t('api.thinkingLevelUnsupported')}
+          </p>
+          {isOllamaMode && (
+            <p className="text-amber-500 dark:text-amber-400 text-xs">
+              {t('api.enableThinkingOllamaHint')}
+            </p>
+          )}
+        </fieldset>
       </div>
 
       {/* Error/Success Messages */}

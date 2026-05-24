@@ -1,10 +1,9 @@
 import { getModel, type Api, type Model } from '@mariozechner/pi-ai';
 import { isOfficialOpenAIBaseUrl } from '../config/auth-utils';
+import { REASONING_MODEL_PATTERN } from '../../shared/thinking';
 
 const COMMON_FALLBACK_PROVIDERS = ['openai', 'anthropic', 'google'] as const;
 const INVALID_REGISTRY_PROVIDERS = new Set(['', 'custom']);
-const REASONING_MODEL_PATTERN =
-  /\bthinking\b|\breasoner\b|deepseek-r1|deepseek-v4|kimi-k2|qwen3(?:\.5)?(?=[:/-]|$)/i;
 const DEEPSEEK_V4_MODEL_PATTERN = /^deepseek-v4(?:$|[-:])/i;
 type PiRegistryProvider = Parameters<typeof getModel>[0];
 

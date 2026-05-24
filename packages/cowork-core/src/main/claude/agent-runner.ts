@@ -67,6 +67,7 @@ import {
 } from './pi-model-resolution';
 import { buildPiSessionRuntimeSignature } from './pi-session-runtime';
 import { ThinkTagStreamParser } from './think-tag-parser';
+import { deriveThinkingLevel, type SharedThinkingLevel } from '../../shared/thinking';
 import {
   normalizeMcpToolResultForModel,
   normalizeToolExecutionResultForUi,
@@ -1537,10 +1538,11 @@ ${hints.join('\n')}
       logCtx('[ClaudeAgentRunner] Using pi-ai native routing for:', piModel.provider, piModel.id);
 
       // Resolve thinking level early — needed for session reuse check below
-      const enableThinking = configStore.get('enableThinking') ?? false;
-      logCtx('[ClaudeAgentRunner] Enable thinking mode:', enableThinking);
-      type PiThinkingLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
-      const thinkingLevel: PiThinkingLevel = enableThinking ? 'medium' : 'off';
+      const thinkingLevel = deriveThinkingLevel({
+        thinkingLevel: configStore.get('thinkingLevel'),
+        enableThinking: configStore.get('enableThinking'),
+      }) as SharedThinkingLevel;
+      logCtx('[ClaudeAgentRunner] Thinking level:', thinkingLevel);
       const sessionRuntimeSignature = buildPiSessionRuntimeSignature({
         configProvider: runtimeConfig.provider,
         customProtocol: runtimeConfig.customProtocol,

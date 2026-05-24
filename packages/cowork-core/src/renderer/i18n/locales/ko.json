@@ -249,6 +249,17 @@
     "enableThinking": "Thinking Mode 활성화",
     "enableThinkingHint": "Claude의 thinking 과정을 단계별로 표시합니다. 투명성은 높아지지만 token 사용량이 늘 수 있습니다.",
     "enableThinkingOllamaHint": "대부분의 Ollama 모델은 thinking mode를 지원하지 않습니다. 모델이 명시적으로 지원할 때만 활성화하세요.",
+    "thinkingLevel": "Thinking Level",
+    "thinkingLevelHint": "reasoning 지원 모델의 extended-thinking 예산을 조절합니다.",
+    "thinkingLevelUnsupported": "선택한 모델은 reasoning 제어를 지원하지 않습니다.",
+    "thinkingLevelValues": {
+      "off": "끔",
+      "minimal": "최소",
+      "low": "낮음",
+      "medium": "중간",
+      "high": "높음",
+      "xhigh": "최고"
+    },
     "testSuccess": "연결 성공({{ms}}ms)",
     "testSuccessNeedSave": "연결 테스트가 통과했습니다. 세션을 시작하기 전에 설정을 저장하세요.",
     "testError": {
@@ -677,6 +688,7 @@
     "startFailed": "세션을 시작하지 못했습니다. 다시 시도하세요.",
     "disclaimer": "Veluga는 AI 기반이며 실수할 수 있습니다. 응답을 다시 확인하세요.",
     "noModel": "모델 없음",
+    "modelSwitcher": "모델 전환",
     "connectorCount": "{{count}}개 connector",
     "connectorCount_one": "{{count}}개 connector",
     "connectorCount_other": "{{count}}개 connector"
