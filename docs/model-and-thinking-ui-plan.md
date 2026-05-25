@@ -1,5 +1,19 @@
 # Plan — Latest-model Updates, Chat-header Model Switcher, Thinking-level Selector
 
+> **상태(Status):** ✅ **전체 완료 — 2026-05-25 (commit `3ee82a8`)**
+> 계획 수립 + 구현 모두 `main` 브랜치 반영됨. 이 문서는 변경 이력(change-log)으로 보존.
+>
+> | 단계 | 내용 | 상태 | 핵심 산출물 |
+> |------|------|------|------|
+> | 계획 수립 | 본 문서 작성 및 `docs/` 등록 | ✅ 완료 | commit `87e2709` |
+> | A | Anthropic 4.7 / OpenAI 5.5 / Gemini 3.5-flash 프리셋 갱신 | ✅ 완료 | [api-model-presets.ts](../packages/cowork-core/src/shared/api-model-presets.ts) `(latest)` 태그 부착 |
+> | B | `enableThinking` → `thinkingLevel` 스키마 승격 | ✅ 완료 | [shared/thinking.ts](../packages/cowork-core/src/shared/thinking.ts) 신규 + config-store · agent-runner 통합 |
+> | C | SettingsAPI 6단계 세그먼트 UI | ✅ 완료 | [ThinkingLevelSegmentedControl.tsx](../packages/cowork-core/src/renderer/components/ThinkingLevelSegmentedControl.tsx) 신규 |
+> | D | Chat 헤더 모델 스위처 | ✅ 완료 | [ChatHeaderModelSwitcher.tsx](../packages/cowork-core/src/renderer/components/ChatHeaderModelSwitcher.tsx) 신규 + [ChatView.tsx](../packages/cowork-core/src/renderer/components/ChatView.tsx) 연결 |
+> | E2 | `docs/model-and-thinking-ui.md` 아키텍처 노트 | ✅ 완료 | [model-and-thinking-ui.md](model-and-thinking-ui.md) + AGENTS.md 크로스 링크 |
+> | i18n | 한국어/영어 라벨 추가 | ✅ 완료 | en.json / ko.json 12 lines each |
+> | 테스트 | config-set 마이그레이션 회귀 테스트 | ✅ 완료 | tests/config-store-config-sets.test.ts |
+
 ## Context
 
 Veluga_TA (Electron + React, forked from Cowork) currently lists outdated Anthropic
