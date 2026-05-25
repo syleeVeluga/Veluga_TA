@@ -24,12 +24,12 @@
 - 5MB 코드 파일 → 렌더 또는 "too large to highlight" 명시적 폴백
 
 ## 체크리스트
-- [ ] `.ts`/`.tsx`/`.py`/`.json`/`.yaml`/`.go`/`.rs`/`.java`/`.css` 하이라이팅 동작
-- [ ] 폐쇄망 동작 확인 (방화벽 차단)
-- [ ] 빌드 산출물에 WASM 청크 포함
-- [ ] 싱글톤 캐시 동작 (2번째 파일 100ms 이내)
-- [ ] 알 수 없는 확장자 fallback 확인
-- [ ] 5MB+ 파일에 대한 폴백 정책 확인
+- [x] `.ts`/`.tsx`/`.py`/`.json`/`.yaml`/`.go`/`.rs`/`.java`/`.css` 하이라이팅 동작
+- [x] 폐쇄망 동작 확인 (방화벽 차단)
+- [x] 빌드 산출물에 WASM 청크 포함
+- [x] 싱글톤 캐시 동작 (2번째 파일 100ms 이내)
+- [x] 알 수 없는 확장자 fallback 확인
+- [x] 5MB+ 파일에 대한 폴백 정책 확인
 
 ## 롤백
 `viewer-map.ts`에서 `code` 키만 `UnsupportedViewer`로 되돌리면 즉시 비활성. shiki 의존성도 제거 가능.

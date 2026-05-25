@@ -47,16 +47,16 @@
 - 상대 경로 → `{ error: 'NOT_ABSOLUTE' }`
 
 ## 체크리스트
-- [ ] `features/file-viewer/` 폴더 + 9개 스캐폴드 파일 생성 (`open-from-ui.ts` 포함)
-- [ ] `useFileViewerStore`가 기존 `useAppStore`와 완전 독립 (grep으로 교차 import 0 확인)
-- [ ] `previewKindForFile()` 정상 동작 (수동 테스트)
-- [ ] `openFileFromUI()` 단일 라우터 export 확인 (OS_ONLY_EXTS 분기 포함)
-- [ ] `file-viewer:read` 정상 파일 → base64 반환
-- [ ] 50MB 초과 → `TOO_LARGE` 에러 코드
-- [ ] 상대/미존재 경로 → 명시적 에러 코드
-- [ ] 빌드 + 타입체크 성공
-- [ ] ContextPanel/ContentBlockView 기존 동작 회귀 없음 (라우팅 미교체 상태)
-- [ ] `window.electronAPI.fileViewer.read` 타입 노출 확인
+- [x] `features/file-viewer/` 폴더 + 9개 스캐폴드 파일 생성 (`open-from-ui.ts` 포함)
+- [x] `useFileViewerStore`가 기존 `useAppStore`와 완전 독립 (grep으로 교차 import 0 확인)
+- [x] `previewKindForFile()` 정상 동작 (수동 테스트)
+- [x] `openFileFromUI()` 단일 라우터 export 확인 (OS_ONLY_EXTS 분기 포함)
+- [x] `file-viewer:read` 정상 파일 → base64 반환
+- [x] 50MB 초과 → `TOO_LARGE` 에러 코드
+- [x] 상대/미존재 경로 → 명시적 에러 코드
+- [x] 빌드 + 타입체크 성공
+- [x] ContextPanel/ContentBlockView 기존 동작 회귀 없음 (라우팅 미교체 상태)
+- [x] `window.electronAPI.fileViewer.read` 타입 노출 확인
 
 ## 롤백
 이 단계의 커밋만 revert하면 기능 흔적 없이 원복. `App.tsx`에서 `<FileViewerPanel/>` 마운트만 주석해도 즉시 비활성.

@@ -48,28 +48,28 @@
 ## 체크리스트
 
 ### 뷰어별 렌더 (사용자 진입 시 실제 열림 확인)
-- [ ] **MarkdownViewer**: ContextPanel에서 `.md` 클릭, 채팅 markdown 링크 `[x](./a.md)` 클릭, 인라인 코드 `` `README.md` `` 클릭 — 3경로 모두 동일 패널에서 열림
-- [ ] **TextViewer**: `.txt`/`.log`/`.env` — ContextPanel + 채팅 양쪽에서 열림
-- [ ] **ImageViewer**: `.png`/`.jpg`/`.svg`/`.webp` — ContextPanel + 채팅 양쪽에서 열림
-- [ ] **PdfViewer**: `.pdf` — Chromium 뷰어, 스크롤/확대
-- [ ] **HtmlViewer**: `.html` — 렌더링 O, 스크립트 실행 X, **부모 DOM 접근 X**
-- [ ] **CsvViewer**: `.csv`/`.tsv` — 한글 포함 표, 따옴표 안 쉼표
-- [ ] **UnsupportedViewer (OS_ONLY_EXTS)**: `.pptx`/`.zip`/`.exe`/`.dmg` — OS 탐색기로 빠짐 (회귀 없음)
+- [x] **MarkdownViewer**: ContextPanel에서 `.md` 클릭, 채팅 markdown 링크 `[x](./a.md)` 클릭, 인라인 코드 `` `README.md` `` 클릭 — 3경로 모두 동일 패널에서 열림
+- [x] **TextViewer**: `.txt`/`.log`/`.env` — ContextPanel + 채팅 양쪽에서 열림
+- [x] **ImageViewer**: `.png`/`.jpg`/`.svg`/`.webp` — ContextPanel + 채팅 양쪽에서 열림
+- [x] **PdfViewer**: `.pdf` — Chromium 뷰어, 스크롤/확대
+- [x] **HtmlViewer**: `.html` — 렌더링 O, 스크립트 실행 X, **부모 DOM 접근 X**
+- [x] **CsvViewer**: `.csv`/`.tsv` — 한글 포함 표, 따옴표 안 쉼표
+- [x] **UnsupportedViewer (OS_ONLY_EXTS)**: `.pptx`/`.zip`/`.exe`/`.dmg` — OS 탐색기로 빠짐 (회귀 없음)
 
 ### 진입점 5곳 일관성
-- [ ] ContextPanel 아티팩트 클릭 → `openFileFromUI` 라우팅
-- [ ] ContextPanel 최근 파일 클릭 → `openFileFromUI` 라우팅 (같은 핸들러)
-- [ ] 채팅 메시지 markdown 파일 링크 → `openFileFromUI`
-- [ ] 채팅 메시지 인라인 코드 파일 멘션 → `openFileFromUI`
-- [ ] CWD 링크 → `showItemInFolder` 유지 (회귀 없음, 폴더이므로 패널 대상 아님)
-- [ ] Settings 메모리 경로 → `showItemInFolder` 유지 (정책)
-- [ ] 외부 http(s) 링크 → `openExternal` 유지
+- [x] ContextPanel 아티팩트 클릭 → `openFileFromUI` 라우팅
+- [x] ContextPanel 최근 파일 클릭 → `openFileFromUI` 라우팅 (같은 핸들러)
+- [x] 채팅 메시지 markdown 파일 링크 → `openFileFromUI`
+- [x] 채팅 메시지 인라인 코드 파일 멘션 → `openFileFromUI`
+- [x] CWD 링크 → `showItemInFolder` 유지 (회귀 없음, 폴더이므로 패널 대상 아님)
+- [x] Settings 메모리 경로 → `showItemInFolder` 유지 (정책)
+- [x] 외부 http(s) 링크 → `openExternal` 유지
 
 ### 패널 동작
-- [ ] X 버튼 → 패널 사라지고 ContextPanel 정상
-- [ ] 패널 열린 상태에서 다른 파일 클릭 → 내용 교체
-- [ ] 500KB 텍스트 파일 렌더 1초 이내
-- [ ] **`package.json` diff = 비어 있음** (신규 deps 0개)
+- [x] X 버튼 → 패널 사라지고 ContextPanel 정상
+- [x] 패널 열린 상태에서 다른 파일 클릭 → 내용 교체
+- [x] 500KB 텍스트 파일 렌더 1초 이내
+- [x] **`package.json` diff = 비어 있음** (신규 deps 0개)
 
 ## 롤백
 이 단계 커밋만 revert. Stage 0 인프라는 유지되며 패널은 빈 쉘로 복귀.
