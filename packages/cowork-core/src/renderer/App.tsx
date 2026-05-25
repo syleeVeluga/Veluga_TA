@@ -32,6 +32,9 @@ const ChatView = lazy(() =>
 const ContextPanel = lazy(() =>
   import('./components/ContextPanel').then((module) => ({ default: module.ContextPanel }))
 );
+const FileViewerPanel = lazy(() =>
+  import('./features/file-viewer').then((module) => ({ default: module.FileViewerPanel }))
+);
 const ConfigModal = lazy(() =>
   import('./components/ConfigModal').then((module) => ({ default: module.ConfigModal }))
 );
@@ -217,6 +220,12 @@ function App() {
             </Suspense>
           </PanelErrorBoundary>
         )}
+
+        <PanelErrorBoundary name="FileViewerPanel" fallback={null}>
+          <Suspense fallback={null}>
+            <FileViewerPanel />
+          </Suspense>
+        </PanelErrorBoundary>
       </div>
 
       {/* Permission Dialog */}

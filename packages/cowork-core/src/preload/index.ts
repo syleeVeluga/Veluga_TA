@@ -39,6 +39,8 @@ import type {
   PairingRequest,
   RemoteSessionMapping,
 } from '../shared/ipc-types';
+import { createFileViewerBinding } from '../renderer/features/file-viewer/ipc/preload-binding';
+import type { ReadFileResult } from '../renderer/features/file-viewer/types';
 
 // Track registered callbacks to prevent duplicate listeners
 let registeredCallback: ((event: ServerEvent) => void) | null = null;
@@ -144,6 +146,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   showItemInFolder: (filePath: string, cwd?: string) =>
     ipcRenderer.invoke('shell.showItemInFolder', filePath, cwd),
+  fileViewer: createFileViewerBinding(),
 
   // Select files using native dialog
   selectFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog.selectFiles'),
@@ -459,6 +462,9 @@ declare global {
       getVersion: () => Promise<string>;
       openExternal: (url: string) => Promise<boolean>;
       showItemInFolder: (filePath: string, cwd?: string) => Promise<boolean>;
+      fileViewer: {
+        read: (filePath: string) => Promise<ReadFileResult>;
+      };
       selectFiles: () => Promise<string[]>;
       artifacts: {
         listRecentFiles: (

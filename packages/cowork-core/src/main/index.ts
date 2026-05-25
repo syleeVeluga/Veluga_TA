@@ -85,6 +85,7 @@ import {
 } from './utils/logger';
 import { listRecentWorkspaceFiles } from './utils/recent-workspace-files';
 import { buildDiagnosticsSummary } from './utils/diagnostics-summary';
+import { registerFileViewerIpc } from '../renderer/features/file-viewer/ipc/main-handler';
 
 // Current working directory (persisted between sessions)
 let currentWorkingDir: string | null = null;
@@ -827,6 +828,18 @@ app
     // Initialize default working directory
     initializeDefaultWorkingDir();
     log('Working directory:', currentWorkingDir);
+    registerFileViewerIpc(ipcMain, {
+      getAllowedRoots: () => [
+        getWorkingDir(),
+        ...(sessionManager?.listSessions().map((session) => session.cwd) ?? []),
+      ],
+      onRead: (event) => {
+        log('[file-viewer.read] allowed:', event);
+      },
+      onReject: (event) => {
+        logWarn('[file-viewer.read] rejected:', event);
+      },
+    });
     // Remote sessions use the global working directory by default.
     remoteManager.setDefaultWorkingDirectory(currentWorkingDir || undefined);
 
