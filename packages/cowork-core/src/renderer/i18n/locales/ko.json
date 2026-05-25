@@ -213,6 +213,8 @@
     "usePreset": "Preset 사용",
     "custom": "Custom",
     "moreModels": "더 많은 모델",
+    "modelSwitcherVisibility": "모델 스위처에 표시할 Provider",
+    "modelSwitcherVisibilityHint": "체크 해제된 Provider는 채팅 상단 모델 드롭다운에서 숨겨집니다. (현재 사용 중인 Provider는 항상 표시)",
     "noModelsAvailable": "사용 가능한 모델 없음",
     "selectProtocol": "서비스와 호환되는 프로토콜을 선택하세요",
     "enterOllamaUrl": "Ollama OpenAI 호환 서비스 URL 입력",

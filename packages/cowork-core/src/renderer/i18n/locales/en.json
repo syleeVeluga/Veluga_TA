@@ -213,6 +213,8 @@
     "usePreset": "Use Preset",
     "custom": "Custom",
     "moreModels": "More Models",
+    "modelSwitcherVisibility": "Providers shown in model switcher",
+    "modelSwitcherVisibilityHint": "Unchecked providers are hidden from the chat-header model dropdown. (The currently active provider is always shown.)",
     "noModelsAvailable": "No models available",
     "selectProtocol": "Select the compatible protocol for the service",
     "enterOllamaUrl": "Enter the Ollama OpenAI-compatible service URL",

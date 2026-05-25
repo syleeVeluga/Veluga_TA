@@ -36,6 +36,12 @@ import {
   modelSupportsReasoning,
   type SharedThinkingLevel,
 } from '../../shared/thinking';
+import {
+  DEFAULT_PROVIDER_VISIBILITY,
+  PROVIDER_VISIBILITY_KEYS,
+  type ProviderVisibility,
+  type ProviderVisibilityKey,
+} from '../../shared/provider-visibility';
 
 /**
  * Application configuration schema
@@ -136,6 +142,10 @@ export interface AppConfig {
   enableThinking: boolean;
   thinkingLevel?: SharedThinkingLevel;
 
+  // Which providers appear in the chat-header model switcher dropdown.
+  // Unset / undefined keys default to visible (true).
+  visibleProviders?: ProviderVisibility;
+
   // First run flag
   isConfigured: boolean;
 }
@@ -184,6 +194,7 @@ const DIRECT_READ_KEYS = new Set<keyof AppConfig>([
   'memoryEnabled',
   'enableThinking',
   'thinkingLevel',
+  'visibleProviders',
   'isConfigured',
 ]);
 
@@ -292,6 +303,7 @@ const defaultConfig: AppConfig = {
   },
   enableThinking: false,
   thinkingLevel: 'off',
+  visibleProviders: { ...DEFAULT_PROVIDER_VISIBILITY },
   isConfigured: false,
 };
 
@@ -496,6 +508,19 @@ function profileKeyToProvider(profileKey: ProviderProfileKey): {
 
 function toBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
+}
+
+function normalizeVisibleProviders(value: unknown): ProviderVisibility {
+  const result: Record<ProviderVisibilityKey, boolean> = { ...DEFAULT_PROVIDER_VISIBILITY };
+  if (value && typeof value === 'object') {
+    const raw = value as Record<string, unknown>;
+    for (const key of PROVIDER_VISIBILITY_KEYS) {
+      if (typeof raw[key] === 'boolean') {
+        result[key] = raw[key] as boolean;
+      }
+    }
+  }
+  return result;
 }
 
 function toNonEmptyString(value: unknown): string | null {
@@ -1049,6 +1074,7 @@ export class ConfigStore {
       memoryRuntime: normalizeMemoryRuntimeConfig(raw.memoryRuntime),
       enableThinking: projected.enableThinking,
       thinkingLevel: projected.thinkingLevel,
+      visibleProviders: normalizeVisibleProviders(raw.visibleProviders),
       isConfigured: toBoolean(raw.isConfigured, defaultConfig.isConfigured),
     };
     this.normalizeModelIds(result);
@@ -1505,6 +1531,10 @@ export class ConfigStore {
         updates.memoryRuntime !== undefined
           ? normalizeMemoryRuntimeConfig(updates.memoryRuntime)
           : current.memoryRuntime,
+      visibleProviders:
+        updates.visibleProviders !== undefined
+          ? normalizeVisibleProviders(updates.visibleProviders)
+          : current.visibleProviders,
       isConfigured:
         updates.isConfigured !== undefined ? updates.isConfigured : current.isConfigured,
     });

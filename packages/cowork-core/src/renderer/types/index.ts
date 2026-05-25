@@ -1,4 +1,5 @@
 import type { SharedThinkingLevel } from '../../shared/thinking';
+import type { ProviderVisibility } from '../../shared/provider-visibility';
 
 // Session types
 export interface Session {
@@ -647,6 +648,7 @@ export interface AppConfig {
   memoryRuntime?: MemoryRuntimeConfig;
   enableThinking?: boolean;
   thinkingLevel?: SharedThinkingLevel;
+  visibleProviders?: ProviderVisibility;
   isConfigured: boolean;
 }
 

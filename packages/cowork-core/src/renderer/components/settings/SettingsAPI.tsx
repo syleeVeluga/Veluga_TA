@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Eye,
   Key,
   Plug,
   Server,
@@ -16,6 +18,13 @@ import { CommonProviderSetupsCard, GuidanceInlineHint } from '../ProviderGuidanc
 import ApiDiagnosticsPanel from '../ApiDiagnosticsPanel';
 import { ThinkingLevelSegmentedControl } from '../ThinkingLevelSegmentedControl';
 import { modelSupportsReasoning } from '../../../shared/thinking';
+import {
+  DEFAULT_PROVIDER_VISIBILITY,
+  PROVIDER_VISIBILITY_KEYS,
+  type ProviderVisibilityKey,
+} from '../../../shared/provider-visibility';
+import { useAppStore } from '../../store';
+import { useAppConfig } from '../../store/selectors';
 
 interface ModelOptionItem {
   id: string;
@@ -110,6 +119,26 @@ export function SettingsAPI() {
   const selectedModelId = useCustomModel ? customModel : model;
   const reasoningSupported = modelSupportsReasoning(selectedModelId);
 
+  const appConfig = useAppConfig();
+  const setAppConfig = useAppStore((s) => s.setAppConfig);
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+  const visibleProviders = { ...DEFAULT_PROVIDER_VISIBILITY, ...(appConfig?.visibleProviders ?? {}) };
+  const visibilityProviderLabel = (key: ProviderVisibilityKey): string => {
+    if (key === 'custom') return t('api.moreModels');
+    return presets?.[key]?.name || key;
+  };
+  const toggleProviderVisibility = async (key: ProviderVisibilityKey) => {
+    if (!window.electronAPI || isSavingVisibility) return;
+    const next = { ...visibleProviders, [key]: !visibleProviders[key] };
+    setIsSavingVisibility(true);
+    try {
+      const result = await window.electronAPI.config.save({ visibleProviders: next });
+      if (result?.config) setAppConfig(result.config);
+    } finally {
+      setIsSavingVisibility(false);
+    }
+  };
+
   if (isLoadingConfig) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -141,6 +170,43 @@ export function SettingsAPI() {
         onSaveAndContinuePendingAction={saveAndContinuePendingConfigSetAction}
         onDiscardAndContinuePendingAction={discardAndContinuePendingConfigSetAction}
       />
+
+      {/* Model Switcher Visibility */}
+      <div className="space-y-3 py-5 border-b border-border-muted">
+        <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
+          <Eye className="w-4 h-4" />
+          {t('api.modelSwitcherVisibility')}
+        </label>
+        <p className="text-xs leading-5 text-text-muted">
+          {t('api.modelSwitcherVisibilityHint')}
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {PROVIDER_VISIBILITY_KEYS.map((key) => {
+            const checked = visibleProviders[key];
+            return (
+              <label
+                key={key}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors cursor-pointer ${
+                  checked
+                    ? 'border-accent/40 bg-accent/5 text-text-primary'
+                    : 'border-border-muted text-text-secondary hover:border-border'
+                } ${isSavingVisibility ? 'opacity-60 cursor-wait' : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => {
+                    void toggleProviderVisibility(key);
+                  }}
+                  disabled={isSavingVisibility}
+                  className="accent-accent"
+                />
+                <span className="truncate">{visibilityProviderLabel(key)}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Provider Selection */}
       <div className="space-y-3 py-5 border-b border-border-muted">

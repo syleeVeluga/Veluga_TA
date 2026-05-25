@@ -11,6 +11,7 @@ import {
   modelSupportsReasoning,
   type SharedThinkingLevel,
 } from '../../shared/thinking';
+import { isProviderVisible } from '../../shared/provider-visibility';
 import { ThinkingLevelSegmentedControl } from './ThinkingLevelSegmentedControl';
 
 interface ModelGroup {
@@ -81,10 +82,11 @@ export function ChatHeaderModelSwitcher() {
 
   const modelGroups = useMemo<ModelGroup[]>(() => {
     if (!appConfig) return [];
-    return PROFILE_KEYS.filter(
-      (profileKey) =>
-        profileKey === appConfig.activeProfileKey || hasUsableProfile(profileKey, appConfig)
-    ).map((profileKey) => {
+    return PROFILE_KEYS.filter((profileKey) => {
+      if (profileKey === appConfig.activeProfileKey) return true;
+      if (!hasUsableProfile(profileKey, appConfig)) return false;
+      return isProviderVisible(profileKey, appConfig.visibleProviders);
+    }).map((profileKey) => {
       const models = getModelOptionsForProfile(profileKey, presets);
       const currentModel = appConfig.profiles?.[profileKey]?.model?.trim();
       const mergedModels =
