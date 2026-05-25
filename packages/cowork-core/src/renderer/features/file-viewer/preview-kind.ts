@@ -16,6 +16,7 @@ export const CODE_EXTS = new Set([
   '.rs',
   '.sh',
   '.sql',
+  '.toml',
   '.ts',
   '.tsx',
   '.xml',

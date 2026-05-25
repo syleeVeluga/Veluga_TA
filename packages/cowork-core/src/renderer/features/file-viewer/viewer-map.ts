@@ -18,6 +18,7 @@ export const READ_REQUIRED_KINDS = new Set<PreviewKind>([
   'html',
   'pdf',
   'image',
+  'code',
 ]);
 
 export const viewerComponents: Record<PreviewKind, ViewerComponent> = {
@@ -27,7 +28,7 @@ export const viewerComponents: Record<PreviewKind, ViewerComponent> = {
   pdf: lazy(() => import('./viewers/PdfViewer')),
   html: lazy(() => import('./viewers/HtmlViewer')),
   image: lazy(() => import('./viewers/ImageViewer')),
-  code: UnsupportedViewer,
+  code: lazy(() => import('./viewers/CodeViewer')),
   docx: UnsupportedViewer,
   xlsx: UnsupportedViewer,
   unsupported: UnsupportedViewer,
