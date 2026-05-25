@@ -30,11 +30,13 @@ function basePlan(hit?: IntentPlan['fast_path_hit']): IntentPlan {
 export function tryFastPath(message: string, policy: PolicyContext): IntentPlan | null {
   const compact = message.trim();
   if (compact === '안녕') return basePlan('greeting');
+  if (compact === '안녕하세요') return basePlan('greeting');
   if (compact === '고마워요') return basePlan('thanks');
+  if (compact === '고맙습니다') return basePlan('thanks');
+  if (compact === '감사합니다') return basePlan('thanks');
   if (compact === '확인') return basePlan('ack');
-  if (compact === '?덈뀞') return basePlan('greeting');
-  if (compact === '怨좊쭏?뚯슂') return basePlan('thanks');
-  if (compact === '?뺤씤') return basePlan('ack');
+  if (compact === '네') return basePlan('ack');
+  if (compact === '알겠어요') return basePlan('ack');
 
   for (const rule of FAST_PATH_RULES) {
     const match = message.match(rule.pattern);
@@ -103,17 +105,7 @@ export function heuristicPlan(message: string, policy: PolicyContext, useKbToggl
       '최신',
       '올해',
       '사내',
-      '우리 회사',
-      '洹쇨굅',
-      '?몄슜',
-      '踰뺣졊',
-      '洹쒖젙',
-      '?뺤콉',
-      '?몄븸怨듭젣',
-      '理쒖떊',
-      '?ы빐',
-      '?щ궡',
-      '?곕━ ?뚯궗'
+      '우리 회사'
     ]);
   const wantsProject =
     /(project|attached|attachment|file|document|summarize|summary|report|notebook)/i.test(message) ||
@@ -123,19 +115,13 @@ export function heuristicPlan(message: string, policy: PolicyContext, useKbToggl
       '문서',
       '파일',
       '요약',
-      '보고서 초안',
-      '?꾨줈?앺듃',
-      '泥⑤?',
-      '臾몄꽌',
-      '?뚯씪',
-      '?붿빟',
-      '蹂닿퀬??珥덉븞'
+      '보고서 초안'
     ]);
   const wantsDraft =
-    /(draft|write|compose|proposal|brief|report|create)/i.test(message) || includesAny(message, ['초안', '작성', '珥덉븞', '?묒꽦']);
+    /(draft|write|compose|proposal|brief|report|create)/i.test(message) || includesAny(message, ['초안', '작성']);
   const wantsSkill =
     /(how to|format|convert|docx|plan|method|organize|check)/i.test(message) ||
-    includesAny(message, ['방법', '사용법', '작성', '정리', '계획', '변환', '검토', '?꾩?', '諛⑸쾿', '?ъ슜踰??묒꽦', '?뺣━', '怨꾪쉷', '?꾪솚', '蹂??寃??']);
+    includesAny(message, ['방법', '사용법', '작성', '정리', '계획', '변환', '검토']);
   const suggested_skills = policy.active_skill_ids.filter((skill) => {
     if (skill === 'system-self-help') return /help/.test(text);
     if (skill.includes('docx')) return /docx|word|document|report/.test(text);
