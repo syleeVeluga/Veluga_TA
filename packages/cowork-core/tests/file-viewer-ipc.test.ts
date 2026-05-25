@@ -1,8 +1,19 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import {
+  closeSync,
+  ftruncateSync,
+  mkdtempSync,
+  mkdirSync,
+  openSync,
+  rmSync,
+  writeFileSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
-import { registerFileViewerIpc } from '../src/renderer/features/file-viewer/ipc/main-handler';
+import {
+  FILE_VIEWER_READ_LIMIT_BYTES,
+  registerFileViewerIpc,
+} from '../src/renderer/features/file-viewer/ipc/main-handler';
 import type { ReadFileResult } from '../src/renderer/features/file-viewer/types';
 
 function withTempDir<T>(fn: (dir: string) => T): T {
@@ -94,5 +105,34 @@ describe('file-viewer IPC read guard', () => {
       const result = createReader([workspace]).read('../secret.txt');
 
       expect(result).toEqual({ error: 'OUTSIDE_WORKSPACE' });
+    }));
+
+  it('returns NOT_FOUND for missing absolute files under an allowed root', () =>
+    withTempDir((workspace) => {
+      const result = createReader([workspace]).read(join(workspace, 'missing.txt'));
+
+      expect(result).toEqual({ error: 'NOT_FOUND' });
+    }));
+
+  it('returns NOT_ABSOLUTE for empty paths', () =>
+    withTempDir((workspace) => {
+      const result = createReader([workspace]).read('');
+
+      expect(result).toEqual({ error: 'NOT_ABSOLUTE' });
+    }));
+
+  it('returns TOO_LARGE before reading files over the limit', () =>
+    withTempDir((workspace) => {
+      const filePath = join(workspace, 'large.bin');
+      const fd = openSync(filePath, 'w');
+      try {
+        ftruncateSync(fd, FILE_VIEWER_READ_LIMIT_BYTES + 1);
+      } finally {
+        closeSync(fd);
+      }
+
+      const result = createReader([workspace]).read(filePath);
+
+      expect(result).toEqual({ error: 'TOO_LARGE', limit: FILE_VIEWER_READ_LIMIT_BYTES });
     }));
 });
