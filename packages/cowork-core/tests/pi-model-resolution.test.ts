@@ -146,6 +146,101 @@ describe('pi model resolution helpers', () => {
     expect(model.api).toBe('openai-completions');
   });
 
+  it('upgrades synthetic gpt-5 reasoning models to openai-responses on official openai', () => {
+    const model = applyPiModelRuntimeOverrides(
+      {
+        id: 'gpt-5.5',
+        name: 'gpt-5.5',
+        api: 'openai-completions',
+        provider: 'openai',
+        baseUrl: 'https://api.openai.com/v1',
+        reasoning: true,
+        input: ['text'],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 128000,
+        maxTokens: 16384,
+      },
+      {
+        configProvider: 'openai',
+        rawProvider: 'openai',
+        customBaseUrl: 'https://api.openai.com/v1',
+      }
+    );
+
+    expect(model.api).toBe('openai-responses');
+  });
+
+  it('upgrades synthetic gpt-5.5 to openai-responses when no baseUrl override is given', () => {
+    const model = applyPiModelRuntimeOverrides(
+      {
+        id: 'gpt-5.5',
+        name: 'gpt-5.5',
+        api: 'openai-completions',
+        provider: 'openai',
+        baseUrl: '',
+        reasoning: true,
+        input: ['text'],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 128000,
+        maxTokens: 16384,
+      },
+      {
+        configProvider: 'openai',
+        rawProvider: 'openai',
+      }
+    );
+
+    expect(model.api).toBe('openai-responses');
+  });
+
+  it('does not upgrade gpt-5.5 to openai-responses on third-party endpoints', () => {
+    const model = applyPiModelRuntimeOverrides(
+      {
+        id: 'gpt-5.5',
+        name: 'gpt-5.5',
+        api: 'openai-completions',
+        provider: 'openai',
+        baseUrl: '',
+        reasoning: true,
+        input: ['text'],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 128000,
+        maxTokens: 16384,
+      },
+      {
+        configProvider: 'openai',
+        rawProvider: 'custom',
+        customBaseUrl: 'https://relay.example.com/v1',
+      }
+    );
+
+    expect(model.api).toBe('openai-completions');
+  });
+
+  it('does not upgrade non-reasoning openai models to openai-responses', () => {
+    const model = applyPiModelRuntimeOverrides(
+      {
+        id: 'gpt-4.1-mini',
+        name: 'gpt-4.1-mini',
+        api: 'openai-completions',
+        provider: 'openai',
+        baseUrl: 'https://api.openai.com/v1',
+        reasoning: false,
+        input: ['text'],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 128000,
+        maxTokens: 16384,
+      },
+      {
+        configProvider: 'openai',
+        rawProvider: 'openai',
+        customBaseUrl: 'https://api.openai.com/v1',
+      }
+    );
+
+    expect(model.api).toBe('openai-completions');
+  });
+
   it('keeps openai responses api for first-party openai endpoints', () => {
     const model = applyPiModelRuntimeOverrides(
       {

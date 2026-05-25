@@ -121,6 +121,55 @@ describe('file-viewer IPC read guard', () => {
       expect(result).toEqual({ error: 'NOT_ABSOLUTE' });
     }));
 
+  it('falls back to basename lookup across allowed roots when relative path misses', () =>
+    withTempDir((dir) => {
+      // Session cwd (empty) + a separate default working dir where the file actually lives.
+      // Simulates the AI emitting a bare filename in chat after writing to default_working_dir.
+      const sessionCwd = join(dir, 'session');
+      const defaultDir = join(dir, 'default');
+      mkdirSync(sessionCwd);
+      mkdirSync(defaultDir);
+      writeFileSync(join(defaultDir, 'report.html'), '<p>ok</p>');
+
+      // First root is sessionCwd → resolves "report.html" to sessionCwd/report.html (missing).
+      // Fallback should locate it under defaultDir.
+      const reader = createReader([sessionCwd, defaultDir]);
+      const result = reader.read('report.html');
+
+      expect('buffer' in result ? Buffer.from(result.buffer, 'base64').toString('utf8') : '').toBe(
+        '<p>ok</p>'
+      );
+      expect(reader.rejects).toHaveLength(0);
+    }));
+
+  it('does not fall back by basename for missing relative paths with directories', () =>
+    withTempDir((dir) => {
+      const sessionCwd = join(dir, 'session');
+      const defaultDir = join(dir, 'default');
+      mkdirSync(sessionCwd);
+      mkdirSync(defaultDir);
+      writeFileSync(join(defaultDir, 'report.html'), '<p>wrong</p>');
+
+      const reader = createReader([sessionCwd, defaultDir]);
+      const result = reader.read('out/report.html');
+
+      expect(result).toEqual({ error: 'NOT_FOUND' });
+    }));
+
+  it('does not fall back by basename for missing absolute paths', () =>
+    withTempDir((dir) => {
+      const workspace = join(dir, 'workspace');
+      const defaultDir = join(dir, 'default');
+      mkdirSync(workspace);
+      mkdirSync(defaultDir);
+      writeFileSync(join(defaultDir, 'report.html'), '<p>wrong</p>');
+
+      const reader = createReader([workspace, defaultDir]);
+      const result = reader.read(join(workspace, 'report.html'));
+
+      expect(result).toEqual({ error: 'NOT_FOUND' });
+    }));
+
   it('returns TOO_LARGE before reading files over the limit', () =>
     withTempDir((workspace) => {
       const filePath = join(workspace, 'large.bin');

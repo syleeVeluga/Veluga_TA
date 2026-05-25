@@ -1,5 +1,5 @@
 import type { IpcMain } from 'electron';
-import { basename, extname, isAbsolute, relative, resolve } from 'path';
+import { basename, extname, isAbsolute, join, relative, resolve } from 'path';
 import * as fs from 'fs';
 import {
   decodePathSafely,
@@ -40,6 +40,70 @@ function resolveCandidatePath(filePath: string, workspaceRoot: string): string |
     return null;
   }
   return isUncPath(normalizedPath) ? normalizedPath : resolve(normalizedPath);
+}
+
+function bareRelativeFileName(filePath: string): string | null {
+  const normalizedPath = normalizeInputPath(filePath);
+  if (
+    !normalizedPath ||
+    isAbsolute(normalizedPath) ||
+    isWindowsDrivePath(normalizedPath) ||
+    isUncPath(normalizedPath) ||
+    /[/\\]/.test(normalizedPath)
+  ) {
+    return null;
+  }
+  return basename(normalizedPath);
+}
+
+function findFileByName(fileName: string, roots: string[]): string | null {
+  if (!fileName) {
+    return null;
+  }
+  const visited = new Set<string>();
+  const queue: string[] = [];
+  for (const root of roots) {
+    if (!root) continue;
+    try {
+      const resolvedRoot = resolve(root);
+      if (fs.statSync(resolvedRoot).isDirectory()) {
+        queue.push(resolvedRoot);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  let scannedDirs = 0;
+  const MAX_DIRS = 2000;
+
+  while (queue.length > 0 && scannedDirs < MAX_DIRS) {
+    const dir = queue.shift()!;
+    if (visited.has(dir)) {
+      continue;
+    }
+    visited.add(dir);
+    scannedDirs += 1;
+
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isFile() && entry.name === fileName) {
+        return fullPath;
+      }
+      if (entry.isDirectory()) {
+        queue.push(fullPath);
+      }
+    }
+  }
+
+  return null;
 }
 
 function isWithinRoot(pathValue: string, root: string): boolean {
@@ -98,10 +162,17 @@ export function registerFileViewerIpc(
     }
 
     try {
-      const existingCandidate = candidates.find((candidate) => fs.existsSync(candidate.path));
+      let existingCandidate = candidates.find((candidate) => fs.existsSync(candidate.path));
       if (!existingCandidate) {
-        options.onReject?.({ path: candidates[0].path, reason: 'NOT_FOUND' });
-        return { error: 'NOT_FOUND' };
+        // Fallback: the AI may have emitted a bare filename relative to the wrong cwd.
+        const fileName = bareRelativeFileName(filePath);
+        const discovered = fileName ? findFileByName(fileName, allowedRoots) : null;
+        if (discovered) {
+          existingCandidate = { root: allowedRoots[0], path: discovered };
+        } else {
+          options.onReject?.({ path: candidates[0].path, reason: 'NOT_FOUND' });
+          return { error: 'NOT_FOUND' };
+        }
       }
 
       if (!fs.statSync(existingCandidate.path).isFile()) {

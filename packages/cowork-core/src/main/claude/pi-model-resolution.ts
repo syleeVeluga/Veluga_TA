@@ -5,6 +5,10 @@ import { REASONING_MODEL_PATTERN } from '../../shared/thinking';
 const COMMON_FALLBACK_PROVIDERS = ['openai', 'anthropic', 'google'] as const;
 const INVALID_REGISTRY_PROVIDERS = new Set(['', 'custom']);
 const DEEPSEEK_V4_MODEL_PATTERN = /^deepseek-v4(?:$|[-:])/i;
+// OpenAI gpt-5+ / o-series reasoning models reject function tools + reasoning_effort
+// on /v1/chat/completions and require /v1/responses (e.g. gpt-5.5).
+const OPENAI_RESPONSES_REQUIRED_PATTERN =
+  /^(?:gpt-5(?:\.\d+)?(?:-(?:mini|nano|pro|codex[\w.-]*))?|o[13][\w.-]*|o4-mini[\w.-]*)$/i;
 type PiRegistryProvider = Parameters<typeof getModel>[0];
 
 export interface PiModelStringInput {
@@ -277,6 +281,20 @@ export function applyPiModelRuntimeOverrides(
 
   if (options.customBaseUrl && (shouldHonorConfiguredBaseUrl || !modelHasBaseUrl)) {
     nextModel = { ...nextModel, baseUrl: options.customBaseUrl } as typeof nextModel;
+  }
+
+  // OpenAI reasoning models (gpt-5+, o-series) on the official endpoint must use
+  // the /v1/responses API once function tools + reasoning_effort are involved.
+  // Synthetic fallbacks (e.g. gpt-5.5 not yet in the pi-ai registry) start as
+  // openai-completions; upgrade them here when the endpoint is first-party OpenAI.
+  if (
+    nextModel.api === 'openai-completions' &&
+    OPENAI_RESPONSES_REQUIRED_PATTERN.test(nextModel.id)
+  ) {
+    const endpoint = options.customBaseUrl?.trim() || nextModel.baseUrl?.trim();
+    if (!endpoint || isOfficialOpenAIBaseUrl(endpoint)) {
+      nextModel = { ...nextModel, api: 'openai-responses' } as typeof nextModel;
+    }
   }
 
   const effectiveProvider = options.rawProvider || options.configProvider;
