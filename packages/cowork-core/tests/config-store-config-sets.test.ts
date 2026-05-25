@@ -121,7 +121,7 @@ describe('ConfigStore config sets', () => {
     expect(config.enableThinking).toBe(false);
   });
 
-  it('clears thinking when switching to a non-reasoning model', () => {
+  it('preserves thinking when switching to an OpenAI reasoning model', () => {
     mocks.seed = {
       provider: 'openrouter',
       customProtocol: 'anthropic',
@@ -138,6 +138,27 @@ describe('ConfigStore config sets', () => {
 
     const config = store.getAll();
     expect(config.model).toBe('openai/gpt-5.5');
+    expect(config.thinkingLevel).toBe('high');
+    expect(config.enableThinking).toBe(true);
+  });
+
+  it('clears thinking when switching to a non-reasoning model', () => {
+    mocks.seed = {
+      provider: 'openrouter',
+      customProtocol: 'anthropic',
+      apiKey: 'sk-openrouter-origin',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'anthropic/claude-opus-4-7',
+      enableThinking: true,
+      thinkingLevel: 'high',
+      isConfigured: true,
+    };
+
+    const store = new ConfigStore();
+    store.update({ model: 'openai/gpt-4.1-mini' });
+
+    const config = store.getAll();
+    expect(config.model).toBe('openai/gpt-4.1-mini');
     expect(config.thinkingLevel).toBe('off');
     expect(config.enableThinking).toBe(false);
   });

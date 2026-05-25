@@ -10,7 +10,7 @@ export const THINKING_LEVELS: SharedThinkingLevel[] = [
 ];
 
 export const REASONING_MODEL_PATTERN =
-  /\bthinking\b|\breasoner\b|deepseek-r1|deepseek-v4|kimi-k2|qwen3(?:\.5)?(?=[:/-]|$)/i;
+  /\bthinking\b|\breasoner\b|deepseek-r1|deepseek-v4|kimi-k2|qwen3(?:\.5)?(?=[:/-]|$)|(?:^|\/)(?:gpt-5(?:\.\d+)?(?:-(?:mini|nano|pro|codex[\w.-]*))?|o[13][\w.-]*|o4-mini[\w.-]*)(?=$|[:@])/i;
 
 export function isThinkingLevel(value: unknown): value is SharedThinkingLevel {
   return typeof value === 'string' && THINKING_LEVELS.includes(value as SharedThinkingLevel);

@@ -46,3 +46,21 @@ index 29ae8cf..c5f7df4 100644
          thinkingFormat: model.compat.thinkingFormat ?? detected.thinkingFormat,
          openRouterRouting: model.compat.openRouterRouting ?? {},
          vercelGatewayRouting: model.compat.vercelGatewayRouting ?? detected.vercelGatewayRouting,
+diff --git a/node_modules/@mariozechner/pi-ai/dist/models.js b/node_modules/@mariozechner/pi-ai/dist/models.js
+index b8da5ba..6a8c7bc 100644
+--- a/node_modules/@mariozechner/pi-ai/dist/models.js
++++ b/node_modules/@mariozechner/pi-ai/dist/models.js
+@@ -32,10 +32,10 @@ export function calculateCost(model, usage) {
+  * Check if a model supports xhigh thinking level.
+  *
+  * Supported today:
+- * - GPT-5.2 / GPT-5.3 / GPT-5.4 model families
++ * - GPT-5.2 / GPT-5.3 / GPT-5.4 / GPT-5.5 model families
+  * - Opus 4.6 models (xhigh maps to adaptive effort "max" on Anthropic-compatible providers)
+  */
+ export function supportsXhigh(model) {
+-    if (model.id.includes("gpt-5.2") || model.id.includes("gpt-5.3") || model.id.includes("gpt-5.4")) {
++    if (model.id.includes("gpt-5.2") || model.id.includes("gpt-5.3") || model.id.includes("gpt-5.4") || model.id.includes("gpt-5.5")) {
+         return true;
+     }
+ 
