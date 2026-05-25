@@ -5,7 +5,8 @@ import type { ViewerComponentProps } from '../viewer-map';
 import { readErrorMessage, textFromReadResult } from '../utils/read-result';
 import TextViewer from './TextViewer';
 
-const THEME = 'github-dark';
+const DARK_THEME = 'github-dark';
+const LIGHT_THEME = 'github-light';
 const MAX_HIGHLIGHT_BYTES = 5 * 1024 * 1024;
 
 interface CodeViewerProps extends ViewerComponentProps {
@@ -17,7 +18,10 @@ let highlighterPromise: Promise<Highlighter> | null = null;
 
 export function getHighlighter(): Promise<Highlighter> {
   highlighterPromise ??= createHighlighterCore({
-    themes: [import('@shikijs/themes/github-dark')],
+    themes: [
+      import('@shikijs/themes/github-dark'),
+      import('@shikijs/themes/github-light'),
+    ],
     langs: [
       import('@shikijs/langs/typescript'),
       import('@shikijs/langs/tsx'),
@@ -69,11 +73,38 @@ function readableSize(readResult: ViewerComponentProps['readResult'], content?: 
   return readResult.size;
 }
 
+function isLightTheme(): boolean {
+  if (typeof document === 'undefined') {
+    return false;
+  }
+  return document.documentElement.classList.contains('light');
+}
+
+function useDocumentTheme(): 'dark' | 'light' {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (isLightTheme() ? 'light' : 'dark'));
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') {
+      return;
+    }
+    const target = document.documentElement;
+    const observer = new MutationObserver(() => {
+      setTheme(isLightTheme() ? 'light' : 'dark');
+    });
+    observer.observe(target, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  return theme;
+}
+
 export default function CodeViewer({ path, readResult, content, ext }: CodeViewerProps) {
   const language = useMemo(() => languageForPath(path, ext), [ext, path]);
   const size = readableSize(readResult, content);
   const isTooLarge = size !== null && size > MAX_HIGHLIGHT_BYTES;
   const text = isTooLarge ? null : content ?? textFromReadResult(readResult);
+  const theme = useDocumentTheme();
+  const shikiTheme = theme === 'light' ? LIGHT_THEME : DARK_THEME;
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
@@ -92,7 +123,7 @@ export default function CodeViewer({ path, readResult, content, ext }: CodeViewe
       .then((highlighter) =>
         highlighter.codeToHtml(text, {
           lang: language,
-          theme: THEME,
+          theme: shikiTheme,
           tokenizeMaxLineLength: 1000,
         })
       )
@@ -110,7 +141,7 @@ export default function CodeViewer({ path, readResult, content, ext }: CodeViewe
     return () => {
       cancelled = true;
     };
-  }, [isTooLarge, language, text]);
+  }, [isTooLarge, language, shikiTheme, text]);
 
   if (isTooLarge) {
     return (
@@ -132,9 +163,11 @@ export default function CodeViewer({ path, readResult, content, ext }: CodeViewe
     return <div className="p-4 text-sm text-text-muted">Loading...</div>;
   }
 
+  const containerBg = theme === 'light' ? 'bg-[#ffffff]' : 'bg-[#24292e]';
+
   return (
     <div
-      className="h-full overflow-auto bg-[#24292e] [&_pre]:m-0 [&_pre]:min-h-full [&_pre]:overflow-visible [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-sm [&_pre]:leading-6 [&_code]:block"
+      className={`h-full overflow-auto ${containerBg} [&_pre]:m-0 [&_pre]:min-h-full [&_pre]:overflow-visible [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-sm [&_pre]:leading-6 [&_code]:block`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

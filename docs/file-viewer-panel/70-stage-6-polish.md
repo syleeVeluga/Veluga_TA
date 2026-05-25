@@ -24,10 +24,10 @@
 - 폐쇄망에서 전 포맷 정상
 
 ## 체크리스트
-- [ ] 리사이즈 핸들 + 폭 영속화
-- [ ] Esc 닫기, Cmd/Ctrl+\ 토글
-- [ ] `TOO_LARGE`/`NOT_FOUND`/`READ_FAILED` 모두 명시적 메시지
-- [ ] 다크/라이트 모드 패널 정상
+- [x] 리사이즈 핸들 + 폭 영속화
+- [x] Esc 닫기, Cmd/Ctrl+\ 토글
+- [x] `TOO_LARGE`/`NOT_FOUND`/`READ_FAILED` 모두 명시적 메시지
+- [x] 다크/라이트 모드 패널 정상
 - [ ] **인터넷 차단 상태에서 Stage 1~5 체크리스트 100% 통과**
 - [ ] 빌드 산출물 외부 URL 참조 0 (`grep -r "https://" dist/` 검증)
 

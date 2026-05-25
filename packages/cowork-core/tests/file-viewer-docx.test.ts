@@ -29,7 +29,7 @@ describe('DocxViewer stage 4', () => {
       })
     );
 
-    expect(markup).toContain('File is too large to preview. Limit: 50 MB.');
+    expect(markup).toContain('파일이 50MB 초과.');
   });
 
   it('calls docx-preview with decoded ArrayBuffer data and catches render failures', () => {
