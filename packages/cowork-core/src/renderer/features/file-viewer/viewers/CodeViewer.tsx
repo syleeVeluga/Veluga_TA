@@ -8,6 +8,11 @@ import TextViewer from './TextViewer';
 const THEME = 'github-dark';
 const MAX_HIGHLIGHT_BYTES = 5 * 1024 * 1024;
 
+interface CodeViewerProps extends ViewerComponentProps {
+  content?: string;
+  ext?: string;
+}
+
 let highlighterPromise: Promise<Highlighter> | null = null;
 
 export function getHighlighter(): Promise<Highlighter> {
@@ -27,6 +32,7 @@ export function getHighlighter(): Promise<Highlighter> {
       import('@shikijs/langs/toml'),
       import('@shikijs/langs/bash'),
       import('@shikijs/langs/css'),
+      import('@shikijs/langs/html'),
     ],
     engine: createOnigurumaEngine(import('shiki/wasm')),
   });
@@ -34,8 +40,8 @@ export function getHighlighter(): Promise<Highlighter> {
   return highlighterPromise;
 }
 
-function languageForPath(path: string): string | null {
-  const cleanPath = path.split(/[?#]/, 1)[0]?.toLowerCase() ?? '';
+function languageForPath(path: string, ext?: string): string | null {
+  const cleanPath = (ext ?? path).split(/[?#]/, 1)[0]?.toLowerCase() ?? '';
   if (cleanPath.endsWith('.ts')) return 'typescript';
   if (cleanPath.endsWith('.tsx')) return 'tsx';
   if (cleanPath.endsWith('.js') || cleanPath.endsWith('.mjs')) return 'javascript';
@@ -49,21 +55,25 @@ function languageForPath(path: string): string | null {
   if (cleanPath.endsWith('.toml')) return 'toml';
   if (cleanPath.endsWith('.sh')) return 'bash';
   if (cleanPath.endsWith('.css')) return 'css';
+  if (cleanPath.endsWith('.html') || cleanPath.endsWith('.htm')) return 'html';
   return null;
 }
 
-function readableSize(readResult: ViewerComponentProps['readResult']): number | null {
+function readableSize(readResult: ViewerComponentProps['readResult'], content?: string): number | null {
+  if (content !== undefined) {
+    return new TextEncoder().encode(content).byteLength;
+  }
   if (!readResult || 'error' in readResult) {
     return null;
   }
   return readResult.size;
 }
 
-export default function CodeViewer({ path, readResult }: ViewerComponentProps) {
-  const language = useMemo(() => languageForPath(path), [path]);
-  const size = readableSize(readResult);
+export default function CodeViewer({ path, readResult, content, ext }: CodeViewerProps) {
+  const language = useMemo(() => languageForPath(path, ext), [ext, path]);
+  const size = readableSize(readResult, content);
   const isTooLarge = size !== null && size > MAX_HIGHLIGHT_BYTES;
-  const text = isTooLarge ? null : textFromReadResult(readResult);
+  const text = isTooLarge ? null : content ?? textFromReadResult(readResult);
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState(false);
 

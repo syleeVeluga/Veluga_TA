@@ -21,12 +21,12 @@
 | DOCX | `docx-preview` | **0.3.7** | Apache-2.0 | ✅ | 레이아웃·이미지 시각적 충실 렌더링 |
 | XLSX 파싱 | `exceljs` | **4.4.0** | MIT | ✅ | npm 정상 배포 (SheetJS npm 0.18.5 freeze 불채택) |
 | XLSX UI | `react-spreadsheet` | **0.10.1** | MIT | ✅ | exceljs 파싱 결과를 React 그리드로 렌더링 |
-| HTML sanitize | `dompurify` | **3.4.5** | MIT | ✅ | 소스 뷰용, 26 KB 미니파이드 |
+| HTML sanitize | `dompurify` | **3.4.5** | (MPL-2.0 OR Apache-2.0) | ✅ | 선택적 프리뷰 sanitize, 26 KB 미니파이드 |
 | PDF | Electron 내장 Chromium | — | — | ✅ | `<iframe src="file://...">` open-codesign 동일 방식 |
 | Markdown | `react-markdown` (기존) | 기존 | MIT | ✅ | `MessageMarkdown` 컴포넌트 재사용 |
 | 이미지 | native `<img>` | — | — | ✅ | |
 | 텍스트·CSV | 순수 JS 파싱 | — | — | ✅ | |
-| HTML | sandboxed `<iframe srcDoc>` | — | — | ✅ | 스크립트 실행 포함 프리뷰 |
+| HTML | sandboxed `<iframe srcDoc>` | — | — | ✅ | 스크립트 실행 없이 프리뷰 |
 | PPTX | OS 위임 유지 | — | — | — | 순수 JS 렌더러 없음 |
 
 ### shiki 폐쇄망 설정 (필수)
@@ -130,7 +130,7 @@ packages/cowork-core/src/renderer/
         ├── MarkdownViewer.tsx        ← MessageMarkdown 래퍼
         ├── ImageViewer.tsx           ← <img src="file://...">
         ├── PdfViewer.tsx             ← <iframe src="file://..."> (Chromium 내장)
-        ├── HtmlViewer.tsx            ← <iframe srcDoc sandbox="allow-scripts">
+        ├── HtmlViewer.tsx            ← <iframe srcDoc sandbox="">
         ├── CsvViewer.tsx             ← split 파싱 → <table>
         ├── DocxViewer.tsx            ← docx-preview renderAsync
         └── XlsxViewer.tsx            ← exceljs.load → react-spreadsheet
@@ -195,10 +195,12 @@ export function FileViewerPanel() {
 
 ## HTML 뷰어 보안 설계
 
-open-codesign 패턴 참고:
+open-codesign 패턴을 참고하되, 현재 구현은 더 보수적으로 동작한다:
 
-- 워크스페이스 파일(Claude가 생성한 HTML)은 신뢰도 높음 → 스크립트 실행 허용
-- **단, `allow-same-origin` 미포함 → 부모 DOM/IPC 접근 불가**
+- 워크스페이스 HTML은 iframe에서만 렌더링한다.
+- `sandbox=""`를 사용해 스크립트 실행, same-origin 권한, 부모 DOM/IPC 접근을 모두 차단한다.
+- Preview/Source 토글을 제공하며, Source는 `CodeViewer`의 HTML 하이라이팅을 사용한다.
+- Sanitize 옵션을 켜면 `DOMPurify.sanitize(text)` 결과를 같은 sandboxed iframe에서 표시한다. 기본값은 비활성이다.
 
 ```tsx
 // HtmlViewer.tsx
@@ -213,14 +215,14 @@ export function HtmlViewer({ filePath }: { filePath: string }) {
   return (
     <iframe
       srcDoc={html}
-      sandbox="allow-scripts"
+      sandbox=""
       className="w-full h-full border-0"
     />
   )
 }
 ```
 
-"소스 보기" 토글 → `<CodeViewer ext=".html">` 로 전환 가능.
+"소스 보기" 토글 → `<CodeViewer ext=".html" content={text}>` 로 전환 가능.
 
 ---
 
@@ -232,7 +234,7 @@ export function HtmlViewer({ filePath }: { filePath: string }) {
 | `.ts` / `.py` / `.json` | shiki 신택스 하이라이팅 |
 | `.png` / `.jpg` / `.svg` | 이미지 정상 표시 |
 | `.pdf` | Chromium PDF 뷰어, 스크롤 동작 |
-| `.html` | 스크립트 실행, 부모 DOM 접근 불가 확인 |
+| `.html` | Preview/Source 전환, 스크립트 미실행, sanitize 토글 시 `<script>` 제거 확인 |
 | `.csv` | 한글 내용 포함 표 렌더링 |
 | `.docx` | 레이아웃·이미지 보존 |
 | `.xlsx` | 멀티시트 탭 전환 |

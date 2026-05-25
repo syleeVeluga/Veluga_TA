@@ -9,7 +9,7 @@
    - `MarkdownViewer`: 기존 `MessageMarkdown` **재사용** — `<MessageMarkdown normalizedText={text} />`
    - `ImageViewer`: `<img src={\`file://${filePath}\`} />` (IPC 우회)
    - `PdfViewer`: `<iframe src="file://...">` (Chromium 내장)
-   - `HtmlViewer`: `<iframe srcDoc sandbox="allow-scripts">` — **`allow-same-origin` 미포함**
+   - `HtmlViewer`: `<iframe srcDoc sandbox="">` — 스크립트 실행과 `allow-same-origin` 모두 미허용
    - `CsvViewer`: 순수 JS RFC 4180 최소 파싱 → `<table>`
    - `UnsupportedViewer`: OS 탐색기 열기 버튼
 2. `viewer-map.ts` — `kind → React.lazy()` 매핑. Stage 2~5 키는 미리 자리만 잡고 `UnsupportedViewer` fallback.
@@ -41,7 +41,7 @@
 | `.txt`/`.log`/`.env` | 텍스트 표시 |
 | `.png`/`.jpg`/`.svg` | 이미지 인라인 |
 | `.pdf` | Chromium 뷰어 |
-| `.html` | 스크립트 동작, 부모 DOM 접근 차단 (`window.parent === window` 콘솔로 확인) |
+| `.html` | HTML 렌더링, 스크립트 미실행, 부모 DOM 접근 차단 |
 | `.csv`/`.tsv` | 한글 포함 표, 따옴표 안 쉼표 |
 | `.pptx`/`.zip` | OS 탐색기 (회귀 없음) |
 
@@ -52,7 +52,7 @@
 - [ ] **TextViewer**: `.txt`/`.log`/`.env` — ContextPanel + 채팅 양쪽에서 열림
 - [ ] **ImageViewer**: `.png`/`.jpg`/`.svg`/`.webp` — ContextPanel + 채팅 양쪽에서 열림
 - [ ] **PdfViewer**: `.pdf` — Chromium 뷰어, 스크롤/확대
-- [ ] **HtmlViewer**: `.html` — 스크립트 실행 O, **부모 DOM 접근 X** (`window.parent === window`)
+- [ ] **HtmlViewer**: `.html` — 렌더링 O, 스크립트 실행 X, **부모 DOM 접근 X**
 - [ ] **CsvViewer**: `.csv`/`.tsv` — 한글 포함 표, 따옴표 안 쉼표
 - [ ] **UnsupportedViewer (OS_ONLY_EXTS)**: `.pptx`/`.zip`/`.exe`/`.dmg` — OS 탐색기로 빠짐 (회귀 없음)
 
