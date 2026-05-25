@@ -217,8 +217,8 @@ export function Sidebar() {
 
   if (sidebarCollapsed) {
     return (
-      <aside className="w-[4.5rem] bg-surface/96 border-r border-border-muted flex flex-col overflow-hidden">
-        <div className="px-3 pt-4 pb-3 flex flex-col items-center gap-2 border-b border-border-muted">
+      <aside className="w-[4.5rem] bg-surface/96 border-r-2 border-border flex flex-col overflow-hidden">
+        <div className="px-3 pt-4 pb-3 flex flex-col items-center gap-2 border-b-2 border-border">
           <button
             onClick={toggleSidebar}
             className="w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-surface-hover transition-colors text-text-secondary"
@@ -245,7 +245,7 @@ export function Sidebar() {
           </button>
         </div>
 
-        <div className="px-3 py-3 border-t border-border-muted flex flex-col items-center gap-2">
+        <div className="px-3 py-3 border-t-2 border-border flex flex-col items-center gap-2">
           <button
             onClick={toggleTheme}
             className="w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-surface-hover transition-colors text-text-secondary"
@@ -269,8 +269,8 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-[17.5rem] bg-surface/96 border-r border-border-muted flex flex-col overflow-hidden">
-      <div className="px-4 pt-5 pb-4 border-b border-border-muted">
+    <aside className="w-[17.5rem] bg-surface/96 border-r-2 border-border flex flex-col overflow-hidden">
+      <div className="px-4 pt-5 pb-4 border-b-2 border-border">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex items-center gap-3">
             <img
@@ -410,7 +410,7 @@ export function Sidebar() {
       </div>
 
       {isSelectMode ? (
-        <div className="px-3 py-3 border-t border-border-muted">
+        <div className="px-3 py-3 border-t-2 border-border">
           {showDeleteConfirm ? (
             <div className="border border-error/30 bg-error/10 rounded-lg px-3 py-3">
               <p className="text-[13px] text-text-primary mb-3">
@@ -464,7 +464,7 @@ export function Sidebar() {
           )}
         </div>
       ) : (
-        <div className="px-3 py-3 border-t border-border-muted">
+        <div className="px-3 py-3 border-t-2 border-border">
           <div className="flex items-center gap-2 rounded-2xl bg-background/50 px-3 py-2.5">
             <button
               onClick={() => setShowSettings(true)}
