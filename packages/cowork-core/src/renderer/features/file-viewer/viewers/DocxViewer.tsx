@@ -22,7 +22,7 @@ export default function DocxViewer({ readResult }: ViewerComponentProps) {
     container.replaceChildren();
     const arrayBuffer = decodeBase64ArrayBuffer(readResult.buffer);
 
-    void renderAsync(arrayBuffer, containerRef.current)
+    void renderAsync(arrayBuffer, containerRef.current, undefined, { renderAltChunks: false })
       .catch(() => {
         if (!cancelled) {
           setRenderError(true);

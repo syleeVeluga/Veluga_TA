@@ -37,7 +37,9 @@ describe('DocxViewer stage 4', () => {
 
     expect(source).toContain("import { renderAsync } from 'docx-preview';");
     expect(source).toContain('decodeBase64ArrayBuffer(readResult.buffer)');
-    expect(source).toContain('renderAsync(arrayBuffer, containerRef.current)');
+    expect(source).toContain(
+      'renderAsync(arrayBuffer, containerRef.current, undefined, { renderAltChunks: false })'
+    );
     expect(source).toContain('setRenderError(true)');
   });
 

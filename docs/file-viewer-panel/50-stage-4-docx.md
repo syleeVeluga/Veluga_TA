@@ -28,6 +28,9 @@
 - [ ] 표 레이아웃 보존
 - [ ] 10MB+ docx 렌더 동작
 - [ ] 손상 파일 → ErrorBoundary 메시지
+- [x] `renderAltChunks: false`로 DOCX 내 embedded HTML 렌더링 비활성화
+- [x] `npm run test -- file-viewer-docx` 통과
+- [x] `npm run typecheck` 통과
 
 ## 롤백
 `viewer-map.ts`의 `docx` 키만 unsupported로 되돌리고 docx-preview 제거.
