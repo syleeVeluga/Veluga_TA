@@ -66,6 +66,9 @@ win:
     - target: nsis
       arch:
         - x64
+    - target: portable
+      arch:
+        - x64
   artifactName: ${productName}-${version}-win-${arch}.${ext}
   signAndEditExecutable: false
   extraResources:
@@ -135,6 +138,9 @@ nsis:
   warningsAsErrors: false
   # Preserve user config/history by default; offer explicit cleanup tooling instead of destructive uninstall.
   deleteAppDataOnUninstall: false
+
+portable:
+  artifactName: ${productName}-${version}-win-${arch}-portable.${ext}
 
 dmg:
   # Explicit size to avoid dmgbuild "No space left on device" for large apps.

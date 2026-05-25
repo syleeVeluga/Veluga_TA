@@ -90,7 +90,7 @@ function main() {
   Object.values(DIRS).forEach(ensureDir);
 
   const forwardedArgs = process.argv.slice(2);
-  const builderArgs = forwardedArgs.length > 0 ? [...forwardedArgs] : ['--win', 'nsis'];
+  const builderArgs = forwardedArgs.length > 0 ? [...forwardedArgs] : ['--win', 'nsis', 'portable'];
   const env = {
     ...process.env,
     APPDATA: DIRS.appDataRoaming,
