@@ -5,6 +5,7 @@ import { resolveArtifactPath } from '../utils/artifact-path';
 import { extractFilePathFromToolInput, extractFilePathFromToolOutput } from '../utils/tool-output-path';
 import { getArtifactLabel, getArtifactIconComponent, getArtifactSteps } from '../utils/artifact-steps';
 import { useIPC } from '../hooks/useIPC';
+import { openFileFromUI } from '@renderer/features/file-viewer';
 import {
   ChevronDown,
   ChevronUp,
@@ -77,7 +78,6 @@ export function ContextPanel() {
   const activeSession = activeSessionId ? sessions.find(s => s.id === activeSessionId) : null;
   const currentWorkingDir = activeSession?.cwd || workingDir;
   const { displayArtifactSteps } = getArtifactSteps(steps);
-  const canShowItemInFolder = typeof window !== 'undefined' && !!window.electronAPI?.showItemInFolder;
 
   // Session info computations
   const messages = useMemo(
@@ -345,7 +345,7 @@ export function ContextPanel() {
                 {displayArtifacts.map((artifact, index) => {
                   const label = artifact.label || t('context.fileCreated');
                   const artifactPath = artifact.path;
-                  const canClick = Boolean(artifactPath && canShowItemInFolder);
+                  const canClick = Boolean(artifactPath);
                   const iconComponent = getArtifactIconComponent(label);
                   const IconComponent =
                     iconComponent === 'presentation' ? FilePieChart
@@ -365,12 +365,16 @@ export function ContextPanel() {
                       className={`flex items-center gap-2 px-4 py-1.5 transition-colors ${canClick ? 'cursor-pointer hover:bg-surface-hover' : ''}`}
                       onClick={async () => {
                         if (!canClick) return;
-                        const revealed = await window.electronAPI.showItemInFolder(artifactPath, currentWorkingDir ?? undefined);
-                        if (!revealed) {
+                        try {
+                          await openFileFromUI(artifactPath, currentWorkingDir ?? undefined);
+                        } catch (error) {
                           setGlobalNotice({
                             id: `artifact-reveal-failed-${Date.now()}`,
                             type: 'warning',
-                            message: t('context.revealFailed'),
+                            message:
+                              error instanceof Error && error.message
+                                ? error.message
+                                : t('context.revealFailed'),
                           });
                         }
                       }}

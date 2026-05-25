@@ -14,5 +14,5 @@ export async function openFileFromUI(filePath: string, cwd?: string): Promise<vo
     return;
   }
 
-  openFileInViewer(filePath);
+  openFileInViewer(filePath, cwd);
 }

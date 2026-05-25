@@ -14,26 +14,27 @@ function readAllMessageContent() {
 }
 
 describe('MessageCard local link handling', () => {
-  it('renders local markdown links as folder-locate buttons instead of target-blank anchors', () => {
+  it('renders local markdown links as file viewer buttons instead of target-blank anchors', () => {
     const source = readAllMessageContent();
 
     expect(source).toContain(
       'const localFilePath = resolveLocalFilePathFromHref(href, currentWorkingDir);'
     );
     expect(source).toContain("title={localFilePath}");
-    expect(source).toContain('await window.electronAPI.showItemInFolder(');
+    expect(source).toContain("import { openFileFromUI } from '@renderer/features/file-viewer';");
+    expect(source).toContain('await openFileFromUI(');
     expect(source).toContain('localFilePath,');
     expect(source).toContain('currentWorkingDir ?? undefined');
     expect(source).not.toContain('const fallbackUrl = `file://${encodeURI(localFilePath)}`;');
     expect(source).not.toContain('target="_blank"');
   });
 
-  it('shows a warning toast when revealing a local file fails', () => {
+  it('shows a warning toast when opening a local file throws', () => {
     const source = readAllMessageContent();
 
     expect(source).toContain('const setGlobalNotice = useAppStore((s) => s.setGlobalNotice);');
-    expect(source).toContain('if (!revealed) {');
-    expect(source).toContain("message: t('context.revealFailed')");
+    expect(source).toContain('} catch (error) {');
+    expect(source).toContain("t('context.revealFailed')");
   });
 
   it('treats Windows forward-slash paths as absolute file targets', () => {

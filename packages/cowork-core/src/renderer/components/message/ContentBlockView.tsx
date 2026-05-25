@@ -16,6 +16,7 @@ import {
 import { normalizeLatexDelimiters } from '../../utils/latex-delimiters';
 import type { ToolUseContent, ToolResultContent, FileAttachmentContent } from '../../types';
 import { FileText } from 'lucide-react';
+import { openFileFromUI } from '@renderer/features/file-viewer';
 import { CodeBlock } from './CodeBlock';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolUseBlock } from './ToolUseBlock';
@@ -54,22 +55,9 @@ export const ContentBlockView = memo(function ContentBlockView({
       key={key}
       type="button"
       onClick={async () => {
-        if (typeof window === 'undefined' || !window.electronAPI?.showItemInFolder) {
-          return;
-        }
         const resolvedPath = resolveFilePath(value);
         try {
-          const revealed = await window.electronAPI.showItemInFolder(
-            resolvedPath,
-            currentWorkingDir ?? undefined
-          );
-          if (!revealed) {
-            setGlobalNotice({
-              id: `message-card-reveal-failed-${Date.now()}`,
-              type: 'warning',
-              message: t('context.revealFailed'),
-            });
-          }
+          await openFileFromUI(resolvedPath, currentWorkingDir ?? undefined);
         } catch (error) {
           setGlobalNotice({
             id: `message-card-reveal-failed-${Date.now()}`,
@@ -119,21 +107,8 @@ export const ContentBlockView = memo(function ContentBlockView({
             <button
               type="button"
               onClick={async () => {
-                if (typeof window === 'undefined' || !window.electronAPI?.showItemInFolder) {
-                  return;
-                }
                 try {
-                  const revealed = await window.electronAPI.showItemInFolder(
-                    localFilePath,
-                    currentWorkingDir ?? undefined
-                  );
-                  if (!revealed) {
-                    setGlobalNotice({
-                      id: `message-card-reveal-failed-${Date.now()}`,
-                      type: 'warning',
-                      message: t('context.revealFailed'),
-                    });
-                  }
+                  await openFileFromUI(localFilePath, currentWorkingDir ?? undefined);
                 } catch (error) {
                   setGlobalNotice({
                     id: `message-card-reveal-failed-${Date.now()}`,
