@@ -68,6 +68,7 @@
     "archiver": "^7.0.1",
     "better-sqlite3": "^12.8.0",
     "chokidar": "^4.0.1",
+    "docx-preview": "0.3.7",
     "dompurify": "3.4.5",
     "dotenv": "^17.2.3",
     "electron-store": "^11.0.2",
