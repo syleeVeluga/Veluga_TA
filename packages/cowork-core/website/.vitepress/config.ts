@@ -61,7 +61,7 @@ const STRUCTURED_DATA = {
       '@id': `${SITE_URL}#website`,
       name: 'Open Cowork',
       url: SITE_URL,
-      inLanguage: ['en', 'zh-CN'],
+      inLanguage: ['en', 'ko'],
       publisher: { '@id': `${SITE_URL}#organization` },
     },
     {
@@ -205,10 +205,10 @@ export default defineConfig({
       label: 'English',
       lang: 'en',
     },
-    zh: {
-      label: '한글',
+    ko: {
+      label: '한국어',
       lang: 'ko-KR',
-      description: '무료 오픈소스 AI 스마트 어시스턴트 데스크톱 애플리케이션, Windows와 macOS 한 번의 클릭으로 설치.',
+      description: '무료 오픈소스 AI 에이전트 데스크톱 애플리케이션. Windows와 macOS 원클릭 설치.',
       themeConfig: {
         nav: [
           { text: '홈', link: '/ko/' },
@@ -216,8 +216,8 @@ export default defineConfig({
           { text: 'GitHub', link: 'https://github.com/OpenCoworkAI/open-cowork' },
         ],
         footer: {
-          message: 'MIT 라이센스 오픈소스.',
-          copyright: '© 2025-present OpenCoworkAI',
+          message: 'MIT 라이선스 오픈소스.',
+          copyright: '© 2025-present Veluga Inc.',
         },
       },
     },

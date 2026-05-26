@@ -10,8 +10,8 @@ head:
       href: https://opencoworkai.github.io/open-cowork/
   - - link
     - rel: alternate
-      hreflang: zh-CN
-      href: https://opencoworkai.github.io/open-cowork/zh/
+      hreflang: ko
+      href: https://opencoworkai.github.io/open-cowork/ko/
   - - link
     - rel: alternate
       hreflang: x-default
