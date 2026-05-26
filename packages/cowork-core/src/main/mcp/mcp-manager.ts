@@ -212,9 +212,9 @@ export class MCPManager {
     if (!bundledNode) {
       const errorMessage =
         'Bundled Node.js not found. Please reinstall the application.\n' +
-        '未找到内置的 Node.js。请重新安装应用。\n\n' +
+        '번들된 Node.js를 찾을 수 없습니다. 애플리케이션을 다시 설치하세요.\n\n' +
         'The application requires bundled Node.js to run MCP servers.\n' +
-        '应用需要内置的 Node.js 来运行 MCP 服务器。';
+        'MCP 서버를 실행하려면 애플리케이션에 번들된 Node.js가 필요합니다.';
 
       logError('[MCPManager] Bundled Node.js not found');
       throw new Error(errorMessage);
@@ -1475,7 +1475,7 @@ export class MCPManager {
 
         const toolErrorMessage = extractStructuredToolErrorMessage(result);
         if (shouldReconnectOnStructuredToolError(toolErrorMessage)) {
-          // 某些 MCP 服务会把连接错误包在结构化结果里而非直接抛异常，这里转为异常以复用统一重连逻辑。
+          // 일부 MCP 서비스는 연결 오류를 구조화된 결과에 포함시키고 직접 예외를 던지지 않으므로, 여기서 예외로 변환하여 통일된 재연결 로직을 재사용한다.
           throw new Error(toolErrorMessage);
         }
         if (

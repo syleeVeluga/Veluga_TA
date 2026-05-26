@@ -120,8 +120,8 @@ class EvalMockLLM implements MemoryLLMClientLike {
             session_keywords: ['gateway', 'rotation'],
             chunks: [
               {
-                summary: 'gateway token rotation 的实现与约束',
-                details: '需要同时同步 remote gateway，避免状态不一致。',
+                summary: 'gateway token rotation의 구현과 제약',
+                details: 'remote gateway를 동시에 동기화해야 상태 불일치를 방지할 수 있습니다.',
                 keywords: ['gateway', 'remote gateway'],
                 source_turns: [1, 2, 3, 4],
               },
@@ -131,13 +131,13 @@ class EvalMockLLM implements MemoryLLMClientLike {
       }
       return {
         text: JSON.stringify({
-          session_summary: '记录订单状态机设计约束',
+          session_summary: '주문 상태 머신 설계 제약 기록',
           session_keywords: ['refund', 'cancel'],
           chunks: [
             {
-              summary: 'refunded 和 cancelled 不能合并',
-              details: '两者代表不同财务语义。',
-              keywords: ['refunded', 'cancelled', '财务语义'],
+              summary: 'refunded와 cancelled는 병합할 수 없음',
+              details: '두 가지는 다른 재무 의미를 나타냅니다.',
+              keywords: ['refunded', 'cancelled', '재무 의미'],
               source_turns: [1, 2],
             },
           ],

@@ -63,27 +63,27 @@ export interface MemoryEvalReport {
 const DEFAULT_EVAL_CASES: MemoryEvalCase[] = [
   {
     id: 'cross-workspace-code',
-    title: '跨 workspace 代码经验召回',
+    title: '워크스페이스 간 코드 경험 회상',
     workspace: '/eval/workspace-a',
     sessionTitle: 'Gateway token rotation',
     messages: [
-      { role: 'user', text: '请以后默认用中文回答。', timestamp: 1 },
-      { role: 'assistant', text: '好的，我会默认使用中文。', timestamp: 2 },
+      { role: 'user', text: '앞으로 기본적으로 한글로 답변해 주세요.', timestamp: 1 },
+      { role: 'assistant', text: '알겠습니다. 앞으로 기본적으로 한글을 사용하겠습니다.', timestamp: 2 },
       {
         role: 'user',
-        text: '在 workspace A 中实现 gateway token rotation，并记录 remote gateway 的同步约束。',
+        text: 'workspace A에서 gateway token rotation을 구현하고, remote gateway의 동기화 제약을 기록하세요.',
         timestamp: 3,
       },
       {
         role: 'assistant',
-        text: '已完成 gateway token rotation，并说明 remote gateway 需要同步更新。',
+        text: 'gateway token rotation을 완료했으며, remote gateway는 동기화가 필요함을 설명했습니다.',
         timestamp: 4,
       },
     ],
     queries: [
       {
         id: 'query-a1',
-        prompt: '继续 gateway token rotation，提醒我上次的关键约束。',
+        prompt: 'gateway token rotation을 계속하고, 지난번의 핵심 제약을 상기시켜 주세요.',
         workspace: '/eval/workspace-a',
         expectedHits: ['gateway token rotation', 'remote gateway', 'source=/eval/workspace-a'],
       },

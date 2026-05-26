@@ -111,11 +111,11 @@ class SmokeMemoryLLM implements MemoryLLMClientLike {
           chunks: [
             {
               summary: isWorkspaceA
-                ? 'workspace A 中关于 gateway token rotation 的结论'
-                : 'workspace B 中不相关的总结',
+                ? 'workspace A의 gateway token rotation 관련 결론'
+                : 'workspace B의 무관한 요약',
               details: isWorkspaceA
-                ? '在 workspace A 中完成 gateway token rotation，并保留后续整理说明。'
-                : '这条记录属于另一个 workspace。',
+                ? 'workspace A에서 gateway token rotation을 완료하고 후속 정리 설명을 보관했습니다.'
+                : '이 기록은 다른 workspace에 속합니다.',
               keywords: isWorkspaceA ? ['gateway', 'rotation'] : ['other'],
               source_turns: [1, 2, 3, 4],
             },
@@ -289,18 +289,18 @@ describe('memory smoke harness', () => {
         createdAt: 1000,
         updatedAt: 1000,
       },
-      prompt: '实现 gateway token rotation',
+      prompt: 'gateway token rotation 구현',
       messages: makeMessages('a-1', [
-        { role: 'user', text: '请用中文回答。', timestamp: 1 },
-        { role: 'assistant', text: '好的。', timestamp: 2 },
+        { role: 'user', text: '한글로 답변해 주세요.', timestamp: 1 },
+        { role: 'assistant', text: '알겠습니다.', timestamp: 2 },
         {
           role: 'user',
-          text: '在 workspace A 里实现 gateway token rotation，并同步 remote gateway。',
+          text: 'workspace A에서 gateway token rotation을 구현하고 remote gateway를 동기화하세요.',
           timestamp: 3,
         },
         {
           role: 'assistant',
-          text: '已在 workspace A 完成 gateway token rotation。',
+          text: 'workspace A에서 gateway token rotation을 완료했습니다.',
           timestamp: 4,
         },
       ]),
@@ -318,10 +318,10 @@ describe('memory smoke harness', () => {
         createdAt: 2000,
         updatedAt: 2000,
       },
-      prompt: '记录别的事情',
+      prompt: '다른 사항 기록',
       messages: makeMessages('b-1', [
-        { role: 'user', text: '在 workspace B 中讨论不相关的话题。', timestamp: 5 },
-        { role: 'assistant', text: '已记录。', timestamp: 6 },
+        { role: 'user', text: 'workspace B에서 무관한 주제를 논의합니다.', timestamp: 5 },
+        { role: 'assistant', text: '기록했습니다.', timestamp: 6 },
       ]),
     });
 
