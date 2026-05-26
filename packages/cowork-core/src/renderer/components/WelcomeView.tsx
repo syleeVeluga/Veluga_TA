@@ -483,7 +483,7 @@ export function WelcomeView() {
             <button
               key={tag.id}
               onClick={() => handleTagClick(tag.id, tag.prompt)}
-              className={`inline-flex items-center gap-2 rounded-full border-4 px-3 py-2 text-sm transition-colors ${
+              className={`inline-flex items-center gap-2 rounded-full border-[3px] px-3 py-2 text-sm transition-colors ${
                 selectedTag === tag.id
                   ? 'border-accent/60 bg-accent-muted text-accent'
                   : 'border-border bg-background/65 text-text-secondary hover:bg-surface-hover hover:text-text-primary'
@@ -518,7 +518,7 @@ export function WelcomeView() {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`rounded-[1.9rem] border-4 border-border bg-background/85 shadow-soft px-5 py-5 space-y-4 transition-colors ${
+          className={`rounded-[1.9rem] border-[3px] border-border bg-background/85 shadow-soft px-5 py-5 space-y-4 transition-colors ${
             isDragging ? 'ring-2 ring-accent bg-accent/5' : ''
           }`}
         >
@@ -599,7 +599,7 @@ export function WelcomeView() {
           />
 
           {/* Bottom Actions */}
-          <div className="flex items-center justify-between pt-3 border-t-4 border-border">
+          <div className="flex items-center justify-between pt-3 border-t-[3px] border-border">
             <div className="flex items-center gap-3">
               <button
                 type="button"
