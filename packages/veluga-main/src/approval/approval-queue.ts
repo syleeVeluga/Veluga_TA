@@ -44,6 +44,22 @@ export class ApprovalQueue {
     for (const item of items) this.items.set(item.approval_id, { ...item });
   }
 
+  enqueue(item: ApprovalItem): ApprovalItem {
+    if (this.items.has(item.approval_id)) {
+      return { ...this.requireItem(item.approval_id) };
+    }
+    const stored = { ...item };
+    this.items.set(item.approval_id, stored);
+    this.options.audit?.append({
+      session_id: 'approval-queue',
+      user_id: item.author.user_id,
+      event_type: 'approval.submitted',
+      payload: { approval_id: item.approval_id, report_id: item.report_id, approver: item.approver_id },
+      policy_version_id: this.options.policyVersionId ?? 'approval'
+    });
+    return { ...stored };
+  }
+
   list(approver_id: string): ApprovalQueueData {
     return {
       approver_id,

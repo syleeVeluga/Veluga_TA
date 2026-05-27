@@ -28,6 +28,7 @@ export type AuditEventType =
   | 'approval.submitted'
   | 'approval.granted'
   | 'approval.rejected'
+  | 'approval.payload_drift'
   | 'seal.verify_failed'
   | 'sandbox.run';
 

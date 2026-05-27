@@ -1,4 +1,6 @@
 import type { ContextFragment, WorkerTask, WorkPlan } from '../../../shared-types/src/index.js';
+import type { AbortCleanupRegistry } from './abort-cleanup.js';
+import type { CheckpointStore } from './checkpoint-store.js';
 
 export const TERMINAL: ReadonlySet<WorkerTask['status']> = new Set(['completed', 'failed', 'aborted', 'skipped']);
 
@@ -10,6 +12,9 @@ export interface OrchestratorOptions {
   retryCapMs?: number;
   maxSteps?: number;
   tokenBudget?: number;
+  checkpointStore?: CheckpointStore;
+  checkpointState?: string;
+  abortCleanup?: AbortCleanupRegistry;
 }
 
 export type RunWorker = (task: WorkerTask, signal: AbortSignal) => Promise<ContextFragment>;
@@ -35,6 +40,8 @@ export class OrchestrationBudgetError extends Error {
 }
 
 export class VelugaOrchestrator {
+  private readonly activeControllers = new Set<AbortController>();
+
   constructor(
     private readonly runWorker: RunWorker,
     private readonly opts: OrchestratorOptions = {}
@@ -99,10 +106,27 @@ export class VelugaOrchestrator {
       signal.addEventListener('abort', abort, { once: true });
     }
 
+    this.activeControllers.add(controller);
+    this.opts.checkpointStore?.save(plan.sessionId, this.opts.checkpointState ?? 'RUNNING_PARALLEL', plan);
+
     try {
-      return await this.runValidatedPlan(plan, onTaskUpdate, controller);
+      const result = await this.runValidatedPlan(plan, onTaskUpdate, controller);
+      if (result.failedRequired.length === 0 && !controller.signal.aborted) {
+        this.opts.checkpointStore?.clear(plan.sessionId);
+      }
+      return result;
     } finally {
+      this.activeControllers.delete(controller);
       signal.removeEventListener('abort', abort);
+      if (controller.signal.aborted) {
+        await this.opts.abortCleanup?.cleanup();
+      }
+    }
+  }
+
+  abortAll(reason = 'orchestration aborted'): void {
+    for (const controller of this.activeControllers) {
+      controller.abort(reason);
     }
   }
 
@@ -122,12 +146,35 @@ export class VelugaOrchestrator {
     let tokensUsed = 0;
     let tokenBudgetExceeded = false;
 
+    for (const task of tasks) {
+      if (task.status === 'running') {
+        task.status = 'pending';
+        task.startedAt = undefined;
+        task.error = undefined;
+      }
+      if (task.status === 'completed') {
+        const result = task.result ?? this.opts.checkpointStore?.getCachedResult(plan.sessionId, task.idempotencyKey);
+        if (result) {
+          task.result = result;
+          results[task.id] = result;
+          tokensUsed += result.tokensUsed;
+        } else {
+          task.status = 'failed';
+          task.error = 'completed task missing cached result';
+        }
+      }
+    }
+
     const update = (task: WorkerTask, status: WorkerTask['status'], error?: string): void => {
       task.status = status;
       task.error = error;
       if (status === 'running') task.startedAt = Date.now();
       if (TERMINAL.has(status)) task.completedAt = Date.now();
       onTaskUpdate(cloneTask(task));
+      this.opts.checkpointStore?.save(plan.sessionId, this.opts.checkpointState ?? 'RUNNING_PARALLEL', {
+        ...plan,
+        tasks: tasks.map(cloneTask)
+      });
     };
 
     try {
@@ -157,12 +204,21 @@ export class VelugaOrchestrator {
 
         while (active.size < maxConcurrency && runnable.length > 0 && !controller.signal.aborted) {
           const task = runnable.shift()!;
+          const cached = this.opts.checkpointStore?.getCachedResult(plan.sessionId, task.idempotencyKey);
+          if (cached) {
+            task.result = cached;
+            results[task.id] = cached;
+            tokensUsed += cached.tokensUsed;
+            update(task, 'completed');
+            continue;
+          }
           update(task, 'running');
           const promise = this.runWithRetry(task, controller.signal)
             .then((result) => {
               task.result = result;
               results[task.id] = result;
               tokensUsed += result.tokensUsed;
+              this.opts.checkpointStore?.putResult(plan.sessionId, task.idempotencyKey, result);
               update(task, 'completed');
               if (tokensUsed > tokenBudget) {
                 tokenBudgetExceeded = true;
@@ -171,7 +227,7 @@ export class VelugaOrchestrator {
             })
             .catch((error: unknown) => {
               const message = errorMessage(error);
-              update(task, task.optional ? 'skipped' : 'failed', message);
+              update(task, task.optional ? 'skipped' : controller.signal.aborted ? 'aborted' : 'failed', message);
             })
             .finally(() => {
               active.delete(task.id);
