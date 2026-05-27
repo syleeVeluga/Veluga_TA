@@ -56,10 +56,10 @@
 
 ## 5. 가드레일 회귀 (양쪽 배포 프로파일)
 
-- [ ] [whiteout-and-ui.test.ts](tests/phase1/whiteout-and-ui.test.ts): 게이트웨이 URL 필수 + 공개 LLM 엔드포인트 하드코딩 부재.
-- [ ] [phase1-guards.yml](.github/workflows/phase1-guards.yml): `api.(anthropic|openai).com` 스캔 통과.
+- [x] [whiteout-and-ui.test.ts](tests/phase1/whiteout-and-ui.test.ts): 게이트웨이 URL 필수 + 공개 LLM 엔드포인트 하드코딩 부재.
+- [x] [phase1-guards.yml](.github/workflows/phase1-guards.yml): `api.(anthropic|openai).com` 스캔 통과.
 - [ ] 폐쇄망 화이트아웃(mitmproxy 5분 0바이트, [phase1-verification.md](docs/phase1-verification.md)).
-- [ ] 텔레메트리 SaaS SDK 미도입 확인.
+- [x] 텔레메트리 SaaS SDK 미도입 확인.
 
 ---
 
