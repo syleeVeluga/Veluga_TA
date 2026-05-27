@@ -1,6 +1,6 @@
 # Veluga 오케스트레이션 & 상태 관리 — 설계·구현 계획
 
-> Status: **Planning (Hardened)** · 최종 개정 2026-05-27
+> Status: **Phase 1·2 구현 완료** · 최종 개정 2026-05-28
 > Scope: 오케스트레이터-워커 워크플로우 + 태스크별 FSM + `node:sqlite` 내구성 체크포인트
 > 확정 결정: 오케스트레이터-워커로 재정의 · 직접 구현 + 검증 패턴 차용 · SQLite 체크포인트 포함 · 폐쇄망/연결망 양쪽 배포 프로파일 인식
 
@@ -38,6 +38,8 @@
 ## 적용 상태
 
 - [x] **Phase 0** — 본 계획 문서화/개정 (이 폴더)
-- [ ] **Phase 1** — 오케스트레이터-워커 MVP
-- [ ] **Phase 2** — 내구성 & HITL
-- [ ] **Phase 3** — 선택적 동적성 (조건부)
+- [x] **Phase 1** — 오케스트레이터-워커 MVP (`184fcdf`, [tests/phase1/orchestrator-worker.test.ts](../../tests/phase1/orchestrator-worker.test.ts))
+- [x] **Phase 2** — 내구성 & HITL (`426fae4`, [tests/phase2/phase2-durability-hitl.test.ts](../../tests/phase2/phase2-durability-hitl.test.ts))
+- [ ] **Phase 3** — 선택적 동적성 (조건부, 진행 중 — `sub-session.ts`/`worker-scope.ts`)
+
+> **잔여 후속 작업**: Phase 1 §7의 렌더러 Zustand 반영(`agentStatus`/`tasks[]`)은 미구현. 메인 측 `veluga.orchestration.state` 발행은 완료되었으나 렌더러 store 소비는 후속 처리.
