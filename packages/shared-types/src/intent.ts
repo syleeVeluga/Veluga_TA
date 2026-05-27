@@ -59,3 +59,39 @@ export type CitationTag =
   | { kind: 'kb'; doc_id: string; as_of: string }
   | { kind: 'nb'; file_id: string; chunk_id: string }
   | { kind: 'parametric'; level: 'high' | 'low' };
+
+export type WorkerType = 'kb-retrieval' | 'file-analysis' | 'policy-preaudit' | 'style-card-load';
+
+export interface ContextFragment {
+  workerType: WorkerType;
+  summary: string;
+  citations: CitationTag[];
+  tokensUsed: number;
+}
+
+export interface WorkerTask {
+  id: string;
+  workerType: WorkerType;
+  dependencies: string[];
+  objective: string;
+  outputContract: { shape: 'context_fragment'; schemaRef: string };
+  toolScope: string[];
+  boundaries: string[];
+  payload: Readonly<Record<string, string | string[]>>;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'aborted' | 'skipped';
+  optional: boolean;
+  attempts: number;
+  idempotencyKey: string;
+  result?: ContextFragment;
+  error?: string;
+  startedAt?: number;
+  completedAt?: number;
+}
+
+export interface WorkPlan {
+  sessionId: string;
+  tasks: WorkerTask[];
+  dataPassingMode: 'memory' | 'project_temp';
+  effortTier: 'single' | 'small' | 'broad';
+  rationale: string;
+}
