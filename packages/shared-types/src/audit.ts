@@ -23,6 +23,7 @@ export type AuditEventType =
   | 'orchestration.illegal_transition'
   | 'orchestration.task_transition'
   | 'orchestration.plan_rejected'
+  | 'orchestration.replanned'
   | 'orchestration.budget_exceeded'
   | 'orchestration.execution_failed'
   | 'approval.submitted'

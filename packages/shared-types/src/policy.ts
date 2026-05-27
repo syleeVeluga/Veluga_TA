@@ -2,6 +2,12 @@ export type Clearance = 'public' | 'internal' | 'confidential' | 'secret';
 export type HitlMode = 'strict' | 'normal' | 'relaxed';
 export type PolicyGuardMode = 'enforce' | 'dry-run';
 
+export interface DynamicOrchestrationPolicy {
+  conditional_edges: boolean;
+  bounded_subsessions: boolean;
+  dynamic_dag: boolean;
+}
+
 export interface PolicyTierRules {
   external_apis?: 'allow' | 'deny';
   audit_log?: 'required' | 'optional';
@@ -54,6 +60,7 @@ export interface PolicyContext {
     enable_veluga_orchestration: boolean;
     policy_guard_mode: PolicyGuardMode;
     kb_token_budget?: number;
+    dynamic_orchestration: DynamicOrchestrationPolicy;
   };
   hitl_mode: HitlMode;
   stale?: boolean;

@@ -13,6 +13,7 @@ import { KbConnectorRegistry } from '../kb/kb-connector-registry.js';
 import { KbUnavailableError } from '../kb/kb-mcp-adapter.js';
 import { readProjectYaml } from '../project-yaml.js';
 import { NonRetryableWorkerError, type RunWorker } from './orchestrator.js';
+import { outOfScopeTools } from './worker-scope.js';
 
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.json', '.csv', '.tsv']);
 
@@ -190,14 +191,7 @@ function kbIntent(scopes: string[]): IntentPlan {
 }
 
 function assertAllowedToolScope(task: WorkerTask): void {
-  const allowed: Record<WorkerTask['workerType'], string[]> = {
-    'kb-retrieval': ['kb_hybrid', 'kb_search'],
-    'file-analysis': ['project.read'],
-    'policy-preaudit': ['policy.read'],
-    'style-card-load': ['project.read', 'style-card']
-  };
-  const allowedForWorker = new Set(allowed[task.workerType]);
-  const outOfScope = task.toolScope.filter((tool) => !allowedForWorker.has(tool));
+  const outOfScope = outOfScopeTools(task);
   if (outOfScope.length > 0) {
     throw new NonRetryableWorkerError(`Worker ${task.workerType} has out-of-scope tools: ${outOfScope.join(', ')}`);
   }

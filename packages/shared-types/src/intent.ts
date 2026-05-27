@@ -62,6 +62,13 @@ export type CitationTag =
 
 export type WorkerType = 'kb-retrieval' | 'file-analysis' | 'policy-preaudit' | 'style-card-load';
 
+export type WorkerTaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'aborted' | 'skipped';
+
+export type ConditionalEdgeCondition =
+  | { kind: 'result_citations_below'; taskId: string; minCitations: number }
+  | { kind: 'result_tokens_below'; taskId: string; minTokens: number }
+  | { kind: 'task_status_in'; taskId: string; statuses: WorkerTaskStatus[] };
+
 export interface ContextFragment {
   workerType: WorkerType;
   summary: string;
@@ -78,7 +85,7 @@ export interface WorkerTask {
   toolScope: string[];
   boundaries: string[];
   payload: Readonly<Record<string, string | string[]>>;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'aborted' | 'skipped';
+  status: WorkerTaskStatus;
   optional: boolean;
   attempts: number;
   idempotencyKey: string;
@@ -88,10 +95,38 @@ export interface WorkerTask {
   completedAt?: number;
 }
 
+export interface ConditionalEdge {
+  id: string;
+  description: string;
+  condition: ConditionalEdgeCondition;
+  nextTask: WorkerTask;
+}
+
+export interface DynamicWorkPlan {
+  conditionalEdges: ConditionalEdge[];
+  firedEdgeIds: string[];
+  maxReplans: number;
+}
+
+export interface BoundedSubSessionRequest {
+  id: string;
+  objective: string;
+  boundaries: string[];
+  tokenBudget: number;
+}
+
+export interface BoundedSubSessionResult {
+  id: string;
+  summary: string;
+  citations: CitationTag[];
+  tokensUsed: number;
+}
+
 export interface WorkPlan {
   sessionId: string;
   tasks: WorkerTask[];
   dataPassingMode: 'memory' | 'project_temp';
   effortTier: 'single' | 'small' | 'broad';
   rationale: string;
+  dynamic?: DynamicWorkPlan;
 }

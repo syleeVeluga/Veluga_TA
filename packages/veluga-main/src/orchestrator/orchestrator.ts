@@ -1,8 +1,9 @@
-import type { ContextFragment, WorkerTask, WorkPlan } from '../../../shared-types/src/index.js';
+import type { ConditionalEdge, ContextFragment, WorkerTask, WorkerTaskStatus, WorkPlan } from '../../../shared-types/src/index.js';
 import type { AbortCleanupRegistry } from './abort-cleanup.js';
 import type { CheckpointStore } from './checkpoint-store.js';
+import { outOfScopeTools } from './worker-scope.js';
 
-export const TERMINAL: ReadonlySet<WorkerTask['status']> = new Set(['completed', 'failed', 'aborted', 'skipped']);
+export const TERMINAL: ReadonlySet<WorkerTaskStatus> = new Set(['completed', 'failed', 'aborted', 'skipped']);
 
 export interface OrchestratorOptions {
   maxConcurrency?: number;
@@ -15,9 +16,20 @@ export interface OrchestratorOptions {
   checkpointStore?: CheckpointStore;
   checkpointState?: string;
   abortCleanup?: AbortCleanupRegistry;
+  enableConditionalEdges?: boolean;
+  maxReplans?: number;
+  onReplan?: (event: ConditionalReplanEvent) => void | Promise<void>;
 }
 
 export type RunWorker = (task: WorkerTask, signal: AbortSignal) => Promise<ContextFragment>;
+
+export interface ConditionalReplanEvent {
+  sessionId: string;
+  edgeId: string;
+  reason: string;
+  addedTask: WorkerTask;
+  replanCount: number;
+}
 
 export interface ExecutePlanResult {
   results: Record<string, ContextFragment>;
@@ -39,6 +51,62 @@ export class OrchestrationBudgetError extends Error {
   }
 }
 
+export function validateWorkPlan(plan: WorkPlan): { ok: true } | { ok: false; reason: string } {
+  const tasks = collectPlanTasks(plan);
+  const ids = new Set<string>();
+  for (const task of tasks) {
+    if (ids.has(task.id)) {
+      return { ok: false, reason: `Duplicate task id: ${task.id}` };
+    }
+    ids.add(task.id);
+
+    const outOfScope = outOfScopeTools(task);
+    if (outOfScope.length > 0) {
+      return { ok: false, reason: `Task ${task.id} has out-of-scope tools: ${outOfScope.join(', ')}` };
+    }
+  }
+
+  for (const edge of plan.dynamic?.conditionalEdges ?? []) {
+    if (edge.id.trim().length === 0) {
+      return { ok: false, reason: 'Conditional edge id is required' };
+    }
+    if (!ids.has(edge.condition.taskId)) {
+      return { ok: false, reason: `Conditional edge ${edge.id} depends on missing task ${edge.condition.taskId}` };
+    }
+  }
+
+  for (const task of tasks) {
+    for (const dependency of task.dependencies) {
+      if (!ids.has(dependency)) {
+        return { ok: false, reason: `Task ${task.id} depends on missing task ${dependency}` };
+      }
+    }
+  }
+
+  const indegree = new Map<string, number>();
+  const outgoing = new Map<string, string[]>();
+  for (const task of tasks) {
+    indegree.set(task.id, task.dependencies.length);
+    for (const dependency of task.dependencies) {
+      outgoing.set(dependency, [...(outgoing.get(dependency) ?? []), task.id]);
+    }
+  }
+
+  const queue = [...indegree.entries()].filter(([, degree]) => degree === 0).map(([id]) => id);
+  let visited = 0;
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    visited += 1;
+    for (const child of outgoing.get(id) ?? []) {
+      const next = (indegree.get(child) ?? 0) - 1;
+      indegree.set(child, next);
+      if (next === 0) queue.push(child);
+    }
+  }
+
+  return visited === tasks.length ? { ok: true } : { ok: false, reason: 'WorkPlan contains a dependency cycle' };
+}
+
 export class VelugaOrchestrator {
   private readonly activeControllers = new Set<AbortController>();
 
@@ -48,44 +116,7 @@ export class VelugaOrchestrator {
   ) {}
 
   validate(plan: WorkPlan): { ok: true } | { ok: false; reason: string } {
-    const ids = new Set<string>();
-    for (const task of plan.tasks) {
-      if (ids.has(task.id)) {
-        return { ok: false, reason: `Duplicate task id: ${task.id}` };
-      }
-      ids.add(task.id);
-    }
-
-    for (const task of plan.tasks) {
-      for (const dependency of task.dependencies) {
-        if (!ids.has(dependency)) {
-          return { ok: false, reason: `Task ${task.id} depends on missing task ${dependency}` };
-        }
-      }
-    }
-
-    const indegree = new Map<string, number>();
-    const outgoing = new Map<string, string[]>();
-    for (const task of plan.tasks) {
-      indegree.set(task.id, task.dependencies.length);
-      for (const dependency of task.dependencies) {
-        outgoing.set(dependency, [...(outgoing.get(dependency) ?? []), task.id]);
-      }
-    }
-
-    const queue = [...indegree.entries()].filter(([, degree]) => degree === 0).map(([id]) => id);
-    let visited = 0;
-    while (queue.length > 0) {
-      const id = queue.shift()!;
-      visited += 1;
-      for (const child of outgoing.get(id) ?? []) {
-        const next = (indegree.get(child) ?? 0) - 1;
-        indegree.set(child, next);
-        if (next === 0) queue.push(child);
-      }
-    }
-
-    return visited === plan.tasks.length ? { ok: true } : { ok: false, reason: 'WorkPlan contains a dependency cycle' };
+    return validateWorkPlan(plan);
   }
 
   async executePlan(
@@ -136,12 +167,18 @@ export class VelugaOrchestrator {
     controller: AbortController
   ): Promise<ExecutePlanResult> {
     const tasks = plan.tasks.map(cloneTask);
-    const taskById = new Map(tasks.map((task) => [task.id, task]));
+    const taskById = new Map<string, WorkerTask>(tasks.map((task) => [task.id, task]));
     const active = new Map<string, Promise<void>>();
     const results: Record<string, ContextFragment> = {};
     const maxConcurrency = Math.max(1, this.opts.maxConcurrency ?? 3);
     const maxSteps = Math.max(1, this.opts.maxSteps ?? Math.max(20, tasks.length * 8));
     const tokenBudget = this.opts.tokenBudget ?? Infinity;
+    const conditionalEdges = plan.dynamic?.conditionalEdges ?? [];
+    const firedEdgeIds = new Set(plan.dynamic?.firedEdgeIds ?? []);
+    const maxReplans = this.opts.enableConditionalEdges
+      ? Math.max(0, this.opts.maxReplans ?? plan.dynamic?.maxReplans ?? 0)
+      : 0;
+    let replanCount = firedEdgeIds.size;
     let steps = 0;
     let tokensUsed = 0;
     let tokenBudgetExceeded = false;
@@ -171,14 +208,52 @@ export class VelugaOrchestrator {
       if (status === 'running') task.startedAt = Date.now();
       if (TERMINAL.has(status)) task.completedAt = Date.now();
       onTaskUpdate(cloneTask(task));
-      this.opts.checkpointStore?.save(plan.sessionId, this.opts.checkpointState ?? 'RUNNING_PARALLEL', {
-        ...plan,
-        tasks: tasks.map(cloneTask)
-      });
+      this.opts.checkpointStore?.save(plan.sessionId, this.opts.checkpointState ?? 'RUNNING_PARALLEL', snapshotPlan(plan, tasks, firedEdgeIds));
     };
 
+    const fireConditionalEdges = async (): Promise<void> => {
+      if (maxReplans <= replanCount || conditionalEdges.length === 0) return;
+
+      for (const edge of conditionalEdges) {
+        if (maxReplans <= replanCount) return;
+        if (firedEdgeIds.has(edge.id)) continue;
+        if (!evaluateConditionalEdge(edge, taskById)) continue;
+
+        const nextTask = cloneTask(edge.nextTask);
+        if (taskById.has(nextTask.id)) {
+          firedEdgeIds.add(edge.id);
+          continue;
+        }
+
+        const candidateTasks = [...tasks, nextTask];
+        const candidatePlan = snapshotPlan(plan, candidateTasks, new Set([...firedEdgeIds, edge.id]));
+        const validation = validateWorkPlan(candidatePlan);
+        if (!validation.ok) {
+          firedEdgeIds.add(edge.id);
+          continue;
+        }
+
+        firedEdgeIds.add(edge.id);
+        replanCount += 1;
+        tasks.push(nextTask);
+        taskById.set(nextTask.id, nextTask);
+        await this.opts.onReplan?.({
+          sessionId: plan.sessionId,
+          edgeId: edge.id,
+          reason: edge.description,
+          addedTask: cloneTask(nextTask),
+          replanCount
+        });
+        update(nextTask, 'pending');
+      }
+    };
+
+    const hasReadyConditionalEdge = (): boolean =>
+      maxReplans > replanCount &&
+      conditionalEdges.some((edge) => !firedEdgeIds.has(edge.id) && evaluateConditionalEdge(edge, taskById));
+
     try {
-      while (terminalCount(tasks) < tasks.length) {
+      while (terminalCount(tasks) < tasks.length || hasReadyConditionalEdge()) {
         if (tokenBudgetExceeded) {
           markRemaining(tasks, update, 'aborted', 'token budget exceeded');
           throw new OrchestrationBudgetError('Orchestration tokenBudget exceeded');
@@ -195,6 +270,7 @@ export class VelugaOrchestrator {
         }
 
         markBlocked(tasks, taskById, update);
+        await fireConditionalEdges();
 
         const runnable = tasks.filter(
           (task) =>
@@ -336,6 +412,65 @@ function cloneTask(task: WorkerTask): WorkerTask {
         }
       : undefined
   };
+}
+
+function snapshotPlan(plan: WorkPlan, tasks: WorkerTask[], firedEdgeIds: ReadonlySet<string>): WorkPlan {
+  return {
+    ...plan,
+    tasks: tasks.map(cloneTask),
+    dynamic: plan.dynamic
+      ? {
+          conditionalEdges: plan.dynamic.conditionalEdges.map(cloneConditionalEdge),
+          firedEdgeIds: [...firedEdgeIds].sort(),
+          maxReplans: plan.dynamic.maxReplans
+        }
+      : undefined
+  };
+}
+
+function cloneConditionalEdge(edge: ConditionalEdge): ConditionalEdge {
+  return {
+    ...edge,
+    condition:
+      edge.condition.kind === 'task_status_in'
+        ? { ...edge.condition, statuses: [...edge.condition.statuses] }
+        : { ...edge.condition },
+    nextTask: cloneTask(edge.nextTask)
+  };
+}
+
+function collectPlanTasks(plan: WorkPlan): WorkerTask[] {
+  const tasks = plan.tasks.map(cloneTask);
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
+  const fired = new Set(plan.dynamic?.firedEdgeIds ?? []);
+
+  for (const edge of plan.dynamic?.conditionalEdges ?? []) {
+    if (taskById.has(edge.nextTask.id)) {
+      if (!fired.has(edge.id)) {
+        tasks.push(cloneTask(edge.nextTask));
+      }
+      continue;
+    }
+    const nextTask = cloneTask(edge.nextTask);
+    tasks.push(nextTask);
+    taskById.set(nextTask.id, nextTask);
+  }
+
+  return tasks;
+}
+
+export function evaluateConditionalEdge(edge: ConditionalEdge, taskById: ReadonlyMap<string, WorkerTask>): boolean {
+  const task = taskById.get(edge.condition.taskId);
+  if (!task) return false;
+
+  switch (edge.condition.kind) {
+    case 'result_citations_below':
+      return task.status === 'completed' && (task.result?.citations.length ?? 0) < edge.condition.minCitations;
+    case 'result_tokens_below':
+      return task.status === 'completed' && (task.result?.tokensUsed ?? 0) < edge.condition.minTokens;
+    case 'task_status_in':
+      return edge.condition.statuses.includes(task.status);
+  }
 }
 
 function clonePayload(payload: Readonly<Record<string, string | string[]>>): Readonly<Record<string, string | string[]>> {

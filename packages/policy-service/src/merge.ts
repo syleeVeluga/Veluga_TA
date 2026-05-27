@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type {
   Clearance,
+  DynamicOrchestrationPolicy,
   HitlMode,
   InstitutionPolicyMerged,
   OrgPolicyMerged,
@@ -46,6 +47,7 @@ export interface UserPolicyInput extends PolicyTierRules {
 export interface SessionPolicyInput extends PolicyTierRules {
   enable_veluga_orchestration?: boolean;
   kb_token_budget?: number;
+  dynamic_orchestration?: Partial<DynamicOrchestrationPolicy>;
 }
 
 export interface MergePolicyInput {
@@ -173,7 +175,12 @@ export function mergePolicies(input: MergePolicyInput): PolicyContextSnapshot {
       enable_veluga_orchestration:
         input.session?.enable_veluga_orchestration ?? institution.default_veluga_mode,
       policy_guard_mode: institution.policy_guard_mode,
-      kb_token_budget: input.session?.kb_token_budget
+      kb_token_budget: input.session?.kb_token_budget,
+      dynamic_orchestration: {
+        conditional_edges: input.session?.dynamic_orchestration?.conditional_edges ?? false,
+        bounded_subsessions: input.session?.dynamic_orchestration?.bounded_subsessions ?? false,
+        dynamic_dag: input.session?.dynamic_orchestration?.dynamic_dag ?? false
+      }
     },
     hitl_mode: institution.hitl_mode
   };

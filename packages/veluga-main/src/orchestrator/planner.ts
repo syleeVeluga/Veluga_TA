@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
-import type { IntentPlan, PolicyContext, WorkerTask, WorkerType, WorkPlan } from '../../../shared-types/src/index.js';
+import type { ConditionalEdge, IntentPlan, PolicyContext, WorkerTask, WorkerType, WorkPlan } from '../../../shared-types/src/index.js';
+import { validateWorkPlan } from './orchestrator.js';
+import { WORKER_TOOL_SCOPE } from './worker-scope.js';
 
 export function buildWorkPlan(message: string, intent: IntentPlan, policy: PolicyContext): WorkPlan {
   const sessionId = `orch_${createHash('sha256').update(`${Date.now()}:${message}`).digest('hex').slice(0, 12)}`;
@@ -65,12 +67,22 @@ export function buildWorkPlan(message: string, intent: IntentPlan, policy: Polic
     );
   }
 
+  const dynamicEdges = buildConditionalEdges({ sessionId, message, intent, policy, kbScopes, tasks });
+
   return {
     sessionId,
     tasks,
     dataPassingMode: policy.project ? 'project_temp' : 'memory',
     effortTier: effortTier(message, tasks.length),
-    rationale: 'heuristic_intent_policy_sanitized_static_graph'
+    rationale: dynamicEdges.length > 0 ? 'heuristic_intent_policy_sanitized_static_graph_with_conditional_edges' : 'heuristic_intent_policy_sanitized_static_graph',
+    dynamic:
+      dynamicEdges.length > 0
+        ? {
+            conditionalEdges: dynamicEdges,
+            firedEdgeIds: [],
+            maxReplans: 1
+          }
+        : undefined
   };
 }
 
@@ -82,20 +94,70 @@ export function sanitizeSkills(skills: string[], policy: PolicyContext): string[
   return [...new Set(skills.filter((skill) => policy.hasSkill(skill)))].sort();
 }
 
+export function sanitizeGeneratedWorkPlan(input: {
+  candidate: WorkPlan | null | undefined;
+  fallback: WorkPlan;
+  policy: PolicyContext;
+  confidence: 'high' | 'medium' | 'low';
+}): WorkPlan {
+  if (!input.policy.veluga.dynamic_orchestration.dynamic_dag || input.confidence !== 'high' || !input.candidate) {
+    return input.fallback;
+  }
+
+  const tasks = input.candidate.tasks.map((task) => sanitizeGeneratedTask(input.fallback.sessionId, task)).filter(isWorkerTask);
+  if (tasks.length === 0) return input.fallback;
+
+  const conditionalEdges =
+    input.candidate.dynamic?.conditionalEdges
+      .map((edge) => {
+        const nextTask = sanitizeGeneratedTask(input.fallback.sessionId, edge.nextTask);
+        return nextTask
+          ? {
+              id: edge.id,
+              description: edge.description,
+              condition:
+                edge.condition.kind === 'task_status_in'
+                  ? { ...edge.condition, statuses: [...edge.condition.statuses] }
+                  : { ...edge.condition },
+              nextTask
+            }
+          : null;
+      })
+      .filter(isConditionalEdge) ?? [];
+
+  const plan: WorkPlan = {
+    ...input.fallback,
+    tasks,
+    rationale: `generated_dynamic_dag_sanitized:${input.candidate.rationale}`,
+    dynamic:
+      conditionalEdges.length > 0
+        ? {
+            conditionalEdges,
+            firedEdgeIds: [],
+            maxReplans: Math.max(0, Math.min(1, Math.floor(input.candidate.dynamic?.maxReplans ?? 0)))
+          }
+        : undefined
+  };
+
+  return validateWorkPlan(plan).ok ? plan : input.fallback;
+}
+
 function createTask(input: {
   sessionId: string;
+  id?: string;
   workerType: WorkerType;
   optional: boolean;
+  dependencies?: string[];
   objective: string;
   toolScope: string[];
   boundaries: string[];
   payload: Readonly<Record<string, string | string[]>>;
 }): WorkerTask {
-  const id = input.workerType;
+  const id = input.id ?? input.workerType;
   return {
     id,
     workerType: input.workerType,
-    dependencies: [],
+    dependencies: input.dependencies ?? [],
     objective: input.objective,
     outputContract: { shape: 'context_fragment', schemaRef: 'ContextFragment' },
     toolScope: [...input.toolScope].sort(),
@@ -108,6 +170,88 @@ function createTask(input: {
       .update(JSON.stringify({ sessionId: input.sessionId, id, payload: input.payload }))
       .digest('hex')
   };
+}
+
+function buildConditionalEdges(input: {
+  sessionId: string;
+  message: string;
+  intent: IntentPlan;
+  policy: PolicyContext;
+  kbScopes: string[];
+  tasks: WorkerTask[];
+}): ConditionalEdge[] {
+  if (!input.policy.veluga.dynamic_orchestration.conditional_edges) return [];
+  if (!input.policy.project || !input.intent.use_kb || input.kbScopes.length === 0) return [];
+  if (input.tasks.some((task) => task.workerType === 'file-analysis')) return [];
+  if (!input.tasks.some((task) => task.id === 'kb-retrieval')) return [];
+
+  return [
+    {
+      id: 'kb-insufficient-evidence-file-analysis',
+      description: 'KB retrieval completed with no citations; expand to local project file analysis once.',
+      condition: { kind: 'result_citations_below', taskId: 'kb-retrieval', minCitations: 1 },
+      nextTask: createTask({
+        sessionId: input.sessionId,
+        id: 'file-analysis-after-kb-gap',
+        workerType: 'file-analysis',
+        optional: true,
+        dependencies: ['kb-retrieval'],
+        objective: 'Extract a compact project-file summary because KB retrieval returned insufficient evidence.',
+        toolScope: ['project.read'],
+        boundaries: ['Read project-local text files only.', 'Do not write or modify files.', 'Run only once after weak KB evidence.'],
+        payload: { query: input.message, projectId: input.policy.project.project_id, trigger: 'kb_insufficient_evidence' }
+      })
+    }
+  ];
+}
+
+function sanitizeGeneratedTask(sessionId: string, task: WorkerTask): WorkerTask | null {
+  if (!isWorkerType(task.workerType) || task.id.trim().length === 0) return null;
+  const allowedScope = new Set(WORKER_TOOL_SCOPE[task.workerType]);
+  const toolScope = [...new Set(task.toolScope.filter((tool) => allowedScope.has(tool)))].sort();
+  if (toolScope.length === 0) return null;
+  const payload = sanitizePayload(task.payload);
+
+  return {
+    id: task.id,
+    workerType: task.workerType,
+    dependencies: [...new Set(task.dependencies.filter(Boolean))].sort(),
+    objective: task.objective,
+    outputContract: { shape: 'context_fragment', schemaRef: 'ContextFragment' },
+    toolScope,
+    boundaries: [...task.boundaries],
+    payload,
+    status: 'pending',
+    optional: task.optional,
+    attempts: 0,
+    idempotencyKey: createHash('sha256')
+      .update(JSON.stringify({ sessionId, id: task.id, payload }))
+      .digest('hex')
+  };
+}
+
+function sanitizePayload(payload: Readonly<Record<string, string | string[]>>): Readonly<Record<string, string | string[]>> {
+  const next: Record<string, string | string[]> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === 'string') {
+      next[key] = value;
+    } else if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+      next[key] = [...value];
+    }
+  }
+  return next;
+}
+
+function isWorkerType(value: string): value is WorkerType {
+  return Object.prototype.hasOwnProperty.call(WORKER_TOOL_SCOPE, value);
+}
+
+function isWorkerTask(task: WorkerTask | null): task is WorkerTask {
+  return task !== null;
+}
+
+function isConditionalEdge(edge: ConditionalEdge | null): edge is ConditionalEdge {
+  return edge !== null;
 }
 
 function shouldAnalyzeProject(message: string, intent: IntentPlan, policy: PolicyContext): boolean {

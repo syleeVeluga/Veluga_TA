@@ -81,7 +81,28 @@ export async function handleUserMessage(
   });
   const orchestrator = new VelugaOrchestrator(runWorker, {
     ...defaultsForEffort(plan.effortTier, policy),
-    ...options.orchestratorOptions
+    ...options.orchestratorOptions,
+    enableConditionalEdges: policy.veluga.dynamic_orchestration.conditional_edges,
+    maxReplans: policy.veluga.dynamic_orchestration.conditional_edges
+      ? options.orchestratorOptions?.maxReplans ?? plan.dynamic?.maxReplans ?? 0
+      : 0,
+    onReplan: async (event) => {
+      fsm.transition('PLANNING');
+      options.audit?.append({
+        session_id: plan.sessionId,
+        user_id: policy.user.user_id,
+        event_type: 'orchestration.replanned',
+        payload: {
+          edge_id: event.edgeId,
+          reason: event.reason,
+          added_task_id: event.addedTask.id,
+          replan_count: event.replanCount
+        },
+        policy_version_id: policy.policy_version_id
+      });
+      fsm.transition('RUNNING_PARALLEL');
+      await options.orchestratorOptions?.onReplan?.(event);
+    },
   });
   const validation = orchestrator.validate(plan);
   if (!validation.ok) {
