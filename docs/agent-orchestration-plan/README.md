@@ -1,6 +1,6 @@
 # Veluga 오케스트레이션 & 상태 관리 — 설계·구현 계획
 
-> Status: **Phase 1·2 구현 완료** · 최종 개정 2026-05-28
+> Status: **Phase 1·2·3 구현 완료** (Phase 3는 플래그 default OFF) · 최종 개정 2026-05-28
 > Scope: 오케스트레이터-워커 워크플로우 + 태스크별 FSM + `node:sqlite` 내구성 체크포인트
 > 확정 결정: 오케스트레이터-워커로 재정의 · 직접 구현 + 검증 패턴 차용 · SQLite 체크포인트 포함 · 폐쇄망/연결망 양쪽 배포 프로파일 인식
 
@@ -40,6 +40,9 @@
 - [x] **Phase 0** — 본 계획 문서화/개정 (이 폴더)
 - [x] **Phase 1** — 오케스트레이터-워커 MVP (`184fcdf`, [tests/phase1/orchestrator-worker.test.ts](../../tests/phase1/orchestrator-worker.test.ts))
 - [x] **Phase 2** — 내구성 & HITL (`426fae4`, [tests/phase2/phase2-durability-hitl.test.ts](../../tests/phase2/phase2-durability-hitl.test.ts))
-- [ ] **Phase 3** — 선택적 동적성 (조건부, 진행 중 — `sub-session.ts`/`worker-scope.ts`)
+- [x] **Phase 3** — 선택적 동적성 (조건부, 플래그 default OFF · [tests/phase3/phase3-dynamic-optional.test.ts](../../tests/phase3/phase3-dynamic-optional.test.ts))
 
-> **잔여 후속 작업**: Phase 1 §7의 렌더러 Zustand 반영(`agentStatus`/`tasks[]`)은 미구현. 메인 측 `veluga.orchestration.state` 발행은 완료되었으나 렌더러 store 소비는 후속 처리.
+> **잔여 후속 작업**
+>
+> - Phase 1 §7의 렌더러 Zustand 반영(`agentStatus`/`tasks[]`)은 미구현. 메인 측 `veluga.orchestration.state` 발행은 완료되었으나 렌더러 store 소비는 후속 처리.
+> - Phase 3 §1(조건부 엣지)은 라이브 경로([ipc-middleware.ts](../../packages/veluga-main/src/ipc-middleware.ts))에 결선됨(`dynamic_orchestration.conditional_edges`, default OFF). §2(bounded sub-session)·§3(동적 DAG)은 엔진/검증 + 테스트만 완료, 라이브 요청 경로 결선·A/B 효과 측정은 운영 데이터 확보 후.
