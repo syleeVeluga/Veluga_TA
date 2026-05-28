@@ -1,6 +1,6 @@
 /**
  * Message Router
- * 消息路由器：将远程消息路由到 Agent，将 Agent 响应路由回 Channel
+ * Message router: routes remote messages to the agent and agent responses back to the channel.
  */
 
 import path from 'node:path';
@@ -371,7 +371,7 @@ export class MessageRouter {
       channelId: originalMessage.channelId,
       content: {
         type: 'text',
-        text: `✅ 工作目录已切换到: ${newCwd}`,
+        text: `✅ 작업 디렉터리가 변경되었습니다: ${newCwd}`,
       },
       replyTo: originalMessage.id,
     };
@@ -401,7 +401,7 @@ export class MessageRouter {
           // For now, add as text description
           blocks.push({
             type: 'text',
-            text: `[用户发送了一张图片: ${message.content.imageUrl}]`,
+            text: `[사용자가 이미지를 보냈습니다: ${message.content.imageUrl}]`,
           } as TextContent);
         }
         break;
@@ -410,7 +410,7 @@ export class MessageRouter {
         if (message.content.file) {
           blocks.push({
             type: 'text',
-            text: `[用户发送了文件: ${message.content.file.name}]`,
+            text: `[사용자가 파일을 보냈습니다: ${message.content.file.name}]`,
           } as TextContent);
         }
         break;
@@ -419,14 +419,14 @@ export class MessageRouter {
         // TODO: Transcribe voice message
         blocks.push({
           type: 'text',
-          text: '[用户发送了语音消息]',
+          text: '[사용자가 음성 메시지를 보냈습니다]',
         } as TextContent);
         break;
         
       default:
         blocks.push({
           type: 'text',
-          text: message.content.text || '[不支持的消息类型]',
+          text: message.content.text || '[지원하지 않는 메시지 유형]',
         } as TextContent);
     }
     
@@ -435,8 +435,8 @@ export class MessageRouter {
   
   /**
    * Extract prompt text and working directory from message
-   * Supports [cwd:路径] prefix to specify working directory
-   * Also supports !cd 路径 command to change working directory
+   * Supports [cwd:path] prefix to specify working directory
+   * Also supports !cd path command to change working directory
    */
   private extractPromptAndCwd(message: RemoteMessage): { prompt: string; cwd?: string } {
     let cwd: string | undefined;
@@ -447,8 +447,8 @@ export class MessageRouter {
       let text = message.content.text;
       text = text.replace(/@_user_\w+\s*/g, '').trim();
       
-      // Check for [cwd:路径] prefix
-      // Supports both [cwd:路径] and [cwd: 路径] formats
+      // Check for [cwd:path] prefix
+      // Supports both [cwd:path] and [cwd: path] formats
       const cwdMatch = text.match(/^\[cwd:\s*([^\]]+)\]\s*/i);
       if (cwdMatch) {
         cwd = cwdMatch[1].trim();
@@ -463,10 +463,10 @@ export class MessageRouter {
         return { prompt: '', cwd };
       }
       
-      return { prompt: text || '你好', cwd };
+      return { prompt: text || '안녕하세요', cwd };
     }
     
-    return { prompt: '请处理上述内容', cwd };
+    return { prompt: '위 내용을 처리해 주세요', cwd };
   }
   
   /**

@@ -1,6 +1,6 @@
 /**
  * Channel Base Class
- * 所有 Channel 的基类，定义通用接口和方法
+ * Base class for all channels with shared interfaces and methods.
  */
 
 import { EventEmitter } from 'events';

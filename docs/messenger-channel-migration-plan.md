@@ -149,13 +149,13 @@ async updateSlackConfig(config: SlackChannelConfig): Promise<void> { ... }
 ### 4. 인터랙션 메시지 i18n 분리
 
 [remote-manager.ts](../packages/cowork-core/src/main/remote/remote-manager.ts)의 인터랙션 메시지(중국어 하드코딩)를 i18n 키로 분리:
-- 513-540행: 질문 메시지 템플릿 (`🤔 **需要你的回答**`, `跳过`/`skip` 등)
-- 659-665행: 권한 요청 템플릿 (`⚠️ **需要你的授权**`, `允许`/`拒绝`/`始终允许` 등)
-- 702-717행: 응답 파싱 키워드(`允许`, `y`, `始终允许` 등)
+- 513-540행: 질문 메시지 템플릿 (`🤔 **답변이 필요합니다**`, `건너뛰기`/`skip` 등)
+- 659-665행: 권한 요청 템플릿 (`⚠️ **승인이 필요합니다**`, `허용`/`거부`/`항상 허용` 등)
+- 702-717행: 응답 파싱 키워드(`허용`, `y`, `항상 허용` 등)
 
 **접근 방식**:
 - 메인 프로세스에서 i18n을 직접 쓸 수 없으므로, **사용자의 locale 정보**(`remoteConfigStore`나 `app.getLocale()`)를 기반으로 한 **간단한 message-catalog 모듈** 신설: `packages/cowork-core/src/main/remote/interaction-messages.ts`
-- 키워드 파싱(allow/deny)은 locale별 키워드 셋(ko: '허용'/'거부'/'항상', en: 'allow'/'deny'/'always', zh: '允许'/'拒绝'/'始终允许')을 union으로 처리해 기존 중국어 사용자도 계속 동작
+- 키워드 파싱(allow/deny)은 locale별 키워드 셋(ko: '허용'/'거부'/'항상 허용', en: 'allow'/'deny'/'always', zh: '允许'/'拒绝'/'始终允许')을 union으로 처리해 기존 중국어 사용자도 계속 동작
 
 ---
 

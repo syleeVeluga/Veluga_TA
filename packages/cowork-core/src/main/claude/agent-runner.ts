@@ -941,10 +941,10 @@ ${hints.join('\n')}
 
     const controller = new AbortController();
     try {
-      // SDK 会在同一 AbortSignal 上挂载较多监听器，放开上限避免无意义告警干扰排错。
+      // The SDK attaches many listeners to the same AbortSignal; raise the limit to avoid noisy warnings.
       setMaxListeners(0, controller.signal);
     } catch {
-      // 旧运行时不支持 EventTarget 调整监听上限时忽略即可。
+      // Older runtimes may not support changing EventTarget listener limits.
     }
     this.activeControllers.set(session.id, controller);
 
@@ -1724,7 +1724,7 @@ ${hints.join('\n')}
               const serverKey = config.name;
 
               if (config.type === 'stdio') {
-                // 当命令是 npx 或 node 时优先使用内置路径
+                // Prefer bundled paths when the command is npx or node.
                 const command =
                   config.command === 'npx' && bundledNpx
                     ? bundledNpx
@@ -1732,7 +1732,7 @@ ${hints.join('\n')}
                       ? bundledNodePaths.node
                       : config.command;
 
-                // 使用内置 npx/node 时，将内置 node bin 注入 PATH
+                // When using bundled npx/node, inject the bundled node bin into PATH.
                 const serverEnv = { ...config.env };
                 if (bundledNodePaths && (config.command === 'npx' || config.command === 'node')) {
                   const nodeBinDir = path.dirname(bundledNodePaths.node);

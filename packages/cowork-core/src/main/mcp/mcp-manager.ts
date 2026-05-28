@@ -1116,7 +1116,7 @@ export class MCPManager {
         logError(`[MCPManager]   1. Chrome failed to start`);
         logError(`[MCPManager]   2. Another process is using port 9222`);
         logError(`[MCPManager]   3. Firewall blocking the port`);
-        throw new Error('Chrome 浏览器未就绪，无法执行此操作: debug port did not become ready');
+        throw new Error('Chrome is not ready, so this operation cannot run: debug port did not become ready');
       }
 
       log(`[MCPManager] ✓ Chrome debug port is now ready`);
@@ -1145,7 +1145,7 @@ export class MCPManager {
             logError(`[MCPManager] Last error code: ${ve.code}, message: ${ve.message}`);
             logError(`[MCPManager] The chrome-devtools-mcp server may not be working correctly`);
             throw new Error(
-              'Chrome 浏览器未就绪，无法执行此操作: MCP connection verification failed after 5 attempts'
+              'Chrome is not ready, so this operation cannot run: MCP connection verification failed after 5 attempts'
             );
           }
         }
@@ -1154,7 +1154,7 @@ export class MCPManager {
       logError(`[MCPManager] ❌ Failed to start Chrome with debugging`);
       const startErrMsg = startError instanceof Error ? startError.message : String(startError);
       logError(`[MCPManager] Error: ${startErrMsg}`);
-      throw new Error(`Chrome 浏览器未就绪，无法执行此操作: ${startErrMsg}`);
+      throw new Error(`Chrome is not ready, so this operation cannot run: ${startErrMsg}`);
     }
   }
 
@@ -1426,7 +1426,7 @@ export class MCPManager {
       throw new Error(`MCP tool not found: ${toolName}`);
     }
 
-    // 提取实际工具名（格式：mcp__<ServerName>__<toolName>）
+    // Extract the actual tool name (format: mcp__<ServerName>__<toolName>).
     let actualToolName = toolName;
     if (toolName.startsWith('mcp__')) {
       const remainder = toolName.slice('mcp__'.length);

@@ -118,14 +118,14 @@ let currentAppName: string = '';
 let lastClickEntry: ClickHistoryEntry | null = null; // Track the most recent click for success verification
 
 const APP_NAME_ALIAS_GROUPS: string[][] = [
-  ['calendar', '日历'],
-  ['notes', '备忘录'],
-  ['music', '音乐'],
-  ['finder', '访达'],
-  ['system settings', 'settings', '系统设置'],
-  ['ticktick', '滴答清单'],
-  ['wechat', '微信'],
-  ['trash', '废纸篓'],
+  ['calendar', '日历', '캘린더'],
+  ['notes', '备忘录', '메모'],
+  ['music', '音乐', '음악'],
+  ['finder', '访达', '파인더'],
+  ['system settings', 'settings', '系统设置', '시스템 설정'],
+  ['ticktick', '滴答清单', '틱틱'],
+  ['wechat', '微信', '위챗'],
+  ['trash', '废纸篓', '휴지통'],
   ['chrome', 'google chrome'],
 ];
 
@@ -321,13 +321,16 @@ function scoreDockItemAgainstDescription(itemName: string, description: string):
 
 function isDescriptionDockRelated(description: string): boolean {
   const normalized = normalizeText(description);
-  return /dock|下边栏|程序坞|底栏/.test(normalized);
+  return /dock|下边栏|程序坞|底栏|하단바|독|도크/.test(normalized);
 }
 
 function isLikelyAppLaunchVerification(question: string): boolean {
   const normalized = normalizeText(question);
-  const mentionsApp = /(app|application|应用|程序|软件)/i.test(normalized);
-  const mentionsMenuLike = /(menu|菜单|弹窗|popup|面板|widget|小组件|下拉)/i.test(normalized);
+  const mentionsApp = /(app|application|应用|程序|软件|앱|프로그램|소프트웨어)/i.test(normalized);
+  const mentionsMenuLike =
+    /(menu|菜单|弹窗|popup|面板|widget|小组件|下拉|메뉴|팝업|panel|패널|위젯|dropdown|드롭다운)/i.test(
+      normalized
+    );
   return mentionsApp && !mentionsMenuLike;
 }
 
@@ -875,9 +878,9 @@ async function resolveCliclickPath(): Promise<string | null> {
     return envOverride;
   }
 
-  // 2) 内置随应用打包（推荐）
-  // 打包布局：Resources/tools/darwin-{arch}/bin/cliclick
-  // 旧版布局：Resources/tools/bin/cliclick
+  // 2) Bundled with the app (recommended)
+  // Packaged layout: Resources/tools/darwin-{arch}/bin/cliclick
+  // Legacy layout: Resources/tools/bin/cliclick
   const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
   const archBundled = await resolveBundledExecutable(
     path.join('tools', `darwin-${arch}`, 'bin', 'cliclick')
@@ -1781,10 +1784,10 @@ async function executeCliclick(command: string): Promise<{ stdout: string; stder
     // Treat this as a hard failure to avoid reporting false-positive click success.
     if (/Accessibility privileges not enabled/i.test(result.stderr || '')) {
       const hint =
-        '\n\nmacOS 权限提示 / Permissions:\n' +
-        '- System Settings → Privacy & Security → Accessibility：允许 Veluga\n' +
-        '- 如果是终端运行：允许 Terminal/iTerm\n' +
-        '- 授权后请重启 Veluga 再重试\n';
+        '\n\nmacOS 권한 안내 / Permissions:\n' +
+        '- System Settings → Privacy & Security → Accessibility: Allow Veluga\n' +
+        '- If running from a terminal: Allow Terminal/iTerm\n' +
+        '- After granting permission, restart Veluga and try again\n';
       throw new Error(
         `cliclick cannot control UI because Accessibility permission is not enabled.${hint}`
       );
@@ -1794,9 +1797,9 @@ async function executeCliclick(command: string): Promise<{ stdout: string; stder
   } catch (error: unknown) {
     const baseMessage = error instanceof Error ? error.message : String(error);
     const hint =
-      '\n\nmacOS 权限提示 / Permissions:\n' +
-      '- System Settings → Privacy & Security → Accessibility：允许 Veluga\n' +
-      '- System Settings → Privacy & Security → Automation：允许 Veluga 控制 “System Events”\n';
+      '\n\nmacOS 권한 안내 / Permissions:\n' +
+      '- System Settings → Privacy & Security → Accessibility: Allow Veluga\n' +
+      '- System Settings → Privacy & Security → Automation: Allow Veluga to control "System Events"\n';
     throw new Error(`${baseMessage}${hint}`);
   }
 }
@@ -3242,7 +3245,7 @@ async function performClick(
   const cliclickPath = await resolveCliclickPath();
 
   if (!cliclickPath) {
-    // 无 cliclick 时，使用 Quartz 事件作为降级方案
+    // When cliclick is unavailable, fall back to Quartz events.
     await performMacClickViaQuartz(globalX, globalY, clickType, normalizedModifiers);
     await addClickToHistory(localX, localY, displayIndex, clickType);
     return `Performed ${clickType} click at (${localX}, ${localY}) on display ${displayIndex} (global: ${globalX}, ${globalY})`;
@@ -3818,9 +3821,9 @@ async function takeScreenshot(
   } catch (error: unknown) {
     const baseMessage = error instanceof Error ? error.message : String(error);
     const hint =
-      '\n\nmacOS 权限提示 / Permissions:\n' +
-      '- System Settings → Privacy & Security → Screen Recording：允许 Veluga\n' +
-      '- 重新启动应用后再试 / Restart the app and try again\n';
+      '\n\nmacOS 권한 안내 / Permissions:\n' +
+      '- System Settings → Privacy & Security → Screen Recording: Allow Veluga\n' +
+      '- Restart the app and try again\n';
     throw new Error(`${baseMessage}${hint}`);
   }
 
@@ -4973,13 +4976,13 @@ async function analyzeScreenshotWithVision(
     // Get image dimensions
     const imageDims = await getImageDimensions(annotatedPath);
 
-    const prompt = `给我${elementDescription}的grounding坐标。
+    const prompt = `Give me the grounding coordinates for ${elementDescription}.
 
-**注意**：图片上可能有黄色圆圈标记，这些是之前点击过的位置（仅用于相对位置参考，它们并不一定是正确的点击位置），标记格式为"#序号"和已经归一化之后的"[y,x]"坐标。这些标记不是界面的一部分，请忽略它们，只定位实际的界面元素。
+**Note**: The image may contain yellow circle markers from previous clicks. They are only relative-position references and may not be correct click targets. The marker format is "#number" plus normalized "[y,x]" coordinates. These markers are not part of the UI. Ignore them and locate only the real UI element.
 
-坐标格式：归一化到0-1000，格式为[ymin, xmin, ymax, xmax]
+Coordinate format: normalized to 0-1000 as [ymin, xmin, ymax, xmax].
 
-返回JSON（不要markdown）:
+Return JSON only, no markdown:
 {"box_2d": [ymin, xmin, ymax, xmax], "confidence": <0-100>}`;
 
     writeMCPLog(`[analyzeScreenshotWithVision] Prompt: ${prompt}`);

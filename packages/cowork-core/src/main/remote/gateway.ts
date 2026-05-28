@@ -1,6 +1,6 @@
 /**
  * Remote Gateway
- * WebSocket 控制平面，管理远程连接和消息路由
+ * WebSocket control plane for remote connections and message routing.
  */
 
 import * as crypto from 'crypto';
@@ -269,7 +269,7 @@ export class RemoteGateway extends EventEmitter {
           channelId: message.channelId,
           content: {
             type: 'text',
-            text: '⚠️ 您没有权限使用此机器人。请联系管理员获取访问权限。',
+            text: '⚠️ 이 봇을 사용할 권한이 없습니다. 관리자에게 접근 권한을 요청하세요.',
           },
           replyTo: message.id,
         });
@@ -410,7 +410,7 @@ export class RemoteGateway extends EventEmitter {
           channelId: message.channelId,
           content: {
             type: 'text',
-            text: '✅ 配对成功！您现在可以开始使用机器人了。',
+            text: '✅ 페어링이 완료되었습니다. 이제 봇을 사용할 수 있습니다.',
           },
           replyTo: message.id,
         });
@@ -429,7 +429,7 @@ export class RemoteGateway extends EventEmitter {
           channelId: message.channelId,
           content: {
             type: 'text',
-            text: `请输入配对码进行验证。\n\n您的配对码是: **${existing.code}**\n\n请将此配对码发送给管理员进行确认，或直接回复配对码完成配对。`,
+            text: `페어링 코드를 입력해 인증해 주세요.\n\n페어링 코드: **${existing.code}**\n\n이 코드를 관리자에게 보내 확인을 요청하거나, 코드로 바로 답장해 페어링을 완료하세요.`,
           },
           replyTo: message.id,
         });
@@ -455,7 +455,7 @@ export class RemoteGateway extends EventEmitter {
       channelId: message.channelId,
       content: {
         type: 'text',
-        text: `👋 您好！首次使用需要进行配对验证。\n\n您的配对码是: **${code}**\n\n请将此配对码发送给管理员进行确认。配对码有效期10分钟。`,
+        text: `👋 안녕하세요. 처음 사용하려면 페어링 인증이 필요합니다.\n\n페어링 코드: **${code}**\n\n이 코드를 관리자에게 보내 확인을 요청하세요. 페어링 코드는 10분 동안 유효합니다.`,
       },
       replyTo: message.id,
     });

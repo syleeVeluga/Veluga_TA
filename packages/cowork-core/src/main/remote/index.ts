@@ -1,6 +1,6 @@
 /**
  * Remote Control Module
- * 远程控制模块导出
+ * Remote control module exports.
  */
 
 // Types
