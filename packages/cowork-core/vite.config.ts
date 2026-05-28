@@ -33,6 +33,7 @@ export default defineConfig({
                 'better-sqlite3',
                 'bufferutil',
                 'utf-8-validate',
+                'zlib-sync',
                 'electron',
                 // Externalize large CJS-compatible main-process dependencies
                 // NOTE: ESM-only packages (pi-coding-agent, pi-ai, electron-store, uuid)
