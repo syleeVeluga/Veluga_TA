@@ -78,6 +78,14 @@ import { createWindowsBashOperations } from './windows-bash-operations';
 // Virtual workspace path shown to the model (hides real sandbox path)
 const VIRTUAL_WORKSPACE_PATH = '/workspace';
 
+const MARKDOWN_RENDERING_GUIDANCE = `<markdown_rendering_guidance>
+When writing Mermaid flowcharts:
+- Use simple ASCII node IDs such as n1, n2, or step_1.
+- Do not put visible labels, non-ASCII text, spaces, slashes, question marks, commas, or parentheses in node IDs.
+- Put visible node text in quoted labels, for example n1["Contract review / API check?"].
+- Put edge labels in quoted edge labels, for example n1 -->|"allow / deny?"| n2.
+</markdown_rendering_guidance>`;
+
 /**
  * Estimate chars-per-token ratio based on content language.
  * CJK characters tokenize at ~1.5 chars/token vs ~4 for English.
@@ -1670,6 +1678,7 @@ ${hints.join('\n')}
       if (extensionResult.promptPrefix?.trim()) {
         contextualPrompt = `${extensionResult.promptPrefix.trim()}\n\n${contextualPrompt}`;
       }
+      contextualPrompt = `${MARKDOWN_RENDERING_GUIDANCE}\n\n${contextualPrompt}`;
 
       logTiming('before building MCP servers config', runStartTime);
 

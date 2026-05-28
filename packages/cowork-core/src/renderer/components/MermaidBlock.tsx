@@ -11,6 +11,18 @@ function nextRenderId(): string {
   return `mermaid-${renderCounter}`;
 }
 
+function removeMermaidErrorArtifacts(): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  document.querySelectorAll('body > div[id^="dmermaid-"], body > svg').forEach((element) => {
+    if (element.querySelector('.error-icon, .error-text')) {
+      element.remove();
+    }
+  });
+}
+
 interface MermaidBlockProps {
   source: string;
 }
@@ -30,6 +42,7 @@ export const MermaidBlock = memo(function MermaidBlock({ source }: MermaidBlockP
         })
         .then((result) => {
           if (!cancelled) {
+            removeMermaidErrorArtifacts();
             setSvg(
               DOMPurify.sanitize(result.svg, { USE_PROFILES: { svg: true, svgFilters: true } })
             );
@@ -37,6 +50,7 @@ export const MermaidBlock = memo(function MermaidBlock({ source }: MermaidBlockP
           }
         })
         .catch((renderError: unknown) => {
+          removeMermaidErrorArtifacts();
           if (!cancelled) {
             setError(
               renderError instanceof Error ? renderError.message : 'Unable to render diagram.'
