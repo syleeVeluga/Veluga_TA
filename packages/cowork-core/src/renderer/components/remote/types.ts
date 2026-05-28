@@ -1,6 +1,9 @@
 /**
- * Shared types for RemoteControlPanel sub-components
+ * Shared types for RemoteControlPanel sub-components.
  */
+
+export type RemoteChannelType = 'discord' | 'slack' | 'websocket';
+export type DmPolicy = 'open' | 'pairing' | 'allowlist';
 
 export interface GatewayStatus {
   running: boolean;
@@ -14,14 +17,14 @@ export interface GatewayStatus {
 export interface PairedUser {
   userId: string;
   userName?: string;
-  channelType: string;
+  channelType: RemoteChannelType;
   pairedAt: number;
   lastActiveAt: number;
 }
 
 export interface PairingRequest {
   code: string;
-  channelType: string;
+  channelType: RemoteChannelType;
   userId: string;
   userName?: string;
   createdAt: number;
@@ -50,20 +53,20 @@ export interface RemoteConfig {
     };
   };
   channels: {
-    feishu?: {
-      appId: string;
-      appSecret: string;
-      useWebSocket?: boolean;
+    discord?: {
+      botToken: string;
+      applicationId?: string;
       dm: {
-        policy: string;
+        policy: DmPolicy;
       };
     };
     slack?: {
       botToken: string;
       appToken?: string;
+      signingSecret?: string;
       useSocketMode?: boolean;
       dm: {
-        policy: string;
+        policy: DmPolicy;
       };
     };
   };
@@ -76,6 +79,6 @@ export interface TunnelStatus {
   error?: string;
 }
 
-export type ConfigStep = 'feishu' | 'connection' | 'advanced';
+export type ConfigStep = 'discord' | 'slack' | 'advanced';
 
 export type LocalizedBanner = { key?: string; text?: string | null };

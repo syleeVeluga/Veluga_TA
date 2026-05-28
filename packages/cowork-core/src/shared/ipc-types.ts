@@ -64,23 +64,31 @@ export type McpPresetsMap = Record<
 // Remote
 // ---------------------------------------------------------------------------
 
-/** Slim channel-type union (mirrors ChannelType in remote/types.ts). */
-export type RemoteChannelType = 'feishu' | 'wechat' | 'telegram' | 'dingtalk' | 'websocket';
+export type RemoteChannelType = 'discord' | 'slack' | 'websocket';
+export type RemoteDmPolicy = 'open' | 'pairing' | 'allowlist';
 
-/** Feishu channel configuration (mirrors FeishuChannelConfig in remote/types.ts). */
-export interface FeishuChannelConfig {
-  type: 'feishu';
-  appId: string;
-  appSecret: string;
-  verificationToken?: string;
-  encryptKey?: string;
-  useWebSocket?: boolean;
+export interface DiscordChannelConfig {
+  type: 'discord';
+  botToken: string;
+  applicationId?: string;
   dm: {
-    policy: 'open' | 'pairing' | 'allowlist';
+    policy: RemoteDmPolicy;
     allowFrom?: string[];
   };
-  groups?: Record<string, { requireMention: boolean; allowFrom?: string[] }>;
-  defaultGroupSettings?: { requireMention: boolean };
+  channels?: Record<string, { requireMention: boolean; allowFrom?: string[] }>;
+}
+
+export interface SlackChannelConfig {
+  type: 'slack';
+  botToken: string;
+  appToken?: string;
+  useSocketMode?: boolean;
+  signingSecret?: string;
+  dm: {
+    policy: RemoteDmPolicy;
+    allowFrom?: string[];
+  };
+  channels?: Record<string, { requireMention: boolean; allowFrom?: string[] }>;
 }
 
 /** Gateway authentication config. */
@@ -120,10 +128,8 @@ export interface GatewayConfig {
 export interface RemoteConfig {
   gateway: GatewayConfig;
   channels: {
-    feishu?: FeishuChannelConfig;
-    wechat?: Record<string, unknown>;
-    telegram?: Record<string, unknown>;
-    dingtalk?: Record<string, unknown>;
+    discord?: DiscordChannelConfig;
+    slack?: SlackChannelConfig;
     websocket?: Record<string, unknown>;
   };
 }

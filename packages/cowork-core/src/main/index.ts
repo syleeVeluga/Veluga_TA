@@ -51,7 +51,12 @@ import type {
 } from '../renderer/types';
 import { remoteManager, type AgentExecutor } from './remote/remote-manager';
 import { remoteConfigStore } from './remote/remote-config-store';
-import type { GatewayConfig, FeishuChannelConfig, ChannelType } from './remote/types';
+import type {
+  GatewayConfig,
+  DiscordChannelConfig,
+  SlackChannelConfig,
+  ChannelType,
+} from './remote/types';
 import { startNavServer, stopNavServer } from './nav-server';
 import {
   ScheduledTaskManager,
@@ -2356,12 +2361,22 @@ ipcMain.handle('remote.updateGatewayConfig', async (_event, config: Partial<Gate
   }
 });
 
-ipcMain.handle('remote.updateFeishuConfig', async (_event, config: FeishuChannelConfig) => {
+ipcMain.handle('remote.updateDiscordConfig', async (_event, config: DiscordChannelConfig) => {
   try {
-    await remoteManager.updateFeishuConfig(config);
+    await remoteManager.updateDiscordConfig(config);
     return { success: true };
   } catch (error) {
-    logError('[Remote] Error updating Feishu config:', error);
+    logError('[Remote] Error updating Discord config:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+ipcMain.handle('remote.updateSlackConfig', async (_event, config: SlackChannelConfig) => {
+  try {
+    await remoteManager.updateSlackConfig(config);
+    return { success: true };
+  } catch (error) {
+    logError('[Remote] Error updating Slack config:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 });
@@ -2442,9 +2457,9 @@ ipcMain.handle('remote.getTunnelStatus', () => {
   }
 });
 
-ipcMain.handle('remote.getWebhookUrl', () => {
+ipcMain.handle('remote.getWebhookUrl', (_event, channelType: ChannelType) => {
   try {
-    return remoteManager.getFeishuWebhookUrl();
+    return remoteManager.getWebhookUrl(channelType);
   } catch (error) {
     logError('[Remote] Error getting webhook URL:', error);
     return null;

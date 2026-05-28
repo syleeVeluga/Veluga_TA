@@ -1,74 +1,71 @@
-import { ExternalLink } from 'lucide-react';
+/**
+ * DiscordConfigStep - Discord bot credentials and DM policy configuration.
+ */
+
 import { useTranslation } from 'react-i18next';
+import { ExternalLink } from 'lucide-react';
+import type { DmPolicy } from './types';
 
 interface Props {
-  feishuAppId: string;
-  feishuAppSecret: string;
-  feishuDmPolicy: string;
-  onAppIdChange: (value: string) => void;
-  onAppSecretChange: (value: string) => void;
-  onDmPolicyChange: (value: string) => void;
+  botToken: string;
+  applicationId: string;
+  dmPolicy: DmPolicy;
+  onBotTokenChange: (value: string) => void;
+  onApplicationIdChange: (value: string) => void;
+  onDmPolicyChange: (value: DmPolicy) => void;
 }
 
-export function FeishuConfigStep({
-  feishuAppId,
-  feishuAppSecret,
-  feishuDmPolicy,
-  onAppIdChange,
-  onAppSecretChange,
+export function DiscordConfigStep({
+  botToken,
+  applicationId,
+  dmPolicy,
+  onBotTokenChange,
+  onApplicationIdChange,
   onDmPolicyChange,
 }: Props) {
   const { t } = useTranslation();
 
-  const dmPolicies = [
-    {
-      value: 'pairing',
-      label: t('remote.policyPairing'),
-      desc: t('remote.policyPairingDesc'),
-    },
+  const dmPolicies: Array<{ value: DmPolicy; label: string; desc: string }> = [
+    { value: 'pairing', label: t('remote.policyPairing'), desc: t('remote.policyPairingDesc') },
     {
       value: 'allowlist',
       label: t('remote.policyAllowlist'),
       desc: t('remote.policyAllowlistDesc'),
     },
-    {
-      value: 'open',
-      label: t('remote.policyOpen'),
-      desc: t('remote.policyOpenDesc'),
-    },
+    { value: 'open', label: t('remote.policyOpen'), desc: t('remote.policyOpenDesc') },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-text-primary mb-1">{t('remote.feishuTitle')}</h3>
-        <p className="text-sm text-text-secondary">{t('remote.feishuDesc')}</p>
+        <h3 className="text-lg font-medium text-text-primary mb-1">{t('remote.discordTitle')}</h3>
+        <p className="text-sm text-text-secondary">{t('remote.discordDesc')}</p>
       </div>
 
       <div className="grid gap-4">
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-2">
-            {t('remote.feishuAppId')}
+            {t('remote.discordBotToken')}
           </label>
           <input
-            type="text"
-            value={feishuAppId}
-            onChange={(e) => onAppIdChange(e.target.value)}
+            type="password"
+            value={botToken}
+            onChange={(event) => onBotTokenChange(event.target.value)}
             className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-            placeholder="cli_xxxxxxxxxxxxxxxx"
+            placeholder="Bot token"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-2">
-            {t('remote.feishuAppSecret')}
+            {t('remote.discordApplicationId')}
           </label>
           <input
-            type="password"
-            value={feishuAppSecret}
-            onChange={(e) => onAppSecretChange(e.target.value)}
+            type="text"
+            value={applicationId}
+            onChange={(event) => onApplicationIdChange(event.target.value)}
             className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-            placeholder="****************"
+            placeholder="123456789012345678"
           />
         </div>
 
@@ -82,7 +79,7 @@ export function FeishuConfigStep({
                 key={option.value}
                 onClick={() => onDmPolicyChange(option.value)}
                 className={`p-3 rounded-xl border-2 text-left transition-all ${
-                  feishuDmPolicy === option.value
+                  dmPolicy === option.value
                     ? 'border-accent bg-accent/5'
                     : 'border-border hover:border-accent/50'
                 }`}
@@ -96,13 +93,13 @@ export function FeishuConfigStep({
       </div>
 
       <a
-        href="https://open.feishu.cn/app"
+        href="https://discord.com/developers/applications"
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 text-sm text-accent hover:underline"
       >
         <ExternalLink className="w-4 h-4" />
-        {t('remote.openFeishu')}
+        {t('remote.openDiscord')}
       </a>
     </div>
   );

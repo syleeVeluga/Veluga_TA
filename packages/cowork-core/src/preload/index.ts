@@ -34,7 +34,9 @@ import type {
   McpPresetsMap,
   RemoteConfig,
   GatewayConfig,
-  FeishuChannelConfig,
+  DiscordChannelConfig,
+  SlackChannelConfig,
+  RemoteChannelType,
   PairedUser,
   PairingRequest,
   RemoteSessionMapping,
@@ -368,10 +370,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       config: Partial<GatewayConfig>
     ): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('remote.updateGatewayConfig', config),
-    updateFeishuConfig: (
-      config: FeishuChannelConfig
+    updateDiscordConfig: (
+      config: DiscordChannelConfig
     ): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('remote.updateFeishuConfig', config),
+      ipcRenderer.invoke('remote.updateDiscordConfig', config),
+    updateSlackConfig: (
+      config: SlackChannelConfig
+    ): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('remote.updateSlackConfig', config),
     getPairedUsers: (): Promise<PairedUser[]> => ipcRenderer.invoke('remote.getPairedUsers'),
     getPendingPairings: (): Promise<PairingRequest[]> =>
       ipcRenderer.invoke('remote.getPendingPairings'),
@@ -400,7 +406,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       provider: string;
       error?: string;
     }> => ipcRenderer.invoke('remote.getTunnelStatus'),
-    getWebhookUrl: (): Promise<string | null> => ipcRenderer.invoke('remote.getWebhookUrl'),
+    getWebhookUrl: (channelType: RemoteChannelType): Promise<string | null> =>
+      ipcRenderer.invoke('remote.getWebhookUrl', channelType),
     restart: (): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('remote.restart'),
   },
@@ -633,8 +640,11 @@ declare global {
         updateGatewayConfig: (
           config: Partial<GatewayConfig>
         ) => Promise<{ success: boolean; error?: string }>;
-        updateFeishuConfig: (
-          config: FeishuChannelConfig
+        updateDiscordConfig: (
+          config: DiscordChannelConfig
+        ) => Promise<{ success: boolean; error?: string }>;
+        updateSlackConfig: (
+          config: SlackChannelConfig
         ) => Promise<{ success: boolean; error?: string }>;
         getPairedUsers: () => Promise<PairedUser[]>;
         getPendingPairings: () => Promise<PairingRequest[]>;
@@ -658,7 +668,7 @@ declare global {
           provider: string;
           error?: string;
         }>;
-        getWebhookUrl: () => Promise<string | null>;
+        getWebhookUrl: (channelType: RemoteChannelType) => Promise<string | null>;
         restart: () => Promise<{ success: boolean; error?: string }>;
       };
       schedule: {

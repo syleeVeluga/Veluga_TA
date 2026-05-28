@@ -3,8 +3,6 @@
  * Remote control module type definitions.
  */
 
-// Types are defined locally in this file
-
 // ============================================================================
 // Gateway Configuration
 // ============================================================================
@@ -77,7 +75,7 @@ export interface TunnelConfig {
 // Channel Configuration
 // ============================================================================
 
-export type ChannelType = 'feishu' | 'wechat' | 'telegram' | 'dingtalk' | 'websocket' | 'slack';
+export type ChannelType = 'discord' | 'slack' | 'websocket';
 
 export interface ChannelConfig {
   /** Channel type */
@@ -87,132 +85,30 @@ export interface ChannelConfig {
   enabled: boolean;
 
   /** Channel-specific configuration */
-  config:
-    | FeishuChannelConfig
-    | WechatChannelConfig
-    | TelegramChannelConfig
-    | DingtalkChannelConfig
-    | WebSocketChannelConfig
-    | SlackChannelConfig;
+  config: DiscordChannelConfig | SlackChannelConfig | WebSocketChannelConfig;
 }
 
-// Feishu Channel
-export interface FeishuChannelConfig {
-  type: 'feishu';
+export type DmPolicy = 'open' | 'pairing' | 'allowlist';
 
-  /** App ID from Feishu Open Platform */
-  appId: string;
+// Discord Channel
+export interface DiscordChannelConfig {
+  type: 'discord';
 
-  /** App Secret from Feishu Open Platform */
-  appSecret: string;
-
-  /** Verification token for webhook validation */
-  verificationToken?: string;
-
-  /** Encrypt key for message encryption */
-  encryptKey?: string;
-
-  /** Use WebSocket mode instead of webhook (recommended for local dev) */
-  useWebSocket?: boolean;
-
-  /** Direct message policy */
-  dm: {
-    /** Policy for handling DMs from unknown users */
-    policy: 'open' | 'pairing' | 'allowlist';
-
-    /** Allowed user open_ids (when policy is 'allowlist') */
-    allowFrom?: string[];
-  };
-
-  /** Group configuration */
-  groups?: {
-    [chatId: string]: {
-      /** Whether to require @mention to activate */
-      requireMention: boolean;
-
-      /** Allowed users in this group */
-      allowFrom?: string[];
-    };
-  };
-
-  /** Default group settings (when not specified per-group) */
-  defaultGroupSettings?: {
-    requireMention: boolean;
-  };
-}
-
-// WeChat Channel (via wechaty)
-export interface WechatChannelConfig {
-  type: 'wechat';
-
-  /** Wechaty puppet type */
-  puppet?: 'wechaty-puppet-wechat' | 'wechaty-puppet-padlocal';
-
-  /** Puppet token (for paid puppets) */
-  puppetToken?: string;
-
-  /** DM policy */
-  dm: {
-    policy: 'open' | 'pairing' | 'allowlist';
-    allowFrom?: string[];
-  };
-
-  /** Group configuration */
-  groups?: {
-    [roomId: string]: {
-      requireMention: boolean;
-      allowFrom?: string[];
-    };
-  };
-}
-
-// Telegram Channel
-export interface TelegramChannelConfig {
-  type: 'telegram';
-
-  /** Bot token from @BotFather */
+  /** Bot token from Discord Developer Portal */
   botToken: string;
 
-  /** Webhook URL (optional, uses polling if not set) */
-  webhookUrl?: string;
+  /** Optional application ID (for slash commands, future) */
+  applicationId?: string;
 
   /** DM policy */
   dm: {
-    policy: 'open' | 'pairing' | 'allowlist';
-    allowFrom?: string[]; // Telegram user IDs
+    policy: DmPolicy;
+    allowFrom?: string[]; // Discord user IDs
   };
 
-  /** Group configuration */
-  groups?: {
-    [chatId: string]: {
-      requireMention: boolean;
-      allowFrom?: string[];
-    };
-  };
-}
-
-// DingTalk Channel
-export interface DingtalkChannelConfig {
-  type: 'dingtalk';
-
-  /** App Key */
-  appKey: string;
-
-  /** App Secret */
-  appSecret: string;
-
-  /** Robot code */
-  robotCode?: string;
-
-  /** DM policy */
-  dm: {
-    policy: 'open' | 'pairing' | 'allowlist';
-    allowFrom?: string[];
-  };
-
-  /** Group configuration */
-  groups?: {
-    [conversationId: string]: {
+  /** Per-guild/channel settings */
+  channels?: {
+    [channelId: string]: {
       requireMention: boolean;
       allowFrom?: string[];
     };
@@ -237,7 +133,7 @@ export interface SlackChannelConfig {
 
   /** DM policy */
   dm: {
-    policy: 'open' | 'pairing' | 'allowlist';
+    policy: DmPolicy;
     allowFrom?: string[]; // Slack user IDs
   };
 
@@ -551,10 +447,7 @@ export interface GatewayStatus {
 export interface RemoteConfig {
   gateway: GatewayConfig;
   channels: {
-    feishu?: FeishuChannelConfig;
-    wechat?: WechatChannelConfig;
-    telegram?: TelegramChannelConfig;
-    dingtalk?: DingtalkChannelConfig;
+    discord?: DiscordChannelConfig;
     websocket?: WebSocketChannelConfig;
     slack?: SlackChannelConfig;
   };

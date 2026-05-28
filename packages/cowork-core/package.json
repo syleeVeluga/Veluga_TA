@@ -20,7 +20,7 @@
     "skills",
     "pptx-generator",
     "docx",
-    "feishu",
+    "discord",
     "slack",
     "multi-model"
   ],
@@ -61,7 +61,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/genai": "^1.44.0",
-    "@larksuiteoapi/node-sdk": "^1.59.0",
     "@mariozechner/pi-ai": "^0.60.0",
     "@mariozechner/pi-coding-agent": "^0.60.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
@@ -70,6 +69,7 @@
     "archiver": "^7.0.1",
     "better-sqlite3": "^12.8.0",
     "chokidar": "^4.0.1",
+    "discord.js": "^14.18.0",
     "docx-preview": "0.3.7",
     "dompurify": "3.4.5",
     "dotenv": "^17.2.3",

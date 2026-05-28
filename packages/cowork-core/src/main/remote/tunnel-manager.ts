@@ -146,11 +146,11 @@ class TunnelManager {
   }
 
   /**
-   * Get webhook URL for Feishu
+   * Get webhook URL for a channel.
    */
-  getWebhookUrl(): string | null {
+  getWebhookUrl(channelType: string): string | null {
     if (!this.currentUrl) return null;
-    return `${this.currentUrl}/webhook/feishu`;
+    return `${this.currentUrl}/webhook/${channelType}`;
   }
 
   /**

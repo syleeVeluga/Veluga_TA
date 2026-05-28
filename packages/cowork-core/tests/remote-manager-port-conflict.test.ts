@@ -50,7 +50,7 @@ vi.mock('../src/main/remote/remote-config-store', () => ({
         defaultWorkingDirectory: '',
       },
       channels: {
-        feishu: {},
+        discord: {},
       },
     })),
     getPairedUsers: vi.fn(() => []),
@@ -67,8 +67,8 @@ vi.mock('../src/main/remote/tunnel-manager', () => ({
   TunnelStatus: {},
 }));
 
-vi.mock('../src/main/remote/channels/feishu', () => ({
-  FeishuChannel: vi.fn(),
+vi.mock('../src/main/remote/channels/discord', () => ({
+  DiscordChannel: vi.fn(),
 }));
 
 vi.mock('../src/main/remote/message-router', () => ({

@@ -1,38 +1,38 @@
 /**
- * ConfigStepNav — tab navigation for the three configuration steps
+ * ConfigStepNav - tab navigation for remote channel configuration.
  */
 
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Link2, Settings2, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, Hash, Settings2, CheckCircle2 } from 'lucide-react';
 import type { ConfigStep } from './types';
 
 interface Props {
   activeStep: ConfigStep;
-  isFeishuConfigured: boolean;
-  isConnectionConfigured: boolean;
+  isDiscordConfigured: boolean;
+  isSlackConfigured: boolean;
   onStepChange: (step: ConfigStep) => void;
 }
 
 export function ConfigStepNav({
   activeStep,
-  isFeishuConfigured,
-  isConnectionConfigured,
+  isDiscordConfigured,
+  isSlackConfigured,
   onStepChange,
 }: Props) {
   const { t } = useTranslation();
 
   const steps: { id: ConfigStep; labelKey: string; icon: React.ElementType; done: boolean }[] = [
     {
-      id: 'feishu',
-      labelKey: 'remote.stepFeishu',
+      id: 'discord',
+      labelKey: 'remote.stepDiscord',
       icon: MessageSquare,
-      done: isFeishuConfigured,
+      done: isDiscordConfigured,
     },
     {
-      id: 'connection',
-      labelKey: 'remote.stepConnection',
-      icon: Link2,
-      done: isConnectionConfigured,
+      id: 'slack',
+      labelKey: 'remote.stepSlack',
+      icon: Hash,
+      done: isSlackConfigured,
     },
     {
       id: 'advanced',

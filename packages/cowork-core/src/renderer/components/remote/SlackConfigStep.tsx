@@ -1,34 +1,39 @@
 /**
- * SlackConfigStep — Slack bot credentials and DM policy configuration
+ * SlackConfigStep - Slack bot credentials and DM policy configuration.
  */
 
 import { useTranslation } from 'react-i18next';
 import { ExternalLink } from 'lucide-react';
+import type { DmPolicy } from './types';
 
 interface Props {
   botToken: string;
   appToken: string;
+  signingSecret: string;
   useSocketMode: boolean;
-  dmPolicy: string;
+  dmPolicy: DmPolicy;
   onBotTokenChange: (value: string) => void;
   onAppTokenChange: (value: string) => void;
+  onSigningSecretChange: (value: string) => void;
   onSocketModeChange: (value: boolean) => void;
-  onDmPolicyChange: (value: string) => void;
+  onDmPolicyChange: (value: DmPolicy) => void;
 }
 
 export function SlackConfigStep({
   botToken,
   appToken,
+  signingSecret,
   useSocketMode,
   dmPolicy,
   onBotTokenChange,
   onAppTokenChange,
+  onSigningSecretChange,
   onSocketModeChange,
   onDmPolicyChange,
 }: Props) {
   const { t } = useTranslation();
 
-  const dmPolicies = [
+  const dmPolicies: Array<{ value: DmPolicy; label: string; desc: string }> = [
     { value: 'pairing', label: t('remote.policyPairing'), desc: t('remote.policyPairingDesc') },
     {
       value: 'allowlist',
@@ -53,9 +58,9 @@ export function SlackConfigStep({
           <input
             type="password"
             value={botToken}
-            onChange={(e) => onBotTokenChange(e.target.value)}
+            onChange={(event) => onBotTokenChange(event.target.value)}
             className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-            placeholder="xoxb-••••••••••••"
+            placeholder="xoxb-..."
           />
         </div>
 
@@ -84,9 +89,24 @@ export function SlackConfigStep({
             <input
               type="password"
               value={appToken}
-              onChange={(e) => onAppTokenChange(e.target.value)}
+              onChange={(event) => onAppTokenChange(event.target.value)}
               className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-              placeholder="xapp-••••••••••••"
+              placeholder="xapp-..."
+            />
+          </div>
+        )}
+
+        {!useSocketMode && (
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              {t('remote.slackSigningSecret')}
+            </label>
+            <input
+              type="password"
+              value={signingSecret}
+              onChange={(event) => onSigningSecretChange(event.target.value)}
+              className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+              placeholder="Signing secret"
             />
           </div>
         )}

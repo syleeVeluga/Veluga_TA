@@ -18,6 +18,7 @@ import type {
   PairingRequest,
   PairedUser,
   GatewayEvent,
+  DmPolicy,
 } from './types';
 import { MessageRouter } from './message-router';
 
@@ -38,8 +39,21 @@ interface WSMessage {
   requestId?: string;
 }
 
+type ChannelAuthPolicies = Partial<
+  Record<
+    ChannelType,
+    {
+      policy: DmPolicy;
+      allowFrom?: string[];
+      channels?: Record<string, { allowFrom?: string[] }>;
+    }
+  >
+>;
+type ResolvedAuthPolicy = { mode: GatewayConfig['auth']['mode']; allowlist?: string[] };
+
 export class RemoteGateway extends EventEmitter {
   private config: GatewayConfig;
+  private channelAuthPolicies: ChannelAuthPolicies;
   private httpServer?: HttpServer;
   private wss?: WebSocketServer;
   private channels: Map<ChannelType, IChannel> = new Map();
@@ -55,9 +69,14 @@ export class RemoteGateway extends EventEmitter {
   // Rate limiting for WebSocket auth
   private authAttempts: Map<string, { count: number; resetTime: number }> = new Map();
 
-  constructor(config: GatewayConfig, messageRouter: MessageRouter) {
+  constructor(
+    config: GatewayConfig,
+    messageRouter: MessageRouter,
+    channelAuthPolicies: ChannelAuthPolicies = {}
+  ) {
     super();
     this.config = config;
+    this.channelAuthPolicies = channelAuthPolicies;
     this.messageRouter = messageRouter;
 
     // Set up message router callback
@@ -260,7 +279,7 @@ export class RemoteGateway extends EventEmitter {
       log('[Gateway] User not authorized:', message.sender.id);
 
       // Handle pairing if enabled
-      if (this.config.auth.mode === 'pairing') {
+      if (this.getAuthPolicy(message).mode === 'pairing') {
         await this.handlePairingRequest(message);
       } else {
         // Send unauthorized response
@@ -336,7 +355,13 @@ export class RemoteGateway extends EventEmitter {
    * Check if user is authorized
    */
   private async checkAuthorization(message: RemoteMessage): Promise<boolean> {
-    const { mode, allowlist } = this.config.auth;
+    // Per-channel allowFrom is an explicit override that bypasses the DM policy —
+    // configuring it for a guild channel is a deliberate "let this user in here".
+    if (this.matchesPerChannelAllowFrom(message)) {
+      return true;
+    }
+
+    const { mode, allowlist } = this.getAuthPolicy(message);
 
     switch (mode) {
       case 'token':
@@ -344,6 +369,10 @@ export class RemoteGateway extends EventEmitter {
         return false;
 
       case 'allowlist':
+        // Paired users are kept allowed when switching an already-paired channel to allowlist.
+        if (this.pairedUsers.has(`${message.channelType}:${message.sender.id}`)) {
+          return true;
+        }
         if (!allowlist || allowlist.length === 0) {
           return false; // Empty allowlist means deny all
         }
@@ -365,6 +394,50 @@ export class RemoteGateway extends EventEmitter {
       default:
         return false;
     }
+  }
+
+  private getAuthPolicy(message: RemoteMessage): ResolvedAuthPolicy {
+    if (this.config.auth.mode === 'token' || message.channelType === 'websocket') {
+      return this.config.auth;
+    }
+
+    const channelPolicy = this.channelAuthPolicies[message.channelType];
+    if (!channelPolicy) {
+      return this.config.auth;
+    }
+
+    return {
+      mode: channelPolicy.policy,
+      allowlist: [
+        ...(this.config.auth.allowlist ?? []),
+        ...(channelPolicy.allowFrom ?? []).map((userId) => `${message.channelType}:${userId}`),
+      ],
+    };
+  }
+
+  /**
+   * RemoteMessage.channelId may be encoded as "parentId:threadId" (Discord/Slack
+   * threads). Per-channel config is keyed by the underlying channel ID, so try
+   * both halves when matching.
+   */
+  private matchesPerChannelAllowFrom(message: RemoteMessage): boolean {
+    if (!message.isGroup) return false;
+    const channelPolicy = this.channelAuthPolicies[message.channelType];
+    if (!channelPolicy?.channels) return false;
+
+    const candidateKeys = new Set<string>([message.channelId]);
+    const colonIndex = message.channelId.indexOf(':');
+    if (colonIndex >= 0) {
+      candidateKeys.add(message.channelId.slice(0, colonIndex));
+      candidateKeys.add(message.channelId.slice(colonIndex + 1));
+    }
+
+    for (const key of candidateKeys) {
+      if (channelPolicy.channels[key]?.allowFrom?.includes(message.sender.id)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -605,7 +678,7 @@ export class RemoteGateway extends EventEmitter {
   }
 
   private handleWebhook(req: IncomingMessage, res: ServerResponse, url: string): void {
-    // Extract channel type from URL: /webhook/feishu, /webhook/telegram, etc.
+    // Extract channel type from URL: /webhook/slack, etc.
     const channelType = url.split('/')[2] as ChannelType;
 
     log(`[Gateway] Received webhook for channel: ${channelType}, URL: ${url}`);
