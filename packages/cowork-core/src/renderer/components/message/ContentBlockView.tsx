@@ -17,6 +17,7 @@ import { normalizeLatexDelimiters } from '../../utils/latex-delimiters';
 import type { ToolUseContent, ToolResultContent, FileAttachmentContent } from '../../types';
 import { FileText } from 'lucide-react';
 import { openFileFromUI } from '@renderer/features/file-viewer';
+import { MermaidBlock } from '../MermaidBlock';
 import { CodeBlock } from './CodeBlock';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolUseBlock } from './ToolUseBlock';
@@ -170,6 +171,10 @@ export const ContentBlockView = memo(function ContentBlockView({
               {children}
             </code>
           );
+        }
+
+        if (match[1] === 'mermaid') {
+          return <MermaidBlock source={String(children).replace(/\n$/, '')} />;
         }
 
         return <CodeBlock language={match[1]}>{String(children).replace(/\n$/, '')}</CodeBlock>;

@@ -20,6 +20,10 @@ const codeViewerPath = path.resolve(
   process.cwd(),
   'src/renderer/features/file-viewer/viewers/CodeViewer.tsx'
 );
+const documentThemeHookPath = path.resolve(
+  process.cwd(),
+  'src/renderer/hooks/useDocumentTheme.ts'
+);
 const storePath = path.resolve(process.cwd(), 'src/renderer/features/file-viewer/store.ts');
 
 describe('stage 6 polish — store width + toggle', () => {
@@ -156,11 +160,13 @@ describe('stage 6 polish — FileViewerPanel surface', () => {
 describe('stage 6 polish — CodeViewer theme', () => {
   it('imports both shiki themes and observes document class changes', () => {
     const source = fs.readFileSync(codeViewerPath, 'utf8');
+    const hookSource = fs.readFileSync(documentThemeHookPath, 'utf8');
 
     expect(source).toContain("import('@shikijs/themes/github-dark')");
     expect(source).toContain("import('@shikijs/themes/github-light')");
-    expect(source).toContain("classList.contains('light')");
-    expect(source).toContain('MutationObserver');
-    expect(source).toContain("attributeFilter: ['class']");
+    expect(source).toContain('useDocumentTheme()');
+    expect(hookSource).toContain("classList.contains('light')");
+    expect(hookSource).toContain('MutationObserver');
+    expect(hookSource).toContain("attributeFilter: ['class']");
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createHighlighterCore, type HighlighterCore as Highlighter } from 'shiki/core';
 import { createOnigurumaEngine } from 'shiki/engine/oniguruma';
+import { useDocumentTheme } from '../../../hooks/useDocumentTheme';
 import type { ViewerComponentProps } from '../viewer-map';
 import { readErrorMessage, textFromReadResult } from '../utils/read-result';
 import TextViewer from './TextViewer';
@@ -71,31 +72,6 @@ function readableSize(readResult: ViewerComponentProps['readResult'], content?: 
     return null;
   }
   return readResult.size;
-}
-
-function isLightTheme(): boolean {
-  if (typeof document === 'undefined') {
-    return false;
-  }
-  return document.documentElement.classList.contains('light');
-}
-
-function useDocumentTheme(): 'dark' | 'light' {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => (isLightTheme() ? 'light' : 'dark'));
-
-  useEffect(() => {
-    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') {
-      return;
-    }
-    const target = document.documentElement;
-    const observer = new MutationObserver(() => {
-      setTheme(isLightTheme() ? 'light' : 'dark');
-    });
-    observer.observe(target, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  return theme;
 }
 
 export default function CodeViewer({ path, readResult, content, ext }: CodeViewerProps) {
