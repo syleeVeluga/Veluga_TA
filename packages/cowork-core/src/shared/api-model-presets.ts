@@ -37,8 +37,6 @@ export const API_PROVIDER_PRESETS: SharedProviderPresets = {
     models: [
       { id: 'anthropic/claude-opus-4-8', name: 'anthropic/claude-opus-4-8 (latest)' },
       { id: 'anthropic/claude-opus-4-7', name: 'anthropic/claude-opus-4-7' },
-      { id: 'anthropic/claude-sonnet-4-7', name: 'anthropic/claude-sonnet-4-7' },
-      { id: 'anthropic/claude-haiku-4-7', name: 'anthropic/claude-haiku-4-7' },
       { id: 'openai/gpt-5.5', name: 'openai/gpt-5.5 (latest)' },
       { id: 'google/gemini-3.5-flash', name: 'google/gemini-3.5-flash (latest)' },
       { id: 'anthropic/claude-opus-4-6', name: 'anthropic/claude-opus-4-6' },
@@ -59,8 +57,6 @@ export const API_PROVIDER_PRESETS: SharedProviderPresets = {
     models: [
       { id: 'claude-opus-4-8', name: 'claude-opus-4-8 (latest)' },
       { id: 'claude-opus-4-7', name: 'claude-opus-4-7' },
-      { id: 'claude-sonnet-4-7', name: 'claude-sonnet-4-7' },
-      { id: 'claude-haiku-4-7', name: 'claude-haiku-4-7' },
       { id: 'claude-opus-4-6', name: 'claude-opus-4-6' },
       { id: 'claude-sonnet-4-6', name: 'claude-sonnet-4-6' },
       { id: 'claude-haiku-4-5', name: 'claude-haiku-4-5' },
@@ -138,8 +134,6 @@ export const PI_AI_CURATED_PRESETS: Record<string, { piProvider: string; pick: s
     pick: [
       'anthropic/claude-opus-4-8',
       'anthropic/claude-opus-4-7',
-      'anthropic/claude-sonnet-4-7',
-      'anthropic/claude-haiku-4-7',
       'openai/gpt-5.5',
       'google/gemini-3.5-flash',
       'anthropic/claude-opus-4-6',
@@ -157,8 +151,6 @@ export const PI_AI_CURATED_PRESETS: Record<string, { piProvider: string; pick: s
     pick: [
       'claude-opus-4-8',
       'claude-opus-4-7',
-      'claude-sonnet-4-7',
-      'claude-haiku-4-7',
       'claude-opus-4-6',
       'claude-sonnet-4-6',
       'claude-haiku-4-5',
@@ -247,7 +239,7 @@ export function getModelInputGuidance(
   }
 
   return {
-    placeholder: 'claude-opus-4-8, claude-sonnet-4-7',
+    placeholder: 'claude-opus-4-8, claude-opus-4-7',
     hint: 'Use the exact model ID for the selected protocol or endpoint.',
   };
 }

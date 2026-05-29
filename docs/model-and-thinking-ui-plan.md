@@ -69,8 +69,6 @@ per-message thinking overrides.
 
 ```ts
 { id: 'claude-opus-4-7',          name: 'claude-opus-4-7 (latest)' },
-{ id: 'claude-sonnet-4-7',        name: 'claude-sonnet-4-7' },
-{ id: 'claude-haiku-4-7',         name: 'claude-haiku-4-7' },
 { id: 'claude-opus-4-6',          name: 'claude-opus-4-6' },
 { id: 'claude-sonnet-4-6',        name: 'claude-sonnet-4-6' },
 { id: 'claude-haiku-4-5',         name: 'claude-haiku-4-5' },
@@ -113,8 +111,7 @@ exact ids that resolve cleanly before committing.
 ### A4. OpenRouter mirror (lines 37-46)
 
 Add the new ids prefixed with their pi-ai provider key:
-`anthropic/claude-opus-4-7`, `anthropic/claude-sonnet-4-7`,
-`anthropic/claude-haiku-4-7`, `openai/gpt-5.5`, `google/gemini-3.5-flash`.
+`anthropic/claude-opus-4-7`, `openai/gpt-5.5`, `google/gemini-3.5-flash`.
 Keep existing entries as fallbacks below.
 
 ### A5. Curated picks (lines 122-169)
@@ -142,7 +139,7 @@ Update strings in `getModelInputGuidance` (lines 171-228):
 
 - OpenAI placeholder (line 205): `gpt-5.5, gpt-5.4-mini, o3`
 - Gemini placeholder (line 219): `gemini-3.5-flash, gemini-3.1-pro-preview, gemini-2.5-flash`
-- Anthropic placeholder (line 225): `claude-opus-4-7, claude-sonnet-4-7`
+- Anthropic placeholder (line 225): `claude-opus-4-8, claude-opus-4-7`
 - OpenRouter placeholder (line 177): `openai/gpt-5.5, anthropic/claude-opus-4-7, google/gemini-3.5-flash`
 
 **Verification:** open Settings → API. For each of Anthropic, OpenAI, Gemini the
