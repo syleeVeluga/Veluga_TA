@@ -31,6 +31,7 @@ import {
   type AppConfig,
   type AppTheme,
   type CreateConfigSetPayload,
+  type ProviderProfileKey,
 } from './config/config-store';
 import { runConfigApiTest } from './config/config-test-routing';
 import { listOllamaModels } from './config/ollama-api';
@@ -68,6 +69,7 @@ import {
   buildScheduledTaskFallbackTitle,
   buildScheduledTaskTitle,
 } from '../shared/schedule/task-title';
+import { subscriptionLoginFeatureFlags } from '../shared/subscription-login-feature-flags';
 import {
   isUncPath,
   isWindowsDrivePath,
@@ -1628,6 +1630,68 @@ ipcMain.handle('config.discover-local', async (_event, payload?: { baseUrl?: str
     logError('[Config] Error discovering local services:', error);
     return [];
   }
+});
+
+const isSubscriptionLoginEnabled = () => subscriptionLoginFeatureFlags.enabled;
+
+const getAuthProfile = (profileId: string) => {
+  const config = configStore.getAll();
+  return config.profiles?.[profileId as ProviderProfileKey] || null;
+};
+
+ipcMain.handle(
+  'auth.startOAuth',
+  async (_event, _args: { provider: 'openai-codex'; profileId: string }) => {
+    if (!isSubscriptionLoginEnabled()) {
+      return { error: 'subscription_login feature is disabled' };
+    }
+    throw new Error('Not implemented in Phase 2');
+  }
+);
+
+ipcMain.handle('auth.cancelOAuth', async (_event, _args: { flowId: string }) => {
+  if (!isSubscriptionLoginEnabled()) {
+    return { error: 'subscription_login feature is disabled' };
+  }
+  throw new Error('Not implemented in Phase 2');
+});
+
+ipcMain.handle('auth.checkClaudeCli', async () => {
+  if (!isSubscriptionLoginEnabled()) {
+    return { installed: false, reason: 'feature disabled' };
+  }
+  return { installed: false, reason: 'not yet implemented' };
+});
+
+ipcMain.handle('auth.signOut', async (_event, _args: { profileId: string }) => {
+  if (!isSubscriptionLoginEnabled()) {
+    return { error: 'subscription_login feature is disabled' };
+  }
+  throw new Error('Not implemented in Phase 2');
+});
+
+ipcMain.handle('auth.getStatus', async (_event, args: { profileId: string }) => {
+  if (!isSubscriptionLoginEnabled()) {
+    return { error: 'subscription_login feature is disabled' };
+  }
+
+  const profile = getAuthProfile(args.profileId);
+  if (!profile) {
+    return { error: 'profile not found' };
+  }
+
+  const authMethod = profile.authMethod ?? 'apikey';
+  if (authMethod === 'apikey') {
+    return { authMethod: 'apikey', loggedIn: Boolean(profile.apiKey) };
+  }
+  if (authMethod === 'oauth') {
+    return {
+      authMethod: 'oauth',
+      loggedIn: Boolean(profile.oauthCredentials),
+      expiresAt: profile.oauthCredentials?.expiresAt,
+    };
+  }
+  return { authMethod: 'cli-delegate', loggedIn: false };
 });
 
 // MCP Server IPC handlers

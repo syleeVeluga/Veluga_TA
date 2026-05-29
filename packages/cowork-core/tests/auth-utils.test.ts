@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   normalizeOllamaBaseUrl,
@@ -16,7 +16,10 @@ import {
   shouldAllowEmptyOllamaApiKey,
   shouldAllowEmptyGeminiApiKey,
   shouldUseAnthropicAuthToken,
+  getEffectiveCredential,
+  isOAuthExpiringSoon,
 } from '../src/main/config/auth-utils';
+import type { OAuthCredentials, ProviderProfile } from '../src/main/config/config-store';
 
 describe('auth-utils', () => {
   it('detects oauth-style tokens', () => {
@@ -315,5 +318,83 @@ describe('auth-utils', () => {
         baseUrl: 'http://localhost:8080/v1',
       })
     ).toBe(false);
+  });
+});
+
+describe('auth-utils subscription login helpers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns API key credentials for legacy profiles', () => {
+    const profile: ProviderProfile = {
+      authMethod: 'apikey',
+      apiKey: 'sk-test',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-5.2',
+    };
+
+    expect(getEffectiveCredential(profile)).toEqual({ type: 'apikey', value: 'sk-test' });
+  });
+
+  it('returns OAuth access token without exposing refresh token', () => {
+    const profile: ProviderProfile = {
+      authMethod: 'oauth',
+      apiKey: '',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-5.2',
+      oauthCredentials: {
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        expiresAt: 1_800_000,
+        tokenType: 'Bearer',
+        obtainedAt: 1_000_000,
+      },
+    };
+
+    expect(getEffectiveCredential(profile)).toEqual({
+      type: 'oauth',
+      value: 'access-token',
+      expiresAt: 1_800_000,
+    });
+  });
+
+  it('returns cli-delegate without a secret value', () => {
+    const profile: ProviderProfile = {
+      authMethod: 'cli-delegate',
+      apiKey: '',
+      baseUrl: 'https://api.anthropic.com',
+      model: 'claude-sonnet-4-5',
+    };
+
+    expect(getEffectiveCredential(profile)).toEqual({ type: 'cli-delegate' });
+  });
+
+  it('throws for missing selected credentials', () => {
+    const baseProfile: ProviderProfile = {
+      authMethod: 'apikey',
+      apiKey: '',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-5.2',
+    };
+
+    expect(() => getEffectiveCredential(baseProfile)).toThrow('API key missing');
+    expect(() => getEffectiveCredential({ ...baseProfile, authMethod: 'oauth' })).toThrow(
+      'OAuth credentials missing'
+    );
+  });
+
+  it('detects OAuth credentials that are inside the refresh buffer', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    const creds: OAuthCredentials = {
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: 1_030_000,
+      tokenType: 'Bearer',
+      obtainedAt: 900_000,
+    };
+
+    expect(isOAuthExpiringSoon(creds)).toBe(true);
+    expect(isOAuthExpiringSoon({ ...creds, expiresAt: 1_120_000 })).toBe(false);
   });
 });

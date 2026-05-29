@@ -12,6 +12,7 @@ import {
   isCustomOpenAiLoopbackGateway,
   profileKeyFromProvider,
   profileKeyToProvider,
+  shouldRequireApiKey,
 } from '../src/renderer/hooks/useApiConfigState';
 
 const hookPath = path.resolve(process.cwd(), 'src/renderer/hooks/useApiConfigState.ts');
@@ -190,6 +191,13 @@ describe('api config state helpers', () => {
     expect(isCustomOpenAiLoopbackGateway('http://[::1]:8082')).toBe(true);
     expect(isCustomOpenAiLoopbackGateway('http://0.0.0.0:8082')).toBe(false);
     expect(isCustomOpenAiLoopbackGateway('https://relay.example.com/v1')).toBe(false);
+  });
+
+  it('does not require a hidden API key for subscription auth methods', () => {
+    expect(shouldRequireApiKey('apikey', false)).toBe(true);
+    expect(shouldRequireApiKey('apikey', true)).toBe(false);
+    expect(shouldRequireApiKey('oauth', false)).toBe(false);
+    expect(shouldRequireApiKey('cli-delegate', false)).toBe(false);
   });
 
   it('loads gemini provider and custom gemini profile values without fallback drift', () => {

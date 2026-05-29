@@ -5,8 +5,10 @@ import type {
   ApiConfigSet,
   AppConfig,
   ApiTestResult,
+  AuthMethod,
   CustomProtocolType,
   DiagnosticResult,
+  OAuthCredentials,
   ProviderModelInfo,
   ProviderProfile,
   ProviderProfileKey,
@@ -35,7 +37,9 @@ interface UseApiConfigStateOptions {
 }
 
 interface UIProviderProfile {
+  authMethod: AuthMethod;
   apiKey: string;
+  oauthCredentials?: OAuthCredentials;
   baseUrl: string;
   model: string;
   customModel: string;
@@ -150,6 +154,10 @@ export function isCustomOpenAiLoopbackGateway(baseUrl: string): boolean {
   return isLoopbackBaseUrl(baseUrl);
 }
 
+export function shouldRequireApiKey(authMethod: AuthMethod, allowEmptyApiKey: boolean): boolean {
+  return authMethod === 'apikey' && !allowEmptyApiKey;
+}
+
 function isLegacyOllamaConfig(
   config: Pick<AppConfig, 'provider' | 'customProtocol' | 'baseUrl'> | null | undefined
 ): boolean {
@@ -207,6 +215,7 @@ function defaultProfileForKey(
   const preset = modelPresetForProfile(profileKey, presets);
   const prefersCustomInput = profileKey.startsWith('custom:');
   return {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: preset.baseUrl,
     model: profileKey === 'ollama' ? '' : preset.models[0]?.id || '',
@@ -273,6 +282,7 @@ function normalizeProfile(
     return {
       ...fallback,
       apiKey: '',
+      authMethod: 'apikey',
       baseUrl: fallback.baseUrl,
       model: profile.model?.trim() || fallback.model,
       customModel: '',
@@ -288,7 +298,12 @@ function normalizeProfile(
     (item) => item.id === modelValue
   );
   return {
+    authMethod:
+      profile?.authMethod === 'oauth' || profile?.authMethod === 'cli-delegate'
+        ? profile.authMethod
+        : 'apikey',
     apiKey: profile?.apiKey || '',
+    oauthCredentials: profile?.oauthCredentials,
     baseUrl:
       profileKey === 'ollama' ? normalizeOllamaBaseUrl(rawBaseUrl) || fallback.baseUrl : rawBaseUrl,
     model: hasPresetModel ? modelValue : fallback.model,
@@ -375,7 +390,9 @@ function toPersistedProfiles(
       ? profile.customModel.trim() || profile.model
       : profile.model;
     persisted[key] = {
+      authMethod: profile.authMethod,
       apiKey: profile.apiKey,
+      oauthCredentials: profile.oauthCredentials,
       baseUrl: profile.baseUrl.trim() || undefined,
       model: finalModel,
       contextWindow: profile.contextWindow ? Number(profile.contextWindow) : undefined,
@@ -400,6 +417,7 @@ export function buildApiConfigDraftSignature(
     thinkingLevel: normalizedThinkingLevel,
     profiles: PROFILE_KEYS.map((key) => ({
       key,
+      authMethod: persisted[key]?.authMethod || 'apikey',
       apiKey: persisted[key]?.apiKey || '',
       baseUrl: persisted[key]?.baseUrl || '',
       model: persisted[key]?.model || '',
@@ -441,7 +459,9 @@ export function buildApiConfigSets(
       for (const key of PROFILE_KEYS) {
         const uiProfile = normalizeProfile(key, set.profiles?.[key], presets);
         normalizedProfiles[key] = {
+          authMethod: uiProfile.authMethod,
           apiKey: uiProfile.apiKey,
+          oauthCredentials: uiProfile.oauthCredentials,
           baseUrl: uiProfile.baseUrl,
           model: uiProfile.useCustomModel
             ? uiProfile.customModel.trim() || uiProfile.model
@@ -456,7 +476,9 @@ export function buildApiConfigSets(
           presets
         );
         normalizedProfiles.ollama = {
+          authMethod: ollamaProfile.authMethod,
           apiKey: ollamaProfile.apiKey,
+          oauthCredentials: ollamaProfile.oauthCredentials,
           baseUrl: ollamaProfile.baseUrl,
           model: ollamaProfile.useCustomModel
             ? ollamaProfile.customModel.trim() || ollamaProfile.model
@@ -989,6 +1011,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
   );
 
   const apiKey = currentProfile.apiKey;
+  const authMethod = currentProfile.authMethod;
   const baseUrl = currentProfile.baseUrl;
   const model = currentProfile.model;
   const customModel = currentProfile.customModel;
@@ -1147,7 +1170,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
       ((customProtocol === 'anthropic' && isCustomAnthropicLoopbackGateway(baseUrl)) ||
         (customProtocol === 'openai' && isCustomOpenAiLoopbackGateway(baseUrl)) ||
         (customProtocol === 'gemini' && isCustomGeminiLoopbackGateway(baseUrl))));
-  const requiresApiKey = !allowEmptyApiKey;
+  const requiresApiKey = shouldRequireApiKey(authMethod, allowEmptyApiKey);
   const currentDraftSignature = useMemo(
     () => buildApiConfigDraftSignature(activeProfileKey, profiles, thinkingLevel),
     [activeProfileKey, profiles, thinkingLevel]
@@ -1225,6 +1248,13 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
   const setApiKey = useCallback(
     (value: string) => {
       updateActiveProfile((prev) => ({ ...prev, apiKey: value }));
+    },
+    [updateActiveProfile]
+  );
+
+  const setAuthMethod = useCallback(
+    (value: AuthMethod) => {
+      updateActiveProfile((prev) => ({ ...prev, authMethod: value }));
     },
     [updateActiveProfile]
   );
@@ -2088,6 +2118,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
     customProtocol,
     modelOptions,
     currentPreset,
+    authMethod,
     apiKey,
     baseUrl,
     model,
@@ -2129,6 +2160,7 @@ export function useApiConfigState(options: UseApiConfigStateOptions = {}) {
     canDeleteCurrentConfigSet,
     configSetLimit: CONFIG_SET_LIMIT,
     thinkingLevel,
+    setAuthMethod,
     setApiKey,
     setBaseUrl,
     setModel,

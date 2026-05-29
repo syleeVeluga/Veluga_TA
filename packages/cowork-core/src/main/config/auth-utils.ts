@@ -1,4 +1,4 @@
-import type { AppConfig } from './config-store';
+import type { AppConfig, OAuthCredentials, ProviderProfile } from './config-store';
 import { isLoopbackBaseUrl as sharedIsLoopbackBaseUrl } from '../../shared/network/loopback';
 import { normalizeOllamaBaseUrl as sharedNormalizeOllamaBaseUrl } from '../../shared/ollama-base-url';
 
@@ -24,6 +24,35 @@ export function isLikelyOAuthAccessToken(token: string | undefined | null): bool
     return false;
   }
   return !API_KEY_PREFIX_RE.test(value);
+}
+
+export function getEffectiveCredential(profile: ProviderProfile): {
+  type: 'apikey' | 'oauth' | 'cli-delegate';
+  value?: string;
+  expiresAt?: number;
+} {
+  switch (profile.authMethod ?? 'apikey') {
+    case 'apikey':
+      if (!profile.apiKey) {
+        throw new Error('API key missing');
+      }
+      return { type: 'apikey', value: profile.apiKey };
+    case 'oauth':
+      if (!profile.oauthCredentials) {
+        throw new Error('OAuth credentials missing');
+      }
+      return {
+        type: 'oauth',
+        value: profile.oauthCredentials.accessToken,
+        expiresAt: profile.oauthCredentials.expiresAt,
+      };
+    case 'cli-delegate':
+      return { type: 'cli-delegate' };
+  }
+}
+
+export function isOAuthExpiringSoon(creds: OAuthCredentials, bufferMs = 60_000): boolean {
+  return creds.expiresAt - Date.now() < bufferMs;
 }
 
 export function shouldUseAnthropicAuthToken(

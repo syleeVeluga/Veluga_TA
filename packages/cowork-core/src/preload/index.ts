@@ -25,6 +25,11 @@ import type {
   MemoryDebugFileInfo,
   MemoryDebugFileContent,
   MemoryInspectSessionResult,
+  AuthCancelOAuthArgs,
+  AuthProgressEvent,
+  AuthProfileArgs,
+  AuthStartOAuthArgs,
+  AuthStatusResult,
 } from '../renderer/types';
 import type { DiagnosticInput, DiagnosticResult } from '../renderer/types';
 import type {
@@ -196,6 +201,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('config.diagnose', input),
     discoverLocal: (payload?: { baseUrl?: string }): Promise<LocalOllamaDiscoveryResult> =>
       ipcRenderer.invoke('config.discover-local', payload),
+  },
+
+  auth: {
+    startOAuth: (args: AuthStartOAuthArgs): Promise<{ error?: string }> =>
+      ipcRenderer.invoke('auth.startOAuth', args),
+    cancelOAuth: (args: AuthCancelOAuthArgs): Promise<{ error?: string }> =>
+      ipcRenderer.invoke('auth.cancelOAuth', args),
+    checkClaudeCli: (): Promise<{ installed: boolean; reason?: string }> =>
+      ipcRenderer.invoke('auth.checkClaudeCli'),
+    signOut: (args: AuthProfileArgs): Promise<{ error?: string }> =>
+      ipcRenderer.invoke('auth.signOut', args),
+    getStatus: (args: AuthProfileArgs): Promise<AuthStatusResult> =>
+      ipcRenderer.invoke('auth.getStatus', args),
+    onProgress: (cb: (payload: AuthProgressEvent) => void): (() => void) => {
+      const listener = (_: Electron.IpcRendererEvent, payload: AuthProgressEvent) => cb(payload);
+      ipcRenderer.on('auth.progress', listener);
+      return () => ipcRenderer.removeListener('auth.progress', listener);
+    },
   },
 
   // Window control methods
@@ -504,6 +527,14 @@ declare global {
         }) => Promise<ProviderModelInfo[]>;
         diagnose: (input: DiagnosticInput) => Promise<DiagnosticResult>;
         discoverLocal: (payload?: { baseUrl?: string }) => Promise<LocalOllamaDiscoveryResult>;
+      };
+      auth: {
+        startOAuth: (args: AuthStartOAuthArgs) => Promise<{ error?: string }>;
+        cancelOAuth: (args: AuthCancelOAuthArgs) => Promise<{ error?: string }>;
+        checkClaudeCli: () => Promise<{ installed: boolean; reason?: string }>;
+        signOut: (args: AuthProfileArgs) => Promise<{ error?: string }>;
+        getStatus: (args: AuthProfileArgs) => Promise<AuthStatusResult>;
+        onProgress: (cb: (payload: AuthProgressEvent) => void) => () => void;
       };
       window: {
         minimize: () => void;

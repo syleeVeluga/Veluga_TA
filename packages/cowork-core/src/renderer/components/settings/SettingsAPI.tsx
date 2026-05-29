@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useApiConfigState } from '../../hooks/useApiConfigState';
+import type { AuthMethod } from '../../types';
 import { ApiConfigSetManager } from '../ApiConfigSetManager';
 import { CommonProviderSetupsCard, GuidanceInlineHint } from '../ProviderGuidance';
 import ApiDiagnosticsPanel from '../ApiDiagnosticsPanel';
@@ -23,6 +24,7 @@ import {
   PROVIDER_VISIBILITY_KEYS,
   type ProviderVisibilityKey,
 } from '../../../shared/provider-visibility';
+import { subscriptionLoginFeatureFlags } from '../../../shared/subscription-login-feature-flags';
 import { useAppStore } from '../../store';
 import { useAppConfig } from '../../store/selectors';
 
@@ -62,6 +64,7 @@ export function SettingsAPI() {
     modelInputHint,
     presets,
     currentPreset,
+    authMethod,
     modelOptions,
     isSaving,
     isLoadingConfig,
@@ -84,6 +87,7 @@ export function SettingsAPI() {
     hasUnsavedChanges,
     isMutatingConfigSet,
     canDeleteCurrentConfigSet,
+    setAuthMethod,
     setApiKey,
     setBaseUrl,
     setModel,
@@ -118,6 +122,7 @@ export function SettingsAPI() {
   const apiKeyHint = t(getApiKeyHintKey(provider));
   const selectedModelId = useCustomModel ? customModel : model;
   const reasoningSupported = modelSupportsReasoning(selectedModelId);
+  const showSubscriptionAuth = subscriptionLoginFeatureFlags.enabled;
 
   const appConfig = useAppConfig();
   const setAppConfig = useAppStore((s) => s.setAppConfig);
@@ -235,26 +240,78 @@ export function SettingsAPI() {
         </div>
       </div>
 
-      {/* API Key */}
-      <div className="space-y-3 py-5 border-b border-border-muted">
-        <label
-          htmlFor="api-key-input"
-          className="flex items-center gap-2 text-sm font-medium text-text-primary"
-        >
-          <Key className="w-4 h-4" />
-          {t('api.apiKey')}
-        </label>
-        <p className="text-xs leading-5 text-text-muted">{t('api.apiKeyDescription')}</p>
-        <input
-          id="api-key-input"
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder={apiKeyPlaceholder}
-          className="w-full px-4 py-3 rounded-lg bg-background border border-border text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
-        />
-        <p className="text-xs text-text-muted">{apiKeyHint}</p>
-      </div>
+      {showSubscriptionAuth && (
+        <div className="space-y-3 py-5 border-b border-border-muted">
+          <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
+            <Key className="w-4 h-4" />
+            {t('api.authMethod')}
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {(
+              [
+                { id: 'apikey', label: t('api.authMethodApiKey'), enabled: true },
+                {
+                  id: 'oauth',
+                  label: t('api.authMethodChatGptPlus'),
+                  enabled:
+                    provider === 'openai' &&
+                    subscriptionLoginFeatureFlags.chatgpt_plus_oauth,
+                },
+                {
+                  id: 'cli-delegate',
+                  label: t('api.authMethodClaudePro'),
+                  enabled:
+                    provider === 'anthropic' &&
+                    subscriptionLoginFeatureFlags.claude_pro_cli,
+                },
+              ] as Array<{ id: AuthMethod; label: string; enabled: boolean }>
+            )
+              .filter((item) => item.enabled)
+              .map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setAuthMethod(item.id)}
+                  className={`px-3 py-2 rounded-lg text-sm transition-colors border ${
+                    authMethod === item.id
+                      ? 'border-accent bg-accent/10 text-accent font-medium'
+                      : 'border-border-muted text-text-secondary hover:border-border hover:text-text-primary'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+          </div>
+          {authMethod === 'oauth' && (
+            <p className="text-xs leading-5 text-text-muted">{t('api.authMethodOAuthPending')}</p>
+          )}
+          {authMethod === 'cli-delegate' && (
+            <p className="text-xs leading-5 text-text-muted">{t('api.authMethodCliPending')}</p>
+          )}
+        </div>
+      )}
+
+      {(!showSubscriptionAuth || authMethod === 'apikey') && (
+        <div className="space-y-3 py-5 border-b border-border-muted">
+          <label
+            htmlFor="api-key-input"
+            className="flex items-center gap-2 text-sm font-medium text-text-primary"
+          >
+            <Key className="w-4 h-4" />
+            {t('api.apiKey')}
+          </label>
+          <p className="text-xs leading-5 text-text-muted">{t('api.apiKeyDescription')}</p>
+          <input
+            id="api-key-input"
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={apiKeyPlaceholder}
+            className="w-full px-4 py-3 rounded-lg bg-background border border-border text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
+          />
+          <p className="text-xs text-text-muted">{apiKeyHint}</p>
+        </div>
+      )}
 
       {/* Custom Protocol */}
       {provider === 'custom' && (

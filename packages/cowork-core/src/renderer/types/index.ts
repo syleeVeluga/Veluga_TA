@@ -564,6 +564,7 @@ export type ProviderType = 'openrouter' | 'anthropic' | 'custom' | 'openai' | 'g
 export type CustomProtocolType = 'anthropic' | 'openai' | 'gemini';
 export type AppTheme = 'dark' | 'light' | 'system';
 export type AppLanguage = 'ko' | 'en';
+export type AuthMethod = 'apikey' | 'oauth' | 'cli-delegate';
 export type ProviderProfileKey =
   | 'openrouter'
   | 'anthropic'
@@ -575,8 +576,20 @@ export type ProviderProfileKey =
   | 'custom:gemini';
 export type ConfigSetId = string;
 
+export interface OAuthCredentials {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  tokenType: 'Bearer';
+  scope?: string;
+  accountId?: string;
+  obtainedAt: number;
+}
+
 export interface ProviderProfile {
+  authMethod?: AuthMethod;
   apiKey: string;
+  oauthCredentials?: OAuthCredentials;
   baseUrl?: string;
   model: string;
   contextWindow?: number;
@@ -627,6 +640,7 @@ export interface MemoryRuntimeConfig {
 }
 
 export interface AppConfig {
+  version?: number;
   provider: ProviderType;
   apiKey: string;
   baseUrl?: string;
@@ -651,6 +665,31 @@ export interface AppConfig {
   visibleProviders?: ProviderVisibility;
   isConfigured: boolean;
 }
+
+export interface AuthStartOAuthArgs {
+  provider: 'openai-codex';
+  profileId: string;
+}
+
+export interface AuthCancelOAuthArgs {
+  flowId: string;
+}
+
+export interface AuthProfileArgs {
+  profileId: string;
+}
+
+export interface AuthProgressEvent {
+  flowId: string;
+  status: string;
+  message?: string;
+}
+
+export type AuthStatusResult =
+  | { error: string }
+  | { authMethod: 'apikey'; loggedIn: boolean }
+  | { authMethod: 'oauth'; loggedIn: boolean; expiresAt?: number }
+  | { authMethod: 'cli-delegate'; loggedIn: boolean };
 
 export interface ProviderPreset {
   name: string;

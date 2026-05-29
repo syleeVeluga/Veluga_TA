@@ -50,6 +50,7 @@ export type ProviderType = 'openrouter' | 'anthropic' | 'custom' | 'openai' | 'g
 export type CustomProtocolType = 'anthropic' | 'openai' | 'gemini';
 export type AppTheme = 'dark' | 'light' | 'system';
 export type AppLanguage = 'ko' | 'en';
+export type AuthMethod = 'apikey' | 'oauth' | 'cli-delegate';
 export type ProviderProfileKey =
   | 'openrouter'
   | 'anthropic'
@@ -68,8 +69,20 @@ export interface CreateConfigSetPayload {
   fromSetId?: string;
 }
 
+export interface OAuthCredentials {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  tokenType: 'Bearer';
+  scope?: string;
+  accountId?: string;
+  obtainedAt: number;
+}
+
 export interface ProviderProfile {
+  authMethod?: AuthMethod;
   apiKey: string;
+  oauthCredentials?: OAuthCredentials;
   baseUrl?: string;
   model: string;
   contextWindow?: number;
@@ -90,6 +103,8 @@ export interface ApiConfigSet {
 }
 
 export interface AppConfig {
+  version?: number;
+
   // API Provider
   provider: ProviderType;
 
@@ -178,6 +193,7 @@ const DEFAULT_CONFIG_SET_ID = 'default';
 const MAX_CONFIG_SET_COUNT = 20;
 const LOCAL_ANTHROPIC_PLACEHOLDER_KEY = 'sk-ant-local-proxy';
 const DIRECT_READ_KEYS = new Set<keyof AppConfig>([
+  'version',
   'provider',
   'apiKey',
   'baseUrl',
@@ -200,41 +216,49 @@ const DIRECT_READ_KEYS = new Set<keyof AppConfig>([
 
 const defaultProfiles: Record<ProviderProfileKey, ProviderProfile> = {
   openrouter: {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'https://openrouter.ai/api/v1',
     model: 'anthropic/claude-sonnet-4-6',
   },
   anthropic: {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'https://api.anthropic.com',
     model: 'claude-opus-4-7',
   },
   openai: {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-5.5',
   },
   ollama: {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'http://localhost:11434/v1',
     model: '',
   },
   gemini: {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'https://generativelanguage.googleapis.com',
     model: 'gemini-3.5-flash',
   },
   'custom:anthropic': {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'https://open.bigmodel.cn/api/anthropic',
     model: 'glm-5',
   },
   'custom:openai': {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-5.4',
   },
   'custom:gemini': {
+    authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'https://generativelanguage.googleapis.com',
     model: 'gemini-2.5-flash',
@@ -255,6 +279,7 @@ const defaultConfigSet: ApiConfigSet = {
 };
 
 const defaultConfig: AppConfig = {
+  version: 4,
   provider: defaultConfigSet.provider,
   apiKey: defaultProfiles.openrouter.apiKey,
   baseUrl: defaultProfiles.openrouter.baseUrl,
@@ -631,7 +656,9 @@ export class ConfigStore {
   private getDefaultProfile(profileKey: ProviderProfileKey): ProviderProfile {
     const fallback = defaultProfiles[profileKey];
     return {
+      authMethod: fallback.authMethod,
       apiKey: fallback.apiKey,
+      oauthCredentials: fallback.oauthCredentials,
       baseUrl: fallback.baseUrl,
       model: fallback.model,
     };
@@ -652,8 +679,17 @@ export class ConfigStore {
         : fallback.baseUrl;
     const baseUrl =
       profileKey === 'ollama' ? normalizeOllamaBaseUrl(rawBaseUrl) || fallback.baseUrl : rawBaseUrl;
+    const authMethod =
+      profile?.authMethod === 'oauth' || profile?.authMethod === 'cli-delegate'
+        ? profile.authMethod
+        : 'apikey';
     const result: ProviderProfile = {
+      authMethod,
       apiKey: typeof profile?.apiKey === 'string' ? profile.apiKey : '',
+      oauthCredentials:
+        profile?.oauthCredentials && typeof profile.oauthCredentials === 'object'
+          ? profile.oauthCredentials
+          : undefined,
       baseUrl,
       model,
     };
@@ -1049,6 +1085,7 @@ export class ConfigStore {
     const projected = this.projectFromConfigSet(activeConfigSet);
 
     const result: AppConfig = {
+      version: 4,
       provider: projected.provider,
       customProtocol: projected.customProtocol,
       apiKey: projected.apiKey,

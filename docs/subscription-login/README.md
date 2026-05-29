@@ -42,7 +42,7 @@
 
 - [ ] **Phase 0** — 본 계획 문서화 (이 폴더)
 - [ ] **Phase 1** — pi-ai OAuth 스파이크
-- [ ] **Phase 2** — 타입/IPC 골격
+- [x] **Phase 2** — 타입/IPC 골격
 - [ ] **Phase 3** — ChatGPT Plus OAuth
 - [ ] **Phase 4** — Claude Pro CLI 위임
 - [ ] **Phase 5** — UI & 롤아웃
