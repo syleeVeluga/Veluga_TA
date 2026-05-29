@@ -4,6 +4,13 @@
 >
 > 예상 소요: **반나절 (4시간)**
 
+## 0. 적용 상태
+
+- [x] 자동 스파이크 실행 및 결과 문서화: [spike-results.md](spike-results.md)
+- [x] `openai-codex` provider/baseURL/model catalog 확인
+- [x] pi-coding-agent 통합 시 provider key는 `openai-codex`를 사용해야 함을 확정
+- [ ] 실제 ChatGPT Plus 계정으로 OAuth login → LLM 응답까지 live E2E 확인 *(Final QA / dogfooding 단계에서 수행)*
+
 ## 1. 검증 질문 (모두 yes/no로 답해야 함)
 
 ### Q1. pi-ai의 `openai-codex` OAuth provider가 단독으로 사용 가능한가?

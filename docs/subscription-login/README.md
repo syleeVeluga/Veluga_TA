@@ -41,7 +41,7 @@
 ## 적용 상태
 
 - [x] **Phase 0** — 본 계획 문서화 (이 폴더)
-- [ ] **Phase 1** — pi-ai OAuth 스파이크
+- [x] **Phase 1** — pi-ai OAuth 스파이크 (자동 검증 완료, live account E2E는 Final QA)
 - [x] **Phase 2** — 타입/IPC 골격
 - [x] **Phase 3** — ChatGPT Plus OAuth
 - [x] **Phase 4** — Claude Pro CLI 위임 (chat-only MVP)

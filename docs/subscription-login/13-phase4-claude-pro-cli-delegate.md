@@ -267,7 +267,7 @@ private async runViaClaudeCli(profile, prompt, options) {
 - [x] 간단한 채팅 (system + user → assistant) end-to-end 동작 (`runViaClaudeCli` + `ClaudeCliRunner`)
 - [x] cancel/abort 동작 (controller.signal → `handle.cancel()` → SIGTERM/SIGKILL)
 - [x] tool use는 비활성화 (`--tools ""`) + UI에 "지원 안 됨" 표시
-- [x] 단위 테스트 추가 + 통과 (`claude-cli-detector.test.ts`, `claude-cli-runner.test.ts` — 13 케이스)
+- [x] 단위 테스트 추가 + 통과 (`claude-cli-detector.test.ts`, `claude-cli-runner.test.ts`, `claude-cli-spawn.test.ts` — 15 케이스)
 - [x] feature flag `claude_pro_cli=true` 시에만 노출 (IPC `isClaudeProCliEnabled` 게이트, UI flag 게이트)
 - [x] 로그에 prompt 평문 또는 stderr 토큰 정보 출력 안 됨 (`redactSecrets`, detector stderr 무시)
 

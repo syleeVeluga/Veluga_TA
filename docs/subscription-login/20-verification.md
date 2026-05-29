@@ -124,12 +124,22 @@
 
 ---
 
-## 5. 회귀 방지 체크리스트 (PR Template)
+## 5. 현재 PR 검증 상태
+
+- [x] `npm run verify` 통과 (`tsc --noEmit -p tsconfig.json` + `vitest run --config vitest.config.ts`)
+- [x] 새 OAuth/CLI 코드 단위 테스트 추가
+- [x] feature flag 가드가 신규 UI/IPC/agent-runner 진입점에 있음
+- [x] 문서 업데이트 (README.md 적용 상태 체크박스 갱신)
+- [ ] 실제 ChatGPT Plus/Claude Pro 계정 live E2E *(dogfooding / Final QA 단계)*
+- [ ] 기존 API key 사용자 경로 수동 smoke test *(dogfooding / Final QA 단계)*
+
+---
+
+## 6. 회귀 방지 체크리스트 (PR Template)
 
 본 폴더의 작업과 관련된 PR을 머지하기 전에 작성자가 확인:
 
-- [ ] `pnpm test` (또는 프로젝트 표준) 0 실패
-- [ ] `tsc --noEmit` 0 에러
+- [ ] `npm run verify` 0 실패
 - [ ] 새 OAuth/CLI 코드에 단위 테스트 추가
 - [ ] 토큰 redaction 패턴이 새 로그문에 적용됨
 - [ ] feature flag 가드가 모든 신규 진입점에 있음
@@ -138,7 +148,7 @@
 
 ---
 
-## 6. 종단 검증 시나리오 (Final QA)
+## 7. 종단 검증 시나리오 (Final QA)
 
 Phase 5 일반 출시 직전 1회 수행:
 

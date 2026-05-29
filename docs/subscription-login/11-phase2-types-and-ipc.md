@@ -225,15 +225,15 @@ subscription_login: {
 
 ## 3. 완료 기준 (Definition of Done)
 
-- [ ] 타입 확장 머지 + 마이그레이션 동작
-- [ ] IPC 핸들러 스텁 (모두 `featureFlags.subscription_login.enabled` 가드)
-- [ ] Preload bridge로 renderer에서 `window.veluga.auth.*` 호출 가능
-- [ ] 설정 UI에 인증 방식 라디오 노출 (feature flag OFF 시 숨김)
-- [ ] 회귀 테스트 0 실패
-- [ ] PR 단위 테스트 추가:
-  - `config-store.migrations.test.ts`: v3→v4 마이그레이션
-  - `auth-utils.test.ts`: `getEffectiveCredential`, `isOAuthExpiringSoon`
-- [ ] 문서 업데이트: 본 폴더 README의 적용 상태 체크박스
+- [x] 타입 확장 머지 + 기존 프로필 기본값 `authMethod: 'apikey'` 정규화
+- [x] IPC 핸들러 추가 및 feature flag 가드 적용 (`auth.startOAuth`, `auth.cancelOAuth`, `auth.checkClaudeCli`, `auth.signOut`, `auth.getStatus`)
+- [x] Preload bridge로 renderer에서 `window.electronAPI.auth.*` 호출 가능
+- [x] 설정 UI에 인증 방식 선택 노출 (feature flag OFF 시 숨김)
+- [x] 회귀 테스트 0 실패 (`npm run verify`)
+- [x] PR 단위 테스트 추가: OAuth callback/provider/manager, Claude CLI detector/runner/spawn
+- [x] 문서 업데이트: 본 폴더 README의 적용 상태 체크박스
+
+> Phase 2 문서의 "스텁" 계획은 Phase 3~5 구현에서 실제 핸들러로 대체되었다.
 
 ---
 

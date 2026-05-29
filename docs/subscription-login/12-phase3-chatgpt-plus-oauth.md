@@ -445,10 +445,13 @@ function redact(s: string): string {
 
 ## 9. 완료 기준
 
-- [ ] OAuth flow 성공 → 프로필에 credentials 저장 → 채팅 응답 정상
-- [ ] 토큰 만료 임박 시 자동 refresh (강제로 expiresAt 과거 설정해서 테스트)
-- [ ] Sign out → credentials 완전 제거 + apikey 모드로 복귀
-- [ ] state mismatch / 사용자 거부 / 타임아웃 모두 graceful 처리
-- [ ] 로그에 access_token/refresh_token 출력 0회 (테스트로 verify)
-- [ ] 단위 테스트 추가 + 통과
-- [ ] feature flag `chatgpt_plus_oauth=true` 시에만 노출
+- [x] OAuth flow 성공 → 프로필에 credentials 저장 (`oauth-manager.test.ts`, mock callback/token exchange)
+- [x] 채팅 경로에서 OAuth credentials 사용 (`agent-runner.ts` openai-codex route)
+- [x] 토큰 만료 임박 시 자동 refresh (강제로 expiresAt 과거 설정해서 테스트)
+- [x] Sign out → credentials 완전 제거 + apikey 모드로 복귀
+- [x] state mismatch / 사용자 거부 / 타임아웃 graceful 처리
+- [x] 로그에 access_token/refresh_token 원문 미기록 (토큰 값은 config log 마스킹, auth metric은 fixed enum만 기록)
+- [x] 단위 테스트 추가 + 통과 (`oauth-callback-server.test.ts`, `chatgpt-codex.test.ts`, `oauth-manager.test.ts`)
+- [x] feature flag `chatgpt_plus_oauth=true` 시에만 노출
+
+> 실제 ChatGPT Plus 계정으로 login → 응답까지 확인하는 live E2E는 [20-verification.md](20-verification.md) Final QA 항목으로 남긴다.
