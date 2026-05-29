@@ -706,6 +706,8 @@ export interface AppConfig {
   enableThinking?: boolean;
   thinkingLevel?: SharedThinkingLevel;
   visibleProviders?: ProviderVisibility;
+  /** Epoch ms when the ChatGPT Plus OAuth ToS notice was acknowledged (Phase 5). */
+  chatgptPlusTosAckAt?: number;
   isConfigured: boolean;
 }
 
@@ -732,7 +734,26 @@ export type AuthStatusResult =
   | { error: string }
   | { authMethod: 'apikey'; loggedIn: boolean }
   | { authMethod: 'oauth'; loggedIn: boolean; expiresAt?: number }
-  | { authMethod: 'cli-delegate'; loggedIn: boolean };
+  | { authMethod: 'cli-delegate'; loggedIn: boolean; installed: boolean; version?: string };
+
+/**
+ * Result of probing the local Claude Code CLI (Phase 4 — Claude Pro delegation).
+ * Never carries tokens — only installation/auth presence and non-sensitive
+ * subscription metadata.
+ */
+export interface ClaudeCliStatus {
+  installed: boolean;
+  path?: string;
+  version?: string;
+  authenticated?: boolean;
+  /** Account email reported by `claude auth status` (UI masks before display). */
+  email?: string;
+  /** e.g. "pro", "max", "team" — used only to confirm a subscription is present. */
+  subscriptionType?: string;
+  installInstructions?: string;
+  /** Human-readable reason when not usable (feature disabled, not installed, …). */
+  reason?: string;
+}
 
 export interface ProviderPreset {
   name: string;

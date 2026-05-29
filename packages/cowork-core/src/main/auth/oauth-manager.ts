@@ -5,6 +5,17 @@ import { configStore } from '../config/config-store';
 import { log, logError } from '../utils/logger';
 import { OAuthCallbackServer } from './oauth-callback-server';
 import * as chatgptCodex from './oauth-providers/chatgpt-codex';
+import { recordAuthMetric } from './auth-metrics';
+
+/** Map a flow error message to a fixed, non-sensitive metric reason. */
+function classifyOAuthError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('timed out')) return 'timeout';
+  if (m.includes('state')) return 'state_mismatch';
+  if (m.includes('token exchange')) return 'token_exchange_fail';
+  if (m.includes('cancel')) return 'cancelled';
+  return 'other';
+}
 
 export type SupportedOAuthProvider = 'openai-codex';
 
@@ -57,6 +68,7 @@ export class OAuthManager {
       verifier,
     };
     const authUrl = chatgptCodex.buildAuthorizeUrl({ redirectUri, state, challenge });
+    recordAuthMetric('auth.oauth.flow.start');
     try {
       await shell.openExternal(authUrl);
     } catch (err) {
@@ -87,11 +99,13 @@ export class OAuthManager {
           },
           configSetId
         );
+        recordAuthMetric('auth.oauth.flow.success');
         this.emitProgress({ flowId, status: 'success' });
         log('[OAuth] flow completed', { flowId, provider: args.provider });
       })
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
+        recordAuthMetric('auth.oauth.flow.error', classifyOAuthError(message));
         this.emitProgress({ flowId, status: 'error', message });
         logError('[OAuth] flow failed', { flowId, error: message });
       })
@@ -108,6 +122,7 @@ export class OAuthManager {
     const flow = this.currentFlow;
     this.callbackServer.stop();
     if (flow) {
+      recordAuthMetric('auth.oauth.flow.error', 'cancelled');
       this.emitProgress({ flowId: flow.flowId, status: 'cancelled' });
       this.currentFlow = undefined;
     }
@@ -146,7 +161,11 @@ export class OAuthManager {
             obtainedAt: Date.now(),
           },
         });
+        recordAuthMetric('auth.oauth.refresh.success');
         log('[OAuth] token refreshed', { profileId });
+      } catch (err) {
+        recordAuthMetric('auth.oauth.refresh.fail');
+        throw err;
       } finally {
         this.refreshLocks.delete(profileId);
       }

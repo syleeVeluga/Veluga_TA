@@ -25,6 +25,8 @@ import {
   type ProviderVisibilityKey,
 } from '../../../shared/provider-visibility';
 import { subscriptionLoginFeatureFlags } from '../../../shared/subscription-login-feature-flags';
+import { OAuthPanel } from './OAuthPanel';
+import { CliDelegatePanel } from './CliDelegatePanel';
 import { useAppStore } from '../../store';
 import { useAppConfig } from '../../store/selectors';
 
@@ -282,12 +284,8 @@ export function SettingsAPI() {
                 </button>
               ))}
           </div>
-          {authMethod === 'oauth' && (
-            <p className="text-xs leading-5 text-text-muted">{t('api.authMethodOAuthPending')}</p>
-          )}
-          {authMethod === 'cli-delegate' && (
-            <p className="text-xs leading-5 text-text-muted">{t('api.authMethodCliPending')}</p>
-          )}
+          {authMethod === 'oauth' && <OAuthPanel />}
+          {authMethod === 'cli-delegate' && <CliDelegatePanel />}
         </div>
       )}
 

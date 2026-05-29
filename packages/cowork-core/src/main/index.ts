@@ -71,6 +71,7 @@ import {
   buildScheduledTaskTitle,
 } from '../shared/schedule/task-title';
 import { subscriptionLoginFeatureFlags } from '../shared/subscription-login-feature-flags';
+import { recordAuthMetric } from './auth/auth-metrics';
 import {
   isUncPath,
   isWindowsDrivePath,
@@ -1636,6 +1637,8 @@ ipcMain.handle('config.discover-local', async (_event, payload?: { baseUrl?: str
 const isSubscriptionLoginEnabled = () => subscriptionLoginFeatureFlags.enabled;
 const isChatGPTPlusOAuthEnabled = () =>
   subscriptionLoginFeatureFlags.enabled && subscriptionLoginFeatureFlags.chatgpt_plus_oauth;
+const isClaudeProCliEnabled = () =>
+  subscriptionLoginFeatureFlags.enabled && subscriptionLoginFeatureFlags.claude_pro_cli;
 
 const getAuthProfile = (profileId: string) => {
   const config = configStore.getAll();
@@ -1667,10 +1670,15 @@ ipcMain.handle('auth.cancelOAuth', async () => {
 });
 
 ipcMain.handle('auth.checkClaudeCli', async () => {
-  if (!isSubscriptionLoginEnabled()) {
+  if (!isClaudeProCliEnabled()) {
     return { installed: false, reason: 'feature disabled' };
   }
-  return { installed: false, reason: 'not yet implemented' };
+  const { detectClaudeCli } = await import('./auth/claude-cli-detector');
+  const overridePath = configStore.get('claudeCodePath');
+  recordAuthMetric('auth.cli.detect.start');
+  const status = await detectClaudeCli(overridePath || undefined);
+  recordAuthMetric(status.installed ? 'auth.cli.detect.installed' : 'auth.cli.detect.missing');
+  return status;
 });
 
 ipcMain.handle('auth.signOut', async (_event, args: { profileId: string }) => {
@@ -1705,7 +1713,17 @@ ipcMain.handle('auth.getStatus', async (_event, args: { profileId: string }) => 
       expiresAt: profile.oauthCredentials?.expiresAt,
     };
   }
-  return { authMethod: 'cli-delegate', loggedIn: false };
+  if (!isClaudeProCliEnabled()) {
+    return { authMethod: 'cli-delegate', loggedIn: false, installed: false };
+  }
+  const { detectClaudeCli } = await import('./auth/claude-cli-detector');
+  const status = await detectClaudeCli(configStore.get('claudeCodePath') || undefined);
+  return {
+    authMethod: 'cli-delegate',
+    loggedIn: status.installed && status.authenticated === true,
+    installed: status.installed,
+    version: status.version,
+  };
 });
 
 // MCP Server IPC handlers

@@ -40,11 +40,11 @@
 
 ## 적용 상태
 
-- [ ] **Phase 0** — 본 계획 문서화 (이 폴더)
+- [x] **Phase 0** — 본 계획 문서화 (이 폴더)
 - [ ] **Phase 1** — pi-ai OAuth 스파이크
 - [x] **Phase 2** — 타입/IPC 골격
-- [ ] **Phase 3** — ChatGPT Plus OAuth
-- [ ] **Phase 4** — Claude Pro CLI 위임
-- [ ] **Phase 5** — UI & 롤아웃
+- [x] **Phase 3** — ChatGPT Plus OAuth
+- [x] **Phase 4** — Claude Pro CLI 위임 (chat-only MVP)
+- [x] **Phase 5** — UI & 롤아웃 (UI/텔레메트리/문서 구현 완료, 단계적 flag ON은 운영 작업)
 
 > 모든 phase는 feature flag(`subscription_login.enabled`) 뒤에서 작업하며, 기본값은 OFF. Phase 5에서 dogfooding 통과 후 점진 ON.

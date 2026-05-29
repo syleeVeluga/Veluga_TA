@@ -30,6 +30,7 @@ import type {
   AuthProfileArgs,
   AuthStartOAuthArgs,
   AuthStatusResult,
+  ClaudeCliStatus,
 } from '../renderer/types';
 import type { DiagnosticInput, DiagnosticResult } from '../renderer/types';
 import type {
@@ -208,8 +209,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('auth.startOAuth', args),
     cancelOAuth: (args: AuthCancelOAuthArgs): Promise<{ error?: string }> =>
       ipcRenderer.invoke('auth.cancelOAuth', args),
-    checkClaudeCli: (): Promise<{ installed: boolean; reason?: string }> =>
-      ipcRenderer.invoke('auth.checkClaudeCli'),
+    checkClaudeCli: (): Promise<ClaudeCliStatus> => ipcRenderer.invoke('auth.checkClaudeCli'),
     signOut: (args: AuthProfileArgs): Promise<{ error?: string }> =>
       ipcRenderer.invoke('auth.signOut', args),
     getStatus: (args: AuthProfileArgs): Promise<AuthStatusResult> =>
@@ -531,7 +531,7 @@ declare global {
       auth: {
         startOAuth: (args: AuthStartOAuthArgs) => Promise<{ flowId?: string; error?: string }>;
         cancelOAuth: (args: AuthCancelOAuthArgs) => Promise<{ error?: string }>;
-        checkClaudeCli: () => Promise<{ installed: boolean; reason?: string }>;
+        checkClaudeCli: () => Promise<ClaudeCliStatus>;
         signOut: (args: AuthProfileArgs) => Promise<{ error?: string }>;
         getStatus: (args: AuthProfileArgs) => Promise<AuthStatusResult>;
         onProgress: (cb: (payload: AuthProgressEvent) => void) => () => void;

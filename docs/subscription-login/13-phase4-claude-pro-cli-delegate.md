@@ -261,15 +261,19 @@ private async runViaClaudeCli(profile, prompt, options) {
 
 ## 9. 완료 기준
 
-- [ ] `claude --version` 감지 + UI 표시
-- [ ] 미설치 시 설치 안내 dialog
-- [ ] CLI 미인증 시 명확한 에러 메시지
-- [ ] 간단한 채팅 (system + user → assistant) end-to-end 동작
-- [ ] cancel/abort 동작
-- [ ] tool use는 비활성화 (UI에 "지원 안 됨" 표시)
-- [ ] 단위 테스트 추가 + 통과
-- [ ] feature flag `claude_pro_cli=true` 시에만 노출
-- [ ] 로그에 prompt 평문 또는 stderr 토큰 정보 출력 안 됨 (redaction 적용)
+- [x] `claude --version` 감지 + UI 표시 (`claude-cli-detector.ts`, CliDelegatePanel)
+- [x] 미설치 시 설치 안내 dialog (CliDelegatePanel "설치 안내 열기")
+- [x] CLI 미인증 시 명확한 에러 메시지 (detector `authenticated:false` → runViaClaudeCli throw + 패널 안내)
+- [x] 간단한 채팅 (system + user → assistant) end-to-end 동작 (`runViaClaudeCli` + `ClaudeCliRunner`)
+- [x] cancel/abort 동작 (controller.signal → `handle.cancel()` → SIGTERM/SIGKILL)
+- [x] tool use는 비활성화 (`--tools ""`) + UI에 "지원 안 됨" 표시
+- [x] 단위 테스트 추가 + 통과 (`claude-cli-detector.test.ts`, `claude-cli-runner.test.ts` — 13 케이스)
+- [x] feature flag `claude_pro_cli=true` 시에만 노출 (IPC `isClaudeProCliEnabled` 게이트, UI flag 게이트)
+- [x] 로그에 prompt 평문 또는 stderr 토큰 정보 출력 안 됨 (`redactSecrets`, detector stderr 무시)
+
+> **실제 CLI 사양 확정** (문서 가설 대비): 인증은 `claude auth status --json`(`{loggedIn, email, subscriptionType}`), 채팅은
+> `claude -p --output-format stream-json --include-partial-messages --verbose --no-session-persistence --tools ""`,
+> 텍스트 델타는 `stream_event > content_block_delta > text_delta`, 최종 텍스트는 `result.result`. system+history는 stdin으로 인라인.
 
 ## 10. 후속 작업 (Phase 4 이후)
 

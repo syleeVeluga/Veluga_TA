@@ -13,6 +13,7 @@ import { useAppStore } from '../store';
 import { useIPC } from '../hooks/useIPC';
 import { MessageCard } from './MessageCard';
 import { ChatHeaderModelSwitcher } from './ChatHeaderModelSwitcher';
+import { AuthStatusIndicator } from './AuthStatusIndicator';
 import type { Message, ContentBlock } from '../types';
 import { Send, Square, Plus, Loader2, Plug, X, Clock } from 'lucide-react';
 
@@ -814,6 +815,7 @@ export function ChatView() {
               />
 
               <div className="flex items-center gap-2">
+                <AuthStatusIndicator />
                 <ChatHeaderModelSwitcher />
 
                 {canStop && (

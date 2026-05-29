@@ -161,6 +161,11 @@ export interface AppConfig {
   // Unset / undefined keys default to visible (true).
   visibleProviders?: ProviderVisibility;
 
+  // Epoch ms when the user acknowledged the ChatGPT Plus OAuth ToS notice
+  // (Phase 5 §1.5). Unset/undefined = not yet acknowledged. Invalidate (clear)
+  // to re-show the notice after a policy change.
+  chatgptPlusTosAckAt?: number;
+
   // First run flag
   isConfigured: boolean;
 }
@@ -211,6 +216,7 @@ const DIRECT_READ_KEYS = new Set<keyof AppConfig>([
   'enableThinking',
   'thinkingLevel',
   'visibleProviders',
+  'chatgptPlusTosAckAt',
   'isConfigured',
 ]);
 
@@ -329,6 +335,7 @@ const defaultConfig: AppConfig = {
   enableThinking: false,
   thinkingLevel: 'off',
   visibleProviders: { ...DEFAULT_PROVIDER_VISIBILITY },
+  chatgptPlusTosAckAt: undefined,
   isConfigured: false,
 };
 
@@ -1114,6 +1121,10 @@ export class ConfigStore {
       enableThinking: projected.enableThinking,
       thinkingLevel: projected.thinkingLevel,
       visibleProviders: normalizeVisibleProviders(raw.visibleProviders),
+      chatgptPlusTosAckAt:
+        typeof raw.chatgptPlusTosAckAt === 'number' && Number.isFinite(raw.chatgptPlusTosAckAt)
+          ? raw.chatgptPlusTosAckAt
+          : undefined,
       isConfigured: toBoolean(raw.isConfigured, defaultConfig.isConfigured),
     };
     this.normalizeModelIds(result);
@@ -1623,6 +1634,10 @@ export class ConfigStore {
         updates.visibleProviders !== undefined
           ? normalizeVisibleProviders(updates.visibleProviders)
           : current.visibleProviders,
+      chatgptPlusTosAckAt:
+        updates.chatgptPlusTosAckAt !== undefined
+          ? updates.chatgptPlusTosAckAt
+          : current.chatgptPlusTosAckAt,
       isConfigured:
         updates.isConfigured !== undefined ? updates.isConfigured : current.isConfigured,
     });

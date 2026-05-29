@@ -202,10 +202,12 @@
 
 ## 4. 완료 기준
 
-- [ ] 설정 UI: `<AuthMethodSelector>`, `<OAuthPanel>`, `<CliDelegatePanel>` 모두 동작
-- [ ] ToS 고지 dialog 첫 OAuth 사용 시 1회 표시 + 동의 영속화
-- [ ] 채팅 화면에 인증 상태 인디케이터 (정상/만료임박/실패 3색)
-- [ ] feature flag로 OFF 시 모든 신규 UI 숨김 + agent-runner에서 신규 코드 경로 진입 안 함
-- [ ] 텔레메트리 메트릭 수집 (마스킹 확인)
-- [ ] 도움말 문서 + 릴리즈 노트 작성
-- [ ] dogfooding 1주 통과 + 알파 5명 통과
+- [x] 설정 UI: `<AuthMethodSelector>`(기존), `OAuthPanel`, `CliDelegatePanel` 모두 동작
+- [x] ToS 고지 dialog 첫 OAuth 사용 시 1회 표시 + 동의 영속화 (`config.chatgptPlusTosAckAt`)
+- [x] 채팅 화면에 인증 상태 인디케이터 (정상/만료임박<5분/실패 3색 — `AuthStatusIndicator`)
+- [x] feature flag로 OFF 시 모든 신규 UI 숨김 + agent-runner 신규 경로는 flag 게이트
+- [x] 텔레메트리 메트릭 수집 (`auth-metrics.ts`, internal logging only, 토큰/이메일 미기록)
+- [x] 도움말 문서 + 릴리즈 노트 작성 ([user-guides/subscription-login.md](../user-guides/subscription-login.md), [release-notes.md](release-notes.md))
+- [ ] dogfooding 1주 통과 + 알파 5명 통과 *(운영 단계 — §2.1 롤아웃 진행 시 체크)*
+
+> **구현 메모**: ToS 동의는 `config.chatgptPlusTosAckAt`(epoch ms)에 저장 (문서의 `config.tos.chatgpt_plus_oauth_acknowledged_at`을 평탄화). 인증 상태 인디케이터는 구독 방식(oauth/cli-delegate)에서만 표시. 인디케이터·패널 모두 `subscriptionLoginFeatureFlags.enabled` 게이트.

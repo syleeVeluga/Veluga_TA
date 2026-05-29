@@ -54,6 +54,8 @@ import { AgentRuntimeExtensionManager } from '../extensions/agent-runtime-extens
 import { configStore } from '../config/config-store';
 import { normalizeOpenAICompatibleBaseUrl } from '../config/auth-utils';
 import { oauthManager } from '../auth/oauth-manager';
+import type { ClaudeMessage } from '../auth/claude-cli-runner';
+import { recordAuthMetric } from '../auth/auth-metrics';
 import {
   getAgentErrorFollowupText,
   resolveMessageEndPayload,
@@ -69,6 +71,7 @@ import {
 import { buildPiSessionRuntimeSignature } from './pi-session-runtime';
 import { ThinkTagStreamParser } from './think-tag-parser';
 import { deriveThinkingLevel, type SharedThinkingLevel } from '../../shared/thinking';
+import { subscriptionLoginFeatureFlags } from '../../shared/subscription-login-feature-flags';
 import {
   normalizeMcpToolResultForModel,
   normalizeToolExecutionResultForUi,
@@ -1340,7 +1343,17 @@ ${hints.join('\n')}
       const activeProfile = configStore.getProfile(runtimeConfig.activeProfileKey);
       const authMethod = activeProfile?.authMethod ?? 'apikey';
       if (authMethod === 'cli-delegate') {
-        throw new Error('CLI delegate runs through claude-cli-runner, not agent-runner');
+        if (!subscriptionLoginFeatureFlags.claude_pro_cli) {
+          throw new Error('Claude Pro CLI delegation is disabled by feature flag');
+        }
+        await this.runViaClaudeCli({
+          session,
+          existingMessages,
+          model: activeProfile?.model,
+          controller,
+          thinkingStepId,
+        });
+        return;
       }
       if (authMethod === 'oauth') {
         if (runtimeConfig.activeProfileKey !== 'openai') {
@@ -1348,6 +1361,11 @@ ${hints.join('\n')}
         }
         await oauthManager.refreshIfExpired(runtimeConfig.activeProfileKey);
       }
+      recordAuthMetric(
+        authMethod === 'oauth'
+          ? 'chat.message.by_auth_method.oauth'
+          : 'chat.message.by_auth_method.apikey'
+      );
 
       const refreshedProfile =
         authMethod === 'oauth'
@@ -2693,6 +2711,132 @@ Tool routing:
   cancel(sessionId: string): void {
     const controller = this.activeControllers.get(sessionId);
     if (controller) controller.abort();
+  }
+
+  /**
+   * Run a chat turn via the local Claude Code CLI (Claude Pro delegation, Phase 4).
+   *
+   * Bypasses the pi-coding-agent path entirely: the CLI owns Anthropic auth and
+   * Veluga holds no tokens. Chat-only MVP — no tool use, MCP, or vision. Streams
+   * assistant text through the same renderer events as the normal path.
+   */
+  private async runViaClaudeCli(args: {
+    session: Session;
+    existingMessages: Message[];
+    model?: string;
+    controller: AbortController;
+    thinkingStepId: string;
+  }): Promise<void> {
+    const { session, existingMessages, model, controller, thinkingStepId } = args;
+    const [{ detectClaudeCli }, { ClaudeCliRunner, buildPromptText }] = await Promise.all([
+      import('../auth/claude-cli-detector'),
+      import('../auth/claude-cli-runner'),
+    ]);
+
+    const overridePath = configStore.get('claudeCodePath') || undefined;
+    const status = await detectClaudeCli(overridePath);
+    if (!status.installed) {
+      throw new Error(
+        'Claude Code CLI not found. Install it from https://docs.claude.com/en/docs/claude-code to use Claude Pro delegation.'
+      );
+    }
+    if (status.authenticated === false) {
+      throw new Error(
+        'Claude Code CLI is not authenticated. Run `claude /login` in a terminal, then try again.'
+      );
+    }
+
+    const messages = this.buildClaudeCliMessages(existingMessages);
+    const promptText = buildPromptText(messages);
+    if (!promptText) {
+      throw new Error('No message content to send to the Claude Code CLI.');
+    }
+
+    const runner = new ClaudeCliRunner(status.path as string);
+    let acc = '';
+
+    await new Promise<void>((resolve, reject) => {
+      const handle = runner.invoke({ messages, model });
+      const onAbort = () => handle.cancel();
+      if (controller.signal.aborted) {
+        handle.cancel();
+      } else {
+        controller.signal.addEventListener('abort', onAbort, { once: true });
+      }
+
+      runner.on('chunk', (delta: string) => {
+        acc += delta;
+        this.sendPartial(session.id, delta);
+      });
+      runner.on('stderr', (text: string) => {
+        logCtx('[ClaudeCli stderr]', text);
+      });
+      runner.on('done', (fullText: string) => {
+        controller.signal.removeEventListener('abort', onAbort);
+        if (controller.signal.aborted) {
+          this.sendTraceUpdate(session.id, thinkingStepId, {
+            status: 'completed',
+            title: 'Cancelled',
+          });
+          resolve();
+          return;
+        }
+        const finalText = (fullText || acc).trim();
+        // sendMessage clears the streaming partial buffer on the renderer.
+        if (finalText) {
+          this.sendMessage(session.id, {
+            id: uuidv4(),
+            sessionId: session.id,
+            role: 'assistant',
+            content: [{ type: 'text', text: finalText }],
+            timestamp: Date.now(),
+          });
+        } else {
+          this.sendToRenderer({
+            type: 'stream.partial',
+            payload: { sessionId: session.id, delta: '' },
+          });
+        }
+        this.sendTraceUpdate(session.id, thinkingStepId, {
+          status: 'completed',
+          title: 'Response ready (Claude Pro CLI)',
+        });
+        recordAuthMetric('auth.cli.invoke.success');
+        recordAuthMetric('chat.message.by_auth_method.cli-delegate');
+        resolve();
+      });
+      runner.on('error', (err: Error) => {
+        controller.signal.removeEventListener('abort', onAbort);
+        if (controller.signal.aborted) {
+          this.sendTraceUpdate(session.id, thinkingStepId, {
+            status: 'completed',
+            title: 'Cancelled',
+          });
+          resolve();
+          return;
+        }
+        recordAuthMetric('auth.cli.invoke.fail');
+        reject(err instanceof Error ? err : new Error(String(err)));
+      });
+    });
+  }
+
+  /** Convert stored messages into the CLI runner's flat text-only message shape. */
+  private buildClaudeCliMessages(messages: Message[]): ClaudeMessage[] {
+    const result: ClaudeMessage[] = [];
+    for (const msg of messages) {
+      if (msg.role !== 'user' && msg.role !== 'assistant' && msg.role !== 'system') {
+        continue;
+      }
+      const text = msg.content
+        .filter((b): b is { type: 'text'; text: string } => (b as { type?: string }).type === 'text')
+        .map((b) => b.text)
+        .join('\n')
+        .trim();
+      if (!text) continue;
+      result.push({ role: msg.role, content: text });
+    }
+    return result;
   }
 
   private sendTraceStep(sessionId: string, step: TraceStep): void {
