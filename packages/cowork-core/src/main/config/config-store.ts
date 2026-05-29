@@ -623,7 +623,13 @@ export class ConfigStore {
 
   private ensureNormalized(): void {
     const normalized = this.normalizeConfig(this.store.store as Partial<AppConfig>);
-    this.store.set(normalized);
+    // electron-store rejects `undefined` values (not representable in JSON), so strip
+    // any optional keys that normalized to undefined (e.g. unset `chatgptPlusTosAckAt`)
+    // before persisting. Optional fields are simply omitted rather than stored as null.
+    const sanitized = Object.fromEntries(
+      Object.entries(normalized).filter(([, value]) => value !== undefined)
+    ) as AppConfig;
+    this.store.set(sanitized);
   }
 
   /**

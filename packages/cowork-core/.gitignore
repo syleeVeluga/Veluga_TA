@@ -8,6 +8,8 @@ dist-wsl-agent/
 dist-lima-agent/
 dist-mcp/
 release/
+# Test/feature-branch build output dirs (electron-builder --config.directories.output)
+release-*/
 
 # Bundled Node.js binaries
 resources/node/
