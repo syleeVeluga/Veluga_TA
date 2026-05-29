@@ -1,4 +1,7 @@
 import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the spawn helper so no real `claude` process is launched.
@@ -24,10 +27,20 @@ class FakeProc extends EventEmitter {
 }
 
 const REAL_FILE = __filename; // an existing path to satisfy the override existence check
+const tempDirs: string[] = [];
 
 describe('claude-cli-detector', () => {
   beforeEach(() => spawnMock.mockReset());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    while (tempDirs.length > 0) {
+      const dir = tempDirs.pop();
+      if (dir) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  });
 
   it('reports not installed when the override path does not exist', async () => {
     const status = await detectClaudeCli('/definitely/not/here/claude');
@@ -110,5 +123,19 @@ describe('claude-cli-detector', () => {
   it('findClaudeExecutable returns undefined for a missing override', () => {
     expect(findClaudeExecutable('/nope/claude')).toBeUndefined();
     expect(findClaudeExecutable(REAL_FILE)).toBe(REAL_FILE);
+  });
+
+  it('finds the native installer location even when it is not on PATH', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'veluga-claude-cli-'));
+    tempDirs.push(root);
+    const binDir = path.join(root, '.local', 'bin');
+    fs.mkdirSync(binDir, { recursive: true });
+    const cliPath = path.join(binDir, process.platform === 'win32' ? 'claude.exe' : 'claude');
+    fs.writeFileSync(cliPath, '');
+
+    vi.stubEnv(process.platform === 'win32' ? 'USERPROFILE' : 'HOME', root);
+    vi.stubEnv('PATH', '');
+
+    expect(findClaudeExecutable()).toBe(cliPath);
   });
 });

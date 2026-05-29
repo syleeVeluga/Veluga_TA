@@ -30,7 +30,11 @@ export function spawnClaudeCli(exePath: string, args: string[]): ChildProcess {
   const stdio: ['pipe', 'pipe', 'pipe'] = ['pipe', 'pipe', 'pipe'];
   if (isWindows) {
     const commandLine = [exePath, ...args].map(quoteWindowsCmdArg).join(' ');
-    return spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', commandLine], {
+    // `cmd /s /c` strips the first and last quote of the command line, so a
+    // bare `"exe" "arg"` collapses into `exe" "arg` and fails to launch. Wrap
+    // the whole command in an extra quote pair that /s consumes, leaving the
+    // per-argument quotes intact.
+    return spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', `"${commandLine}"`], {
       stdio,
       windowsVerbatimArguments: true,
     });

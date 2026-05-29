@@ -80,7 +80,7 @@ export function findClaudeExecutable(overridePath?: string): string | undefined 
     return fileExists(override) ? override : undefined;
   }
 
-  const dirs = (process.env.PATH || '').split(isWindows ? ';' : ':').filter(Boolean);
+  const dirs = getClaudeSearchDirs();
   const extensions = isWindows
     ? (process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD').split(';').map((e) => e.toLowerCase())
     : [''];
@@ -98,6 +98,25 @@ export function findClaudeExecutable(overridePath?: string): string | undefined 
     }
   }
   return undefined;
+}
+
+function getClaudeSearchDirs(): string[] {
+  const delimiter = isWindows ? ';' : ':';
+  const dirs = (process.env.PATH || '').split(delimiter).filter(Boolean);
+
+  if (isWindows) {
+    const userProfile = process.env.USERPROFILE?.trim();
+    if (userProfile) {
+      dirs.push(path.join(userProfile, '.local', 'bin'));
+    }
+  } else {
+    const home = process.env.HOME?.trim();
+    if (home) {
+      dirs.push(path.join(home, '.local', 'bin'));
+    }
+  }
+
+  return [...new Set(dirs)];
 }
 
 function probe(exePath: string, args: string[]): Promise<ProbeResult> {
