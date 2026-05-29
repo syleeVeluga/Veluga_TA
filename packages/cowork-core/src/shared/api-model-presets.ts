@@ -35,7 +35,8 @@ export const API_PROVIDER_PRESETS: SharedProviderPresets = {
     name: 'OpenRouter',
     baseUrl: 'https://openrouter.ai/api/v1',
     models: [
-      { id: 'anthropic/claude-opus-4-7', name: 'anthropic/claude-opus-4-7 (latest)' },
+      { id: 'anthropic/claude-opus-4-8', name: 'anthropic/claude-opus-4-8 (latest)' },
+      { id: 'anthropic/claude-opus-4-7', name: 'anthropic/claude-opus-4-7' },
       { id: 'anthropic/claude-sonnet-4-7', name: 'anthropic/claude-sonnet-4-7' },
       { id: 'anthropic/claude-haiku-4-7', name: 'anthropic/claude-haiku-4-7' },
       { id: 'openai/gpt-5.5', name: 'openai/gpt-5.5 (latest)' },
@@ -56,7 +57,8 @@ export const API_PROVIDER_PRESETS: SharedProviderPresets = {
     name: 'Anthropic',
     baseUrl: 'https://api.anthropic.com',
     models: [
-      { id: 'claude-opus-4-7', name: 'claude-opus-4-7 (latest)' },
+      { id: 'claude-opus-4-8', name: 'claude-opus-4-8 (latest)' },
+      { id: 'claude-opus-4-7', name: 'claude-opus-4-7' },
       { id: 'claude-sonnet-4-7', name: 'claude-sonnet-4-7' },
       { id: 'claude-haiku-4-7', name: 'claude-haiku-4-7' },
       { id: 'claude-opus-4-6', name: 'claude-opus-4-6' },
@@ -134,6 +136,7 @@ export const PI_AI_CURATED_PRESETS: Record<string, { piProvider: string; pick: s
   openrouter: {
     piProvider: 'openrouter',
     pick: [
+      'anthropic/claude-opus-4-8',
       'anthropic/claude-opus-4-7',
       'anthropic/claude-sonnet-4-7',
       'anthropic/claude-haiku-4-7',
@@ -152,6 +155,7 @@ export const PI_AI_CURATED_PRESETS: Record<string, { piProvider: string; pick: s
   anthropic: {
     piProvider: 'anthropic',
     pick: [
+      'claude-opus-4-8',
       'claude-opus-4-7',
       'claude-sonnet-4-7',
       'claude-haiku-4-7',
@@ -195,7 +199,7 @@ export function getModelInputGuidance(
 ): ModelInputGuidance {
   if (provider === 'openrouter') {
     return {
-      placeholder: 'openai/gpt-5.5, anthropic/claude-opus-4-7, google/gemini-3.5-flash',
+      placeholder: 'openai/gpt-5.5, anthropic/claude-opus-4-8, google/gemini-3.5-flash',
       hint: 'Use the exact model ID for the selected protocol or endpoint.',
     };
   }
@@ -216,7 +220,7 @@ export function getModelInputGuidance(
 
   if (provider === 'custom') {
     return {
-      placeholder: 'glm-5, kimi-k2-thinking, claude-opus-4-7',
+      placeholder: 'glm-5, kimi-k2-thinking, claude-opus-4-8',
       hint: 'Use the exact model ID for the selected protocol or endpoint.',
     };
   }
@@ -243,7 +247,7 @@ export function getModelInputGuidance(
   }
 
   return {
-    placeholder: 'claude-opus-4-7, claude-sonnet-4-7',
+    placeholder: 'claude-opus-4-8, claude-sonnet-4-7',
     hint: 'Use the exact model ID for the selected protocol or endpoint.',
   };
 }

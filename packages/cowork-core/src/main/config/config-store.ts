@@ -231,7 +231,7 @@ const defaultProfiles: Record<ProviderProfileKey, ProviderProfile> = {
     authMethod: 'apikey',
     apiKey: '',
     baseUrl: 'https://api.anthropic.com',
-    model: 'claude-opus-4-7',
+    model: 'claude-opus-4-8',
   },
   openai: {
     authMethod: 'apikey',
