@@ -87,6 +87,8 @@ function shouldPreserveOpenAIResponsesApi(
 
 export function inferPiApi(protocol: string): string {
   switch (protocol) {
+    case 'openai-codex':
+      return 'openai-codex-responses';
     case 'anthropic':
       return 'anthropic-messages';
     case 'gemini':
@@ -187,9 +189,11 @@ export function resolveSyntheticPiModelFallback(
   }
 
   const fallbackProvider =
-    input.rawProvider === 'custom' || input.rawProvider === 'ollama'
-      ? input.routeProtocol || 'anthropic'
-      : parsedProvider || input.rawProvider || input.routeProtocol || 'anthropic';
+    input.routeProtocol === 'openai-codex'
+      ? 'openai-codex'
+      : input.rawProvider === 'custom' || input.rawProvider === 'ollama'
+        ? input.routeProtocol || 'anthropic'
+        : parsedProvider || input.rawProvider || input.routeProtocol || 'anthropic';
 
   return {
     provider: preservesExplicitPrefixedId ? parsedProvider || fallbackProvider : fallbackProvider,

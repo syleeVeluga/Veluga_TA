@@ -67,6 +67,7 @@ describe('pi model resolution helpers', () => {
   it('builds synthetic models with protocol-specific api defaults', () => {
     expect(inferPiApi('anthropic')).toBe('anthropic-messages');
     expect(inferPiApi('gemini')).toBe('google-generative-ai');
+    expect(inferPiApi('openai-codex')).toBe('openai-codex-responses');
     expect(inferPiApi('unknown')).toBe('openai-completions');
 
     const model = buildSyntheticPiModel('grok-code-fast-1', 'xai', 'openai', 'https://api.x.ai/v1');
@@ -118,6 +119,20 @@ describe('pi model resolution helpers', () => {
     expect(fallback).toEqual({
       provider: 'openai',
       modelId: 'qwen3.5:0.8b',
+    });
+  });
+
+  it('maps ChatGPT Plus OAuth synthetic fallbacks onto openai-codex', () => {
+    const fallback = resolveSyntheticPiModelFallback({
+      rawModel: 'gpt-5.5-codex',
+      resolvedModelString: 'openai-codex/gpt-5.5-codex',
+      rawProvider: 'openai',
+      routeProtocol: 'openai-codex',
+    });
+
+    expect(fallback).toEqual({
+      provider: 'openai-codex',
+      modelId: 'gpt-5.5-codex',
     });
   });
 

@@ -451,7 +451,8 @@ function normalizeMemoryModelRuntimeConfig(
 }
 
 function normalizeMemoryRuntimeConfig(raw: unknown): MemoryRuntimeConfig {
-  const value = typeof raw === 'object' && raw !== null ? (raw as Partial<MemoryRuntimeConfig>) : {};
+  const value =
+    typeof raw === 'object' && raw !== null ? (raw as Partial<MemoryRuntimeConfig>) : {};
   return {
     llm: normalizeMemoryModelRuntimeConfig(value.llm, defaultConfig.memoryRuntime.llm),
     embedding: normalizeMemoryModelRuntimeConfig(
@@ -484,7 +485,8 @@ function normalizeMemoryRuntimeConfig(raw: unknown): MemoryRuntimeConfig {
         ? value.evalArtifactsRoot
         : defaultConfig.memoryRuntime.evalArtifactsRoot,
     promptIterationRounds:
-      typeof value.promptIterationRounds === 'number' && Number.isFinite(value.promptIterationRounds)
+      typeof value.promptIterationRounds === 'number' &&
+      Number.isFinite(value.promptIterationRounds)
         ? Math.max(0, Math.min(10, Math.round(value.promptIterationRounds)))
         : defaultConfig.memoryRuntime.promptIterationRounds,
   };
@@ -1229,6 +1231,55 @@ export class ConfigStore {
     return this.normalizeConfig(this.store.store as Partial<AppConfig>);
   }
 
+  getProfile(profileId: ProviderProfileKey): ProviderProfile | null {
+    return this.getAll().profiles[profileId] || null;
+  }
+
+  async updateProfile(
+    profileId: ProviderProfileKey,
+    updates: Partial<ProviderProfile>,
+    configSetId?: ConfigSetId
+  ): Promise<void> {
+    const current = this.getAll();
+    const targetConfigSetId = configSetId || current.activeConfigSetId;
+    const nextConfigSets = current.configSets.map((set) => this.cloneConfigSet(set));
+    const targetIndex = nextConfigSets.findIndex((set) => set.id === targetConfigSetId);
+    if (targetIndex < 0) {
+      throw new Error('Config set not found');
+    }
+
+    const targetSet = this.cloneConfigSet(nextConfigSets[targetIndex]);
+    const currentProfile = targetSet.profiles[profileId];
+    if (!currentProfile) {
+      throw new Error('Profile not found');
+    }
+
+    targetSet.profiles = {
+      ...targetSet.profiles,
+      [profileId]: this.normalizeProfile(profileId, {
+        ...currentProfile,
+        ...updates,
+      }),
+    };
+    targetSet.updatedAt = nowISO();
+    nextConfigSets[targetIndex] = targetSet;
+
+    this.saveConfig({
+      ...this.composeProjectedConfig(current, nextConfigSets, current.activeConfigSetId),
+      claudeCodePath: current.claudeCodePath,
+      defaultWorkdir: current.defaultWorkdir,
+      globalSkillsPath: current.globalSkillsPath,
+      enableDevLogs: current.enableDevLogs,
+      theme: current.theme,
+      language: current.language,
+      sandboxEnabled: current.sandboxEnabled,
+      memoryEnabled: current.memoryEnabled,
+      memoryRuntime: current.memoryRuntime,
+      visibleProviders: current.visibleProviders,
+      isConfigured: current.isConfigured,
+    });
+  }
+
   /**
    * Get a specific config value
    */
@@ -1584,15 +1635,21 @@ export class ConfigStore {
     return this.hasAnyUsableCredentials(this.getAll());
   }
 
-  private hasUsableCredentialsForProjection(projection: {
-    provider: ProviderType;
-    customProtocol?: CustomProtocolType;
-    apiKey?: string;
-    baseUrl?: string;
-    model?: string;
-  }): boolean {
+  private hasUsableCredentialsForProfile(
+    projection: {
+      provider: ProviderType;
+      customProtocol?: CustomProtocolType;
+      apiKey?: string;
+      baseUrl?: string;
+      model?: string;
+    },
+    profile?: ProviderProfile
+  ): boolean {
     if (projection.provider === 'ollama' && !projection.model?.trim()) {
       return false;
+    }
+    if (profile?.authMethod === 'oauth' && profile.oauthCredentials?.accessToken) {
+      return true;
     }
     const apiKey = projection.apiKey?.trim();
     if (apiKey) {
@@ -1655,26 +1712,32 @@ export class ConfigStore {
 
   hasUsableCredentialsForActiveSet(config: AppConfig = this.getAll()): boolean {
     const normalized = this.normalizeConfig(config);
-    return this.hasUsableCredentialsForProjection({
-      provider: normalized.provider,
-      customProtocol: normalized.customProtocol,
-      apiKey: normalized.apiKey,
-      baseUrl: normalized.baseUrl,
-      model: normalized.model,
-    });
+    return this.hasUsableCredentialsForProfile(
+      {
+        provider: normalized.provider,
+        customProtocol: normalized.customProtocol,
+        apiKey: normalized.apiKey,
+        baseUrl: normalized.baseUrl,
+        model: normalized.model,
+      },
+      normalized.profiles[normalized.activeProfileKey]
+    );
   }
 
   hasAnyUsableCredentials(config: AppConfig = this.getAll()): boolean {
     const normalized = this.normalizeConfig(config);
     return normalized.configSets.some((configSet) => {
       const projected = this.projectFromConfigSet(configSet);
-      return this.hasUsableCredentialsForProjection({
-        provider: projected.provider,
-        customProtocol: projected.customProtocol,
-        apiKey: projected.apiKey,
-        baseUrl: projected.baseUrl,
-        model: projected.model,
-      });
+      return this.hasUsableCredentialsForProfile(
+        {
+          provider: projected.provider,
+          customProtocol: projected.customProtocol,
+          apiKey: projected.apiKey,
+          baseUrl: projected.baseUrl,
+          model: projected.model,
+        },
+        projected.profiles[projected.activeProfileKey]
+      );
     });
   }
 

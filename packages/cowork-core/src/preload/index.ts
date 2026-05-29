@@ -204,7 +204,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   auth: {
-    startOAuth: (args: AuthStartOAuthArgs): Promise<{ error?: string }> =>
+    startOAuth: (args: AuthStartOAuthArgs): Promise<{ flowId?: string; error?: string }> =>
       ipcRenderer.invoke('auth.startOAuth', args),
     cancelOAuth: (args: AuthCancelOAuthArgs): Promise<{ error?: string }> =>
       ipcRenderer.invoke('auth.cancelOAuth', args),
@@ -529,7 +529,7 @@ declare global {
         discoverLocal: (payload?: { baseUrl?: string }) => Promise<LocalOllamaDiscoveryResult>;
       };
       auth: {
-        startOAuth: (args: AuthStartOAuthArgs) => Promise<{ error?: string }>;
+        startOAuth: (args: AuthStartOAuthArgs) => Promise<{ flowId?: string; error?: string }>;
         cancelOAuth: (args: AuthCancelOAuthArgs) => Promise<{ error?: string }>;
         checkClaudeCli: () => Promise<{ installed: boolean; reason?: string }>;
         signOut: (args: AuthProfileArgs) => Promise<{ error?: string }>;

@@ -35,6 +35,7 @@ import {
 } from './config/config-store';
 import { runConfigApiTest } from './config/config-test-routing';
 import { listOllamaModels } from './config/ollama-api';
+import { oauthManager } from './auth/oauth-manager';
 import { mcpConfigStore } from './mcp/mcp-config-store';
 import { getSandboxAdapter, shutdownSandbox } from './sandbox/sandbox-adapter';
 import { SandboxSync } from './sandbox/sandbox-sync';
@@ -1633,6 +1634,8 @@ ipcMain.handle('config.discover-local', async (_event, payload?: { baseUrl?: str
 });
 
 const isSubscriptionLoginEnabled = () => subscriptionLoginFeatureFlags.enabled;
+const isChatGPTPlusOAuthEnabled = () =>
+  subscriptionLoginFeatureFlags.enabled && subscriptionLoginFeatureFlags.chatgpt_plus_oauth;
 
 const getAuthProfile = (profileId: string) => {
   const config = configStore.getAll();
@@ -1641,19 +1644,26 @@ const getAuthProfile = (profileId: string) => {
 
 ipcMain.handle(
   'auth.startOAuth',
-  async (_event, _args: { provider: 'openai-codex'; profileId: string }) => {
-    if (!isSubscriptionLoginEnabled()) {
-      return { error: 'subscription_login feature is disabled' };
+  async (_event, args: { provider: 'openai-codex'; profileId: string }) => {
+    if (!isChatGPTPlusOAuthEnabled()) {
+      return { error: 'chatgpt_plus_oauth feature is disabled' };
     }
-    throw new Error('Not implemented in Phase 2');
+    if (!getAuthProfile(args.profileId)) {
+      return { error: 'profile not found' };
+    }
+    return oauthManager.startFlow({
+      provider: args.provider,
+      profileId: args.profileId as ProviderProfileKey,
+    });
   }
 );
 
-ipcMain.handle('auth.cancelOAuth', async (_event, _args: { flowId: string }) => {
+ipcMain.handle('auth.cancelOAuth', async () => {
   if (!isSubscriptionLoginEnabled()) {
     return { error: 'subscription_login feature is disabled' };
   }
-  throw new Error('Not implemented in Phase 2');
+  oauthManager.cancel();
+  return {};
 });
 
 ipcMain.handle('auth.checkClaudeCli', async () => {
@@ -1663,11 +1673,15 @@ ipcMain.handle('auth.checkClaudeCli', async () => {
   return { installed: false, reason: 'not yet implemented' };
 });
 
-ipcMain.handle('auth.signOut', async (_event, _args: { profileId: string }) => {
+ipcMain.handle('auth.signOut', async (_event, args: { profileId: string }) => {
   if (!isSubscriptionLoginEnabled()) {
     return { error: 'subscription_login feature is disabled' };
   }
-  throw new Error('Not implemented in Phase 2');
+  if (!getAuthProfile(args.profileId)) {
+    return { error: 'profile not found' };
+  }
+  await oauthManager.signOut(args.profileId as ProviderProfileKey);
+  return {};
 });
 
 ipcMain.handle('auth.getStatus', async (_event, args: { profileId: string }) => {

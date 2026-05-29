@@ -101,6 +101,37 @@ describe('ConfigStore config sets', () => {
     expect(defaultSetView.apiKey).toBe('sk-openrouter-origin');
   });
 
+  it('updates a profile in a requested set without switching active sets', async () => {
+    const store = new ConfigStore();
+    const created = store.createSet({ name: 'OAuth Target', mode: 'clone' });
+    const targetSet = created.configSets.find((set) => set.id !== 'default');
+    expect(targetSet).toBeTruthy();
+
+    store.switchSet({ id: 'default' });
+    await store.updateProfile(
+      'openai',
+      {
+        authMethod: 'oauth',
+        apiKey: '',
+        oauthCredentials: {
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          expiresAt: Date.now() + 3600_000,
+          tokenType: 'Bearer',
+          obtainedAt: Date.now(),
+        },
+      },
+      targetSet!.id
+    );
+
+    const config = store.getAll();
+    expect(config.activeConfigSetId).toBe('default');
+    expect(config.profiles.openai?.authMethod).toBe('apikey');
+    expect(
+      config.configSets.find((set) => set.id === targetSet!.id)?.profiles.openai?.authMethod
+    ).toBe('oauth');
+  });
+
   it('lets explicit thinking off override stale enableThinking', () => {
     mocks.seed = {
       provider: 'openrouter',

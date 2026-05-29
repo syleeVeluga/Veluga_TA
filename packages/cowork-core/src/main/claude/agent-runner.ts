@@ -53,6 +53,7 @@ import type { SkillsAdapter } from '../skills/skills-adapter';
 import { AgentRuntimeExtensionManager } from '../extensions/agent-runtime-extension-manager';
 import { configStore } from '../config/config-store';
 import { normalizeOpenAICompatibleBaseUrl } from '../config/auth-utils';
+import { oauthManager } from '../auth/oauth-manager';
 import {
   getAgentErrorFollowupText,
   resolveMessageEndPayload,
@@ -77,6 +78,14 @@ import { createWindowsBashOperations } from './windows-bash-operations';
 
 // Virtual workspace path shown to the model (hides real sandbox path)
 const VIRTUAL_WORKSPACE_PATH = '/workspace';
+
+function getRequiredVelugaLlmGatewayBaseUrl(): string {
+  const baseUrl = process.env.VELUGA_LLM_GATEWAY_URL?.trim();
+  if (!baseUrl) {
+    throw new Error('VELUGA_LLM_GATEWAY_URL is required for ChatGPT Plus OAuth LLM routing');
+  }
+  return baseUrl.replace(/\/+$/, '');
+}
 
 const MARKDOWN_RENDERING_GUIDANCE = `<markdown_rendering_guidance>
 When writing Mermaid flowcharts:
@@ -1328,22 +1337,54 @@ ${hints.join('\n')}
 
       // Resolve model via pi-ai
       const runtimeConfig = configStore.getAll();
-      const modelString = this.getCurrentModelString(runtimeConfig.model);
+      const activeProfile = configStore.getProfile(runtimeConfig.activeProfileKey);
+      const authMethod = activeProfile?.authMethod ?? 'apikey';
+      if (authMethod === 'cli-delegate') {
+        throw new Error('CLI delegate runs through claude-cli-runner, not agent-runner');
+      }
+      if (authMethod === 'oauth') {
+        if (runtimeConfig.activeProfileKey !== 'openai') {
+          throw new Error('OAuth is only supported for the OpenAI profile');
+        }
+        await oauthManager.refreshIfExpired(runtimeConfig.activeProfileKey);
+      }
+
+      const refreshedProfile =
+        authMethod === 'oauth'
+          ? configStore.getProfile(runtimeConfig.activeProfileKey)
+          : activeProfile;
+      const oauthCredentials = refreshedProfile?.oauthCredentials;
+      const usesChatGPTPlusOAuth = authMethod === 'oauth';
+      if (usesChatGPTPlusOAuth && !oauthCredentials) {
+        throw new Error('OAuth credentials missing');
+      }
+
+      const configuredModelString = this.getCurrentModelString(runtimeConfig.model);
+      const modelString = usesChatGPTPlusOAuth
+        ? configuredModelString.includes('/')
+          ? configuredModelString.replace(/^[^/]+\//, 'openai-codex/')
+          : `openai-codex/${configuredModelString}`
+        : configuredModelString;
       const configProtocol = resolvePiRouteProtocol(
         runtimeConfig.provider,
         runtimeConfig.customProtocol
       );
+      const routeProtocol = usesChatGPTPlusOAuth ? 'openai-codex' : configProtocol;
 
       // Normalize base URL for OpenAI-compatible providers (strips copy-pasted endpoint suffixes)
       const rawBaseUrl = runtimeConfig.baseUrl?.trim() || undefined;
-      const effectiveBaseUrl =
-        configProtocol === 'openai' && runtimeConfig.provider !== 'ollama'
+      const oauthBaseUrl = usesChatGPTPlusOAuth
+        ? getRequiredVelugaLlmGatewayBaseUrl()
+        : undefined;
+      const effectiveBaseUrl = usesChatGPTPlusOAuth
+        ? oauthBaseUrl
+        : routeProtocol === 'openai' && runtimeConfig.provider !== 'ollama'
           ? normalizeOpenAICompatibleBaseUrl(rawBaseUrl) || rawBaseUrl
           : rawBaseUrl;
 
       let usedSyntheticModel = false;
       let piModel = resolvePiRegistryModel(modelString, {
-        configProvider: configProtocol,
+        configProvider: routeProtocol,
         customBaseUrl: effectiveBaseUrl,
         rawProvider: runtimeConfig.provider,
         customProtocol: runtimeConfig.customProtocol,
@@ -1356,13 +1397,13 @@ ${hints.join('\n')}
           rawModel: runtimeConfig.model,
           resolvedModelString: modelString,
           rawProvider: runtimeConfig.provider,
-          routeProtocol: configProtocol,
+          routeProtocol,
           baseUrl: effectiveBaseUrl,
         });
         piModel = buildSyntheticPiModel(
           synthetic.modelId,
           synthetic.provider,
-          configProtocol,
+          routeProtocol,
           effectiveBaseUrl,
           undefined,
           undefined,
@@ -1372,7 +1413,7 @@ ${hints.join('\n')}
         // Apply the same runtime overrides (developer role compat, base URL, API downgrade)
         // that resolvePiRegistryModel applies to registry models
         piModel = applyPiModelRuntimeOverrides(piModel, {
-          configProvider: configProtocol,
+          configProvider: routeProtocol,
           customBaseUrl: effectiveBaseUrl,
           rawProvider: runtimeConfig.provider,
           customProtocol: runtimeConfig.customProtocol,
@@ -1419,11 +1460,16 @@ ${hints.join('\n')}
 
       // Set up API keys via AuthStorage
       const authStorage = getSharedAuthStorage();
-      const apiKey = runtimeConfig.apiKey?.trim();
+      const apiKey = usesChatGPTPlusOAuth
+        ? oauthCredentials?.accessToken.trim()
+        : runtimeConfig.apiKey?.trim();
       if (apiKey) {
         // Map our config provider to pi-ai provider name
-        const piProvider =
-          provider === 'custom' ? runtimeConfig.customProtocol || 'anthropic' : provider;
+        const piProvider = usesChatGPTPlusOAuth
+          ? 'openai-codex'
+          : provider === 'custom'
+            ? runtimeConfig.customProtocol || 'anthropic'
+            : provider;
         authStorage.setRuntimeApiKey(piProvider, apiKey);
         // Also set the key for the model's native provider (e.g., when using
         // google/gemini via openrouter, pi-ai looks up "google" not "openrouter")

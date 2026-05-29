@@ -58,6 +58,14 @@ const MAX_LOG_STRING_LENGTH = 4000;
 const MAX_LOG_OBJECT_DEPTH = 4;
 const MAX_LOG_OBJECT_KEYS = 40;
 const MAX_LOG_ARRAY_ITEMS = 20;
+const TOKEN_PATTERNS = [
+  /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,
+  /sk-[A-Za-z0-9_-]{20,}/g,
+  /access_token["\s:=]+["']?[A-Za-z0-9_.-]+/gi,
+  /refresh_token["\s:=]+["']?[A-Za-z0-9_.-]+/gi,
+  /Authorization["\s:=]+["']?Bearer\s+[A-Za-z0-9_.-]+/gi,
+];
+const SECRET_LOG_KEY_PATTERN = /^(?:accessToken|refreshToken|idToken|apiKey|authorization)$/i;
 
 // Developer logs enabled flag (can be toggled by user)
 let devLogsEnabled = true;
@@ -241,10 +249,15 @@ function rotateLogIfNeeded(): void {
 }
 
 function truncateLogText(value: string, maxLength = MAX_LOG_STRING_LENGTH): string {
-  if (value.length <= maxLength) {
-    return value;
+  const redacted = redactLogText(value);
+  if (redacted.length <= maxLength) {
+    return redacted;
   }
-  return `${value.slice(0, maxLength)}… [truncated ${value.length - maxLength} chars]`;
+  return `${redacted.slice(0, maxLength)}… [truncated ${redacted.length - maxLength} chars]`;
+}
+
+export function redactLogText(value: string): string {
+  return TOKEN_PATTERNS.reduce((acc, pattern) => acc.replace(pattern, '***REDACTED***'), value);
 }
 
 function normalizeLogValue(value: unknown, seen = new WeakSet<object>(), depth = 0): unknown {
@@ -326,7 +339,12 @@ function normalizeLogValue(value: unknown, seen = new WeakSet<object>(), depth =
     const entries = Object.entries(value as Record<string, unknown>);
     const limitedEntries = entries
       .slice(0, MAX_LOG_OBJECT_KEYS)
-      .map(([key, item]) => [key, normalizeLogValue(item, seen, depth + 1)]);
+      .map(([key, item]) => [
+        key,
+        SECRET_LOG_KEY_PATTERN.test(key) && typeof item === 'string'
+          ? '***REDACTED***'
+          : normalizeLogValue(item, seen, depth + 1),
+      ]);
 
     if (entries.length > MAX_LOG_OBJECT_KEYS) {
       limitedEntries.push([
