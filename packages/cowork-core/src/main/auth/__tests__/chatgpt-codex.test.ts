@@ -31,7 +31,7 @@ describe('chatgpt-codex oauth provider', () => {
   it('builds the OpenAI authorize URL with PKCE parameters', () => {
     const url = new URL(
       buildAuthorizeUrl({
-        redirectUri: 'http://127.0.0.1:1234/oauth_callback',
+        redirectUri: 'http://localhost:1455/auth/callback',
         state: 'state-1',
         challenge: 'challenge-1',
       })
@@ -40,11 +40,13 @@ describe('chatgpt-codex oauth provider', () => {
     expect(url.origin + url.pathname).toBe('https://auth.openai.com/oauth/authorize');
     expect(url.searchParams.get('client_id')).toBe('app_EMoamEEZ73f0CkXaXp7hrann');
     expect(url.searchParams.get('response_type')).toBe('code');
-    expect(url.searchParams.get('redirect_uri')).toBe('http://127.0.0.1:1234/oauth_callback');
+    expect(url.searchParams.get('redirect_uri')).toBe('http://localhost:1455/auth/callback');
     expect(url.searchParams.get('state')).toBe('state-1');
     expect(url.searchParams.get('code_challenge')).toBe('challenge-1');
     expect(url.searchParams.get('code_challenge_method')).toBe('S256');
     expect(url.searchParams.get('scope')).toContain('offline_access');
+    expect(url.searchParams.get('scope')).not.toContain('api.connectors');
+    expect(url.searchParams.get('originator')).toBe('codex_cli_rs');
   });
 
   it('exchanges an authorization code for credentials', async () => {

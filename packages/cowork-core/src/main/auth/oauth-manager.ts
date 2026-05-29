@@ -56,7 +56,12 @@ export class OAuthManager {
     const flowId = crypto.randomUUID();
     const state = crypto.randomUUID();
     const { verifier, challenge } = chatgptCodex.generatePKCE();
-    const { redirectUri, promise } = await this.callbackServer.start(state);
+    const { redirectUri, promise } = await this.callbackServer.start(state, 5 * 60_000, {
+      port: 1455,
+      fallbackPort: 1457,
+      path: '/auth/callback',
+      redirectHost: 'localhost',
+    });
     const configSetId = configStore.getAll().activeConfigSetId;
 
     this.currentFlow = {

@@ -17,6 +17,21 @@ describe('OAuthCallbackServer', () => {
     await expect(promise).resolves.toEqual({ code: 'code-1', state: 'state-1' });
   });
 
+  it('can use the registered Codex callback path and redirect host', async () => {
+    const server = new OAuthCallbackServer();
+    const { redirectUri, promise } = await server.start('state-1', 5 * 60_000, {
+      port: 0,
+      path: '/auth/callback',
+      redirectHost: 'localhost',
+    });
+
+    expect(redirectUri).toMatch(/^http:\/\/localhost:\d+\/auth\/callback$/);
+    const res = await fetch(`${redirectUri}?code=code-1&state=state-1`);
+
+    expect(res.status).toBe(200);
+    await expect(promise).resolves.toEqual({ code: 'code-1', state: 'state-1' });
+  });
+
   it('rejects state mismatches', async () => {
     const server = new OAuthCallbackServer();
     const { redirectUri, promise } = await server.start('expected-state');

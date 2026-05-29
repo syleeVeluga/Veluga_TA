@@ -1,5 +1,37 @@
+diff --git a/node_modules/@mariozechner/pi-ai/dist/models.js b/node_modules/@mariozechner/pi-ai/dist/models.js
+index b859f4a..ddb8210 100644
+--- a/node_modules/@mariozechner/pi-ai/dist/models.js
++++ b/node_modules/@mariozechner/pi-ai/dist/models.js
+@@ -31,11 +31,11 @@ export function calculateCost(model, usage) {
+  * Check if a model supports xhigh thinking level.
+  *
+  * Supported today:
+- * - GPT-5.2 / GPT-5.3 / GPT-5.4 model families
++ * - GPT-5.2 / GPT-5.3 / GPT-5.4 / GPT-5.5 model families
+  * - Opus 4.6 models (xhigh maps to adaptive effort "max" on Anthropic-compatible providers)
+  */
+ export function supportsXhigh(model) {
+-    if (model.id.includes("gpt-5.2") || model.id.includes("gpt-5.3") || model.id.includes("gpt-5.4")) {
++    if (model.id.includes("gpt-5.2") || model.id.includes("gpt-5.3") || model.id.includes("gpt-5.4") || model.id.includes("gpt-5.5")) {
+         return true;
+     }
+     if (model.id.includes("opus-4-6") || model.id.includes("opus-4.6")) {
+diff --git a/node_modules/@mariozechner/pi-ai/dist/providers/openai-codex-responses.js b/node_modules/@mariozechner/pi-ai/dist/providers/openai-codex-responses.js
+index 6cfd828..672884e 100644
+--- a/node_modules/@mariozechner/pi-ai/dist/providers/openai-codex-responses.js
++++ b/node_modules/@mariozechner/pi-ai/dist/providers/openai-codex-responses.js
+@@ -712,9 +712,6 @@ function buildBaseCodexHeaders(initHeaders, additionalHeaders, accountId, token)
+     }
+     headers.set("Authorization", `Bearer ${token}`);
+     headers.set("chatgpt-account-id", accountId);
+-    headers.set("originator", "pi");
+-    const userAgent = _os ? `pi (${_os.platform()} ${_os.release()}; ${_os.arch()})` : "pi (browser)";
+-    headers.set("User-Agent", userAgent);
+     return headers;
+ }
+ function buildSSEHeaders(initHeaders, additionalHeaders, accountId, token, sessionId) {
 diff --git a/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js b/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js
-index 29ae8cf..c5f7df4 100644
+index 29ae8cf..e0241db 100644
 --- a/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js
 +++ b/node_modules/@mariozechner/pi-ai/dist/providers/openai-completions.js
 @@ -485,6 +485,19 @@ export function convertMessages(model, context, compat) {
@@ -46,21 +78,3 @@ index 29ae8cf..c5f7df4 100644
          thinkingFormat: model.compat.thinkingFormat ?? detected.thinkingFormat,
          openRouterRouting: model.compat.openRouterRouting ?? {},
          vercelGatewayRouting: model.compat.vercelGatewayRouting ?? detected.vercelGatewayRouting,
-diff --git a/node_modules/@mariozechner/pi-ai/dist/models.js b/node_modules/@mariozechner/pi-ai/dist/models.js
-index b8da5ba..6a8c7bc 100644
---- a/node_modules/@mariozechner/pi-ai/dist/models.js
-+++ b/node_modules/@mariozechner/pi-ai/dist/models.js
-@@ -32,10 +32,10 @@ export function calculateCost(model, usage) {
-  * Check if a model supports xhigh thinking level.
-  *
-  * Supported today:
-- * - GPT-5.2 / GPT-5.3 / GPT-5.4 model families
-+ * - GPT-5.2 / GPT-5.3 / GPT-5.4 / GPT-5.5 model families
-  * - Opus 4.6 models (xhigh maps to adaptive effort "max" on Anthropic-compatible providers)
-  */
- export function supportsXhigh(model) {
--    if (model.id.includes("gpt-5.2") || model.id.includes("gpt-5.3") || model.id.includes("gpt-5.4")) {
-+    if (model.id.includes("gpt-5.2") || model.id.includes("gpt-5.3") || model.id.includes("gpt-5.4") || model.id.includes("gpt-5.5")) {
-         return true;
-     }
- 

@@ -120,7 +120,7 @@ async function login() {
         }
         return rl.question('Paste the authorization code or full redirect URL when ready: ');
       },
-      originator: 'veluga',
+      originator: 'codex_cli_rs',
     });
 
     console.log(

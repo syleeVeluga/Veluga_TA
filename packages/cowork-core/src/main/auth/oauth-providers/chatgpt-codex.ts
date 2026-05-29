@@ -35,7 +35,7 @@ export function buildAuthorizeUrl(args: {
   url.searchParams.set('code_challenge_method', 'S256');
   url.searchParams.set('id_token_add_organizations', 'true');
   url.searchParams.set('codex_cli_simplified_flow', 'true');
-  url.searchParams.set('originator', 'veluga');
+  url.searchParams.set('originator', 'codex_cli_rs');
   return url.toString();
 }
 

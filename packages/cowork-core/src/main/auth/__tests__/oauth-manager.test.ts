@@ -83,7 +83,8 @@ describe('OAuthManager', () => {
     const state = authUrl.searchParams.get('state');
 
     expect(flowId).toBeTruthy();
-    expect(redirectUri).toBeTruthy();
+    expect(redirectUri).toMatch(/^http:\/\/localhost:145[57]\/auth\/callback$/);
+    expect(authUrl.searchParams.get('originator')).toBe('codex_cli_rs');
     expect(state).toBeTruthy();
     await fetch(`${redirectUri}?code=code-1&state=${state}`);
     await vi.waitFor(() => {

@@ -13,13 +13,23 @@ interface PendingFlow {
   timeout: NodeJS.Timeout;
 }
 
+export interface OAuthCallbackServerOptions {
+  port?: number;
+  fallbackPort?: number;
+  path?: string;
+  redirectHost?: string;
+  bindHost?: string;
+}
+
 export class OAuthCallbackServer {
   private server?: http.Server;
   private pending?: PendingFlow;
+  private callbackPath = '/oauth_callback';
 
   async start(
     state: string,
-    timeoutMs = 5 * 60_000
+    timeoutMs = 5 * 60_000,
+    options: OAuthCallbackServerOptions = {}
   ): Promise<{
     redirectUri: string;
     promise: Promise<CallbackResult>;
@@ -40,25 +50,29 @@ export class OAuthCallbackServer {
       };
     });
 
-    this.server = http.createServer((req, res) => this.handleRequest(req, res));
-    const port = await new Promise<number>((resolve, reject) => {
-      const server = this.server;
-      if (!server) {
-        reject(new Error('OAuth callback server was not created'));
-        return;
-      }
+    this.callbackPath = options.path ?? '/oauth_callback';
+    const requestedPort = options.port ?? 0;
+    const bindHost = options.bindHost ?? '127.0.0.1';
+    const redirectHost = options.redirectHost ?? bindHost;
 
-      server.once('error', (error) => {
+    let port: number;
+    try {
+      port = await this.listen(requestedPort, bindHost);
+    } catch (error) {
+      if (!requestedPort || !options.fallbackPort) {
         this.stop();
-        reject(error);
-      });
-      server.listen(0, '127.0.0.1', () => {
-        resolve((server.address() as AddressInfo).port);
-      });
-    });
+        throw error;
+      }
+      try {
+        port = await this.listen(options.fallbackPort, bindHost);
+      } catch (fallbackError) {
+        this.stop();
+        throw fallbackError;
+      }
+    }
 
     return {
-      redirectUri: `http://127.0.0.1:${port}/oauth_callback`,
+      redirectUri: `http://${redirectHost}:${port}${this.callbackPath}`,
       promise,
     };
   }
@@ -72,6 +86,25 @@ export class OAuthCallbackServer {
     this.server = undefined;
   }
 
+  private async listen(port: number, bindHost: string): Promise<number> {
+    this.server = http.createServer((req, res) => this.handleRequest(req, res));
+    return await new Promise<number>((resolve, reject) => {
+      const server = this.server;
+      if (!server) {
+        reject(new Error('OAuth callback server was not created'));
+        return;
+      }
+
+      server.once('error', (error) => {
+        this.server = undefined;
+        reject(error);
+      });
+      server.listen(port, bindHost, () => {
+        resolve((server.address() as AddressInfo).port);
+      });
+    });
+  }
+
   private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
     const pending = this.pending;
     if (!pending) {
@@ -81,7 +114,7 @@ export class OAuthCallbackServer {
     }
 
     const url = new URL(req.url || '/', 'http://127.0.0.1');
-    if (url.pathname !== '/oauth_callback') {
+    if (url.pathname !== this.callbackPath) {
       res.writeHead(404);
       res.end('not found');
       return;
