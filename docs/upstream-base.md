@@ -4,7 +4,8 @@
 
 - Upstream repository: `https://github.com/OpenCoworkAI/open-cowork`
 - Integration location: `packages/cowork-core`
-- Integration method: Git submodule
+- Repository mode: independent Veluga repository (`isFork=false`), not a GitHub fork network member
+- Integration method: vendored clone snapshot in this repository (not a Git submodule)
 - Upstream branch: `main`
 - Baseline commit: `d4318943fb070d0863bed930eb70a95c6e7c4487`
 - Upstream package name/version: `open-cowork@3.3.0`
@@ -44,7 +45,7 @@ Full `npm run build` was not run in this baseline pass because it proceeds into 
 
 ## Build Artifacts
 
-The following generated paths are ignored by the upstream checkout and should not be committed from the parent repository:
+The following generated paths are ignored under `packages/cowork-core` and should not be committed from the parent repository:
 
 - `packages/cowork-core/node_modules/`
 - `packages/cowork-core/resources/node/`

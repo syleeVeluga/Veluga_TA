@@ -36,7 +36,7 @@ graph TD
 
 ---
 
-## 2. 통합 모델 (포크 제약 준수)
+## 2. 통합 모델 (clone snapshot 제약 준수)
 
 - Orchestrator는 **veluga-main**에 위치, [packages/veluga-main/src/ipc-middleware.ts](packages/veluga-main/src/ipc-middleware.ts)의 `handleUserMessage` fast-path 이후 진입. `enable_veluga_orchestration=false`면 즉시 `fallback` 바이패스.
 - cowork 결합은 **오직** `AgentRuntimeExtension.beforeSessionRun()`(컨텍스트/프롬프트 prefix 주입·도구 추가) + `afterSessionRun()`(사후 audit/compliance) + `ToolDefinition.execute` 래퍼. **cowork-core 수정 금지.**

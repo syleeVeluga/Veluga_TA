@@ -25,7 +25,7 @@
 
 ## 핵심 전제 (반드시 준수)
 
-1. LLM 에이전트 루프는 upstream `pi-coding-agent`(cowork-core 포크, 수정 금지)가 소유한다. Veluga는 `AgentRuntimeExtension` 훅 + `ToolDefinition.execute` 래퍼로만 끼어든다.
+1. LLM 에이전트 루프는 upstream `pi-coding-agent`(cowork-core clone snapshot, 수정 금지)가 소유한다. Veluga는 `AgentRuntimeExtension` 훅 + `ToolDefinition.execute` 래퍼로만 끼어든다.
 2. 모든 LLM은 `VELUGA_LLM_GATEWAY_URL` 경유(공개 엔드포인트 하드코딩 금지, CI 강제). 텔레메트리 SaaS SDK 금지, 화이트아웃 유지.
 3. 영속 계층은 Node 내장 `node:sqlite`(`DatabaseSync`).
 4. Main→Renderer 상태 전파는 기존 `server-event` 채널.

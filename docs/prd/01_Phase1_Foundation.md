@@ -18,7 +18,7 @@
 | 영역 | 산출물 |
 |---|---|
 | **L0 Identity & Policy** | SSO 어댑터 (mock) + PolicyService (mock, YAML 디스크 로드) + 5-tier 머지 엔진 + PolicyContext 인메모리 주입 |
-| **L1 Cowork 어댑터** | Open Cowork fork + `PolicyContextInjector` + `VelugaIpcMiddleware` + `ToolInterceptor` + Veluga Mode toggle |
+| **L1 Cowork 어댑터** | Open Cowork clone snapshot + `PolicyContextInjector` + `VelugaIpcMiddleware` + `ToolInterceptor` + Veluga Mode toggle |
 | **L2 최소 에이전트** | A1 Intent Router (+ fast-path), A4 Policy Guard (**dry-run**), A5 Audit Logger, A6 General Planner, A7 General Responder |
 | **L4 core Skill** | `system-self-help` (LLM 호출 0회) |
 | **UI Veluga 어댑터** | `PolicyProvider`, Skill/KB 토글 가시성 바인딩, Veluga Mode toggle 노출, "외부 자료 미사용" 상시 배너 |
@@ -208,7 +208,7 @@ function mergePolicies(
 
 ### 4.3 Cowork hook 결합 위치 (구체)
 
-> AI agent는 fork 직후 다음 hook이 실제로 존재하는지 확인. 없으면 `98_Gap_Analysis.md`에 GAP-L1-* 로 등록.
+> AI agent는 clone snapshot 도입 직후 다음 hook이 실제로 존재하는지 확인. 없으면 `98_Gap_Analysis.md`에 GAP-L1-* 로 등록.
 
 | 결합 패턴 | Cowork hook 후보 (확인 필요) | Fallback (hook 없을 시) |
 |---|---|---|
@@ -755,7 +755,7 @@ export function CreditsPage() {
 
 > §13 단일파일 PRD와 동일 순서. **1~5와 6~13은 병렬화 권장**.
 
-1. Open Cowork fork — branch `veluga-base` 생성, MIT LICENSE 보존, `docs/upstream-base.md` 작성
+1. Open Cowork clone snapshot — branch `veluga-base` 생성, MIT LICENSE 보존, `docs/upstream-base.md` 작성
 2. CI 보호 룰 설정 — `packages/cowork-core/` protected, 텔레메트리·외부 URL lint 룰
 3. 화이트라벨링 Step 1~2 — `package.json`, Tailwind, 로고, i18n
 4. White-out (Step 4) — 외부 API URL → `VELUGA_LLM_GATEWAY_URL`, 텔레메트리 제거, `autoUpdater` 비활성
@@ -837,7 +837,7 @@ export function CreditsPage() {
 ### 15.2 구현 착수 전 필수 확인 (완료됨)
 
 - [x] `98_Gap_Analysis.md`의 Phase 1 🚨 블로커 2건 PM/인프라 합의 완료
-- [x] Open Cowork fork `docs/upstream-base.md`와 `docs/cowork-hooks.md` 작성 완료
+- [x] Open Cowork clone snapshot `docs/upstream-base.md`와 `docs/cowork-hooks.md` 작성 완료
 - [x] 코드 서명·로고 최종본 확정 완료
 
 ### 15.3 완료 선언

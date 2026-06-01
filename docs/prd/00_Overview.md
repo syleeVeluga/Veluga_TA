@@ -14,13 +14,13 @@
 ### 1.1 한 줄 미션
 > *Cowork(open source)가 골격을 주고, Skill이 능력을 주고, 정책이 권한을 주고, 시스템 에이전트 7개가 결정만 한다.*
 
-폐쇄망 공공기관·금융권 업무 담당자가 결재 라인까지 안전하게 흘려보낼 수 있는 agentic 작업 환경을 만든다. **Open Cowork(MIT)를 fork하여 'Veluga Agents'로 화이트라벨링**한 데스크톱 앱이 베이스다.
+폐쇄망 공공기관·금융권 업무 담당자가 결재 라인까지 안전하게 흘려보낼 수 있는 agentic 작업 환경을 만든다. **Open Cowork(MIT)를 독립 repo의 clone snapshot으로 가져와 'Veluga Agents'로 화이트라벨링**한 데스크톱 앱이 베이스다.
 
 ### 1.2 Success Goals
 
 | ID | Goal | 측정 | Phase |
 |---|---|---|---|
-| G-1 | 폐쇄망 환경에서 Open Cowork fork가 안정 기동 + Veluga 브랜딩 완성 | SSO → 세션 → 채팅 → 종료 무결함 + 작업관리자/Dock에 "Veluga" 표시 | Phase 1 |
+| G-1 | 폐쇄망 환경에서 Open Cowork clone snapshot이 안정 기동 + Veluga 브랜딩 완성 | SSO → 세션 → 채팅 → 종료 무결함 + 작업관리자/Dock에 "Veluga" 표시 | Phase 1 |
 | G-2 | PolicyContext 단일 진실로 권한 통제 | 100%의 도구 호출이 Policy Guard 인터셉터 통과 | Phase 1 |
 | G-3 | 신뢰도 태그 강제 | 모든 LLM 응답 문장에 4개 태그 중 하나 부착 (compliance-checker 자동 점검) | Phase 1 → 4 |
 | G-4 | 결재자 동선 단일화 | P3 페르소나가 8건 결재를 세션 1개 + Artifact 1개로 처리 | Phase 4 |
@@ -43,7 +43,7 @@
 
 > 이 5개 원칙은 모든 Phase PRD가 따른다. 위배 발견 시 PRD를 고치는 것이 아니라 `98_Gap_Analysis.md`에 올린다.
 
-1. **L1 (Open Cowork)은 fork만 한다. 본체 코드는 수정하지 않는다.** 모든 Veluga 로직은 미들웨어·인터셉터·MCP 도구·Skill로 *얹는다*.
+1. **L1 (Open Cowork)은 독립 clone snapshot으로 가져오되 본체 코드는 직접 수정하지 않는다.** 모든 Veluga 로직은 미들웨어·인터셉터·MCP 도구·Skill로 *얹는다*.
 2. **새 컴포넌트를 만들지 않는다.** Cowork·Skill·정책·Artifact·MCP로 풀 수 있으면 그걸로 푼다. **기관 KB도 Veluga가 만들지 않는다 — 외부 의존(MCP/API consumer)만.**
 3. **권한이 자료보다 먼저다.** L0 (Identity/Policy)는 Phase 1에서 반드시 완성. 미완성 권한 위에 KB를 얹지 않는다.
 4. **모든 출력 문장에 신뢰도 태그**: `[src:<id>|kb|as_of:<date>]` / `[src:<id>|nb]` / `[parametric:high]` / `[parametric:low]`. 결재 본문 정식 근거는 `|kb`만.
@@ -66,7 +66,7 @@
 └─────────────────────────┬──────────────────────────────────────────┘
                           │ 세션 시작 시 인메모리 주입
 ┌─────────────────────────▼──────────────────────────────────────────┐
-│  L1  Cowork Foundation            [Open Cowork fork — 수정 금지]   │
+│  L1  Cowork Foundation            [Open Cowork clone — 수정 금지]   │
 │      Electron + React 19 + Tailwind / SQLite / MCP / HITL          │
 │      세션·Project·파일 도구·Task 위젯·Artifact·Sub-agent           │
 └─────┬──────────────────────────────┬──────────────────────────┬────┘
@@ -161,7 +161,7 @@ Phase N+1은 Phase N의 머지된 산출 위에서만 시작한다. **외부 KB�
 
 | 파일 | 내용 |
 |---|---|
-| `01_Phase1_Foundation.md` | L0 + L1 fork + L2 최소 + system-self-help + 화이트라벨링 5단계 |
+| `01_Phase1_Foundation.md` | L0 + L1 clone snapshot + L2 최소 + system-self-help + 화이트라벨링 5단계 |
 | `02_Phase2_Project.md` | Project 재진입 + core Skill 3 (style-card, citation-verifier, docx) |
 | `03_Phase3_KB.md` | **외부 KB MCP consumer 어댑터** + A2 Knowledge Gate + A3 Skill Resolver + domain Skill + Policy Guard enforce (KB 구현은 외부) |
 | `04_Phase4_Approval.md` | citation-tracer (graph consumer) + compliance-checker full + approval-queue Artifact + Docker sandboxing |
@@ -227,7 +227,7 @@ Phase N+1은 Phase N의 머지된 산출 위에서만 시작한다. **외부 KB�
 
 | 결정 | 사유 |
 |---|---|
-| Open Cowork fork (vs from scratch) | 설계안 v1.2 L1 명세와 100% 일치, "안 만들기" 원칙 |
+| Open Cowork clone snapshot (vs from scratch) | 설계안 v1.2 L1 명세와 100% 일치, "안 만들기" 원칙 |
 | Open Cowork **MIT 라이선스** 확정 | 화이트라벨링·상업 판매 완전 허용. 의무는 Credits 페이지 1개. |
 | Kuse Cowork는 fork 아닌 벤치마킹 | 보안 패턴만 필요, 본체는 Open Cowork가 우월 |
 | **기관 KB는 외부 시스템 — Veluga는 MCP/API consumer만** | "안 만들기" 원칙, 운영 책임 분리, 권한 이중 방어 (Veluga측 Gate + 외부 KB측 권한 검증) |
@@ -260,4 +260,4 @@ Phase N+1은 Phase N의 머지된 산출 위에서만 시작한다. **외부 KB�
 
 ## 11. 한 줄 결론
 
-> *L1은 Open Cowork fork로 무료로 얻고 Veluga로 화이트라벨링한다. Veluga가 만들 코드는 **L0 정책·L2 7개 에이전트·L4 Skill** — 이 셋에 집중. L3 기관 KB는 외부 의존(MCP/API consumer)이며 본 PRD 범위 밖이다. Veluga Mode 토글로 점진적·안전하게 도입한다.*
+> *L1은 Open Cowork clone snapshot으로 확보하고 Veluga로 화이트라벨링한다. Veluga가 만들 코드는 **L0 정책·L2 7개 에이전트·L4 Skill** — 이 셋에 집중. L3 기관 KB는 외부 의존(MCP/API consumer)이며 본 PRD 범위 밖이다. Veluga Mode 토글로 점진적·안전하게 도입한다.*

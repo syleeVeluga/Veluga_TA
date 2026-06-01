@@ -8,7 +8,7 @@
 
 현재 Veluga의 에이전트 흐름은 고정 순차 파이프라인(intent-router → policy-guard → knowledge-gate → skill-resolver → general-planner → general-responder → compliance-checker)이다. 서로 데이터 의존성이 없는 컨텍스트 수집(KB 검색·파일 분석·정책 사전감사·스타일카드 로딩)이 직렬화되어 지연이 누적되고, 부분 복구·승인 대기·강제 취소 같은 유동 제어가 추적되지 않으며, 크래시 시 진행 상태가 소실된다.
 
-이 계획은 Anthropic이 검증한 **오케스트레이터-워커 워크플로우**를 채택해 위 문제를 해결하되, **"단순하게 시작하고 입증될 때만 복잡도를 추가한다"** 원칙과 현재 시스템(cowork 포크·게이트웨이·폐쇄망)의 하드 제약을 동시에 만족시킨다.
+이 계획은 Anthropic이 검증한 **오케스트레이터-워커 워크플로우**를 채택해 위 문제를 해결하되, **"단순하게 시작하고 입증될 때만 복잡도를 추가한다"** 원칙과 현재 시스템(cowork clone snapshot·게이트웨이·폐쇄망)의 하드 제약을 동시에 만족시킨다.
 
 ---
 
@@ -25,7 +25,7 @@
 
 **Out of scope (현 단계)**
 
-- 포크 내부(`cowork-core`) 직접 수정.
+- clone snapshot 내부(`cowork-core`) 직접 수정.
 - 완전 동적 LLM 생성 DAG 토폴로지(효과 입증 시 Phase 3에서만).
 - 병렬 LLM 생성 서브세션(필요 입증 시 Phase 3의 bounded sub-session으로만).
 - 외부 SaaS 트레이싱 SDK 도입(가드레일 금지).
@@ -61,13 +61,13 @@
 ## 하드 제약 (설계가 반드시 지켜야 할 사실)
 
 1. **LLM 에이전트 루프 비소유**: upstream `pi-coding-agent` SDK가 [packages/cowork-core/src/main/claude/agent-runner.ts](packages/cowork-core/src/main/claude/agent-runner.ts)의 단일 세션(`createAgentSession`)에서 소유. 모델이 agentic loop 안에서 도구 호출 결정.
-2. **cowork-core는 포크(수정 금지)**: `AgentRuntimeExtension.beforeSessionRun()/afterSessionRun()` + `ToolDefinition.execute` 래퍼로만 통합 ([docs/cowork-hooks.md](docs/cowork-hooks.md)).
+2. **cowork-core는 upstream clone snapshot(수정 금지)**: `AgentRuntimeExtension.beforeSessionRun()/afterSessionRun()` + `ToolDefinition.execute` 래퍼로만 통합 ([docs/cowork-hooks.md](docs/cowork-hooks.md)).
 3. **게이트웨이 불변식**: 모든 LLM은 `VELUGA_LLM_GATEWAY_URL` 경유. `api.anthropic.com`/`api.openai.com` 하드코딩 금지 — CI([.github/workflows/phase1-guards.yml](.github/workflows/phase1-guards.yml))가 차단. 텔레메트리 SaaS SDK 금지. 화이트아웃(패키지 앱 공개 엔드포인트로 0바이트, [docs/phase1-verification.md](docs/phase1-verification.md)).
 4. **영속 계층**: Node 내장 `node:sqlite`(`DatabaseSync`) + 해시 체인 + PII 마스킹 ([packages/veluga-main/src/audit-logger.ts](packages/veluga-main/src/audit-logger.ts)). (`better-sqlite3`는 cowork-core 의존성으로 별개.)
 5. **IPC**: Main→Renderer는 기존 `server-event` 채널(`sendToRenderer` → preload → `useIPC` → Zustand). 새 브리지 금지.
 6. **킬스위치**: `policy.veluga.enable_veluga_orchestration=false`면 바닐라 Open Cowork로 바이패스.
 
-> 결론: "포크 안에서 LLM 워커를 다수 병렬 기동"은 불가. **워커 = 단일 cowork 세션에 투입할 컨텍스트를 병렬 준비하는 veluga-side I/O 태스크**.
+> 결론: "clone snapshot 안에서 LLM 워커를 다수 병렬 기동"은 불가. **워커 = 단일 cowork 세션에 투입할 컨텍스트를 병렬 준비하는 veluga-side I/O 태스크**.
 
 ---
 

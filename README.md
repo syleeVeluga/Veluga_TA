@@ -3,7 +3,7 @@
 > *Cowork(open source)가 골격을 주고, Skill이 능력을 주고, 정책이 권한을 주고, 시스템 에이전트 7개가 결정만 한다.*
 
 폐쇄망 공공기관·금융권 업무 담당자가 결재 라인까지 안전하게 흘려보낼 수 있는 agentic 작업 환경.  
-**Open Cowork(MIT)를 fork하여 화이트라벨링**한 Electron 데스크톱 앱 기반이며, 기관 KB(Vector DB, RDB, Graph)는 외부에서 MCP/API로 제공받는 **consumer** 역할만 수행한다.
+**Open Cowork(MIT)를 독립 repo의 clone snapshot으로 가져와 화이트라벨링**한 Electron 데스크톱 앱 기반이며, 기관 KB(Vector DB, RDB, Graph)는 외부에서 MCP/API로 제공받는 **consumer** 역할만 수행한다.
 
 ---
 
@@ -11,7 +11,7 @@
 
 | 패키지 | 역할 |
 |---|---|
-| `packages/cowork-core` | Open Cowork 업스트림 fork (git submodule, 직접 수정 금지) |
+| `packages/cowork-core` | Open Cowork 업스트림 clone snapshot (repo 내 vendored source, 직접 수정 금지) |
 | `packages/veluga-main` | 핵심 에이전트 A1~A7, LLM 게이트웨이, 정책 가드, 감사 로거, 샌드박스, 결재 커넥터 |
 | `packages/veluga-renderer` | Electron 렌더러 어댑터, PolicyProvider, UI 바인딩 |
 | `packages/veluga-ui` | 화이트라벨 UI 컴포넌트 (로고, 스플래시, 설정, 크레딧) |

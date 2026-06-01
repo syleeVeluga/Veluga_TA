@@ -1,6 +1,6 @@
 # Veluga Agents — PRD 작업 폴더
 
-> 본 폴더는 Veluga Agents (Open Cowork fork 기반, 폐쇄망 공공/금융 에이전틱 업무 시스템) 빌드를 위한 PRD 세트다. AI coding agent(Claude Code / Codex)가 Phase 단위로 픽업하여 작업할 수 있도록 분할되어 있다.
+> 본 폴더는 Veluga Agents (Open Cowork clone snapshot 기반, 폐쇄망 공공/금융 에이전틱 업무 시스템) 빌드를 위한 PRD 세트다. AI coding agent(Claude Code / Codex)가 Phase 단위로 픽업하여 작업할 수 있도록 분할되어 있다.
 >
 > **범위 선언 (v1.1)**: 본 PRD 세트는 **에이전트 시스템 자체**에만 집중한다. 기관 KB(Vector DB·RDB·Graph·임베딩·ingest·운영) 구현은 **외부 시스템**이며 본 PRD 범위 밖이다. Veluga는 외부 KB를 **MCP 또는 API의 consumer**로만 결합한다.
 

@@ -28,7 +28,7 @@
 ## 핵심 전제 (반드시 준수)
 
 1. **기존 API key 방식 절대 제거 금지** — `authMethod: 'apikey' | 'oauth' | 'cli-delegate'` 분기로 공존
-2. **pi-ai/pi-coding-agent는 수정 금지** — upstream fork 정책을 따라 외부에서 `AuthStorage.setRuntimeApiKey()` API만 활용 (참조: [agent-orchestration-plan](../agent-orchestration-plan/README.md) §핵심 전제 1)
+2. **pi-ai/pi-coding-agent는 수정 금지** — upstream clone snapshot 정책을 따라 외부에서 `AuthStorage.setRuntimeApiKey()` API만 활용 (참조: [agent-orchestration-plan](../agent-orchestration-plan/README.md) §핵심 전제 1)
 3. **Gemini는 도입하지 않음** — `v1internal` endpoint는 ToS 회색지대를 넘어섬
 4. **토큰은 절대 로그에 출력 금지** — `access_token`, `refresh_token`, JWT 모두 마스킹
 5. **ToS 고지 의무** — 첫 OAuth 사용 시 dialog로 비공식 endpoint 사용 사실 명시

@@ -337,7 +337,7 @@ veluga/
 │   ├── sandbox-ops.md              # Phase 4 Docker 운영
 │   └── architecture-diagrams/
 ├── packages/
-│   ├── cowork-core/                # [PROTECTED] Open Cowork fork 본체
+│   ├── cowork-core/                # [PROTECTED] Open Cowork clone snapshot 본체
 │   ├── veluga-main/                # Electron Main Process 어댑터
 │   │   ├── src/
 │   │   │   ├── policy-injector.ts
@@ -552,7 +552,7 @@ jobs:
 
 | 결정 | 사유 | 도입 시점 |
 |---|---|---|
-| Open Cowork fork (vs from scratch) | 설계안 v1.2 L1 100% 일치 | Overview |
+| Open Cowork clone snapshot (vs from scratch) | 설계안 v1.2 L1 100% 일치 | Overview |
 | Open Cowork MIT 라이선스 확정 | 화이트라벨링 완전 허용 | Overview |
 | Kuse Cowork는 fork 아닌 벤치마킹 | 보안 패턴만 필요 | Overview |
 | **기관 KB는 외부 시스템 — Veluga는 MCP/API consumer만** | "안 만들기" 원칙, 운영 책임 분리, 권한 이중 방어 | Overview (v1.1) |
@@ -684,4 +684,4 @@ export async function handle(ctx: SkillContext): Promise<SkillOutput> {
 
 ## 15. 한 줄 요약 (다시)
 
-> *L1은 Open Cowork fork로 무료로 얻고 Veluga로 화이트라벨링한다. Veluga가 만들 코드는 **L0 정책·L2 7개 에이전트·L4 Skill** — 이 셋에 집중. **L3 기관 KB는 외부 의존(MCP/API consumer)이며 본 PRD 범위 밖**. Veluga Mode 토글로 점진적·안전하게 도입한다.*
+> *L1은 Open Cowork clone snapshot으로 확보하고 Veluga로 화이트라벨링한다. Veluga가 만들 코드는 **L0 정책·L2 7개 에이전트·L4 Skill** — 이 셋에 집중. **L3 기관 KB는 외부 의존(MCP/API consumer)이며 본 PRD 범위 밖**. Veluga Mode 토글로 점진적·안전하게 도입한다.*

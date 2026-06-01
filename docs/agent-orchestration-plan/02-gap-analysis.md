@@ -9,7 +9,7 @@
 ## A-1. (치명) "병렬 에이전트 워커"의 실행 주체 불명확
 
 - 원안은 `VelugaOrchestrator.runActualAgentWorker(task)`로 에이전트를 병렬 실행한다고 가정하나, 그 함수는 더미 스텁이며 실제 LLM 루프 소유자와 충돌.
-- 실제 루프는 upstream `pi-coding-agent`가 [packages/cowork-core/src/main/claude/agent-runner.ts](packages/cowork-core/src/main/claude/agent-runner.ts) 단일 세션에서 소유. cowork-core는 포크(수정 금지), Veluga는 `AgentRuntimeExtension` 훅으로만 통합 ([docs/cowork-hooks.md](docs/cowork-hooks.md)).
+- 실제 루프는 upstream `pi-coding-agent`가 [packages/cowork-core/src/main/claude/agent-runner.ts](packages/cowork-core/src/main/claude/agent-runner.ts) 단일 세션에서 소유. cowork-core는 upstream clone snapshot(수정 금지), Veluga는 `AgentRuntimeExtension` 훅으로만 통합 ([docs/cowork-hooks.md](docs/cowork-hooks.md)).
 - → **해소**: 워커 = LLM 생성 주체가 아니라 **단일 세션에 투입할 컨텍스트를 병렬 준비하는 veluga-side I/O 태스크**. (03 §1·§2)
 
 ---

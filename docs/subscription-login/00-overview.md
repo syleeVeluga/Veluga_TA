@@ -62,7 +62,7 @@
 | # | 제약 | 이유 |
 |---|---|---|
 | HC-1 | **API key 방식 제거 금지** | 회귀 방지 + 사용자 선택권 보장 |
-| HC-2 | **pi-ai / pi-coding-agent 수정 금지** | upstream fork 정책 ([agent-orchestration-plan](../agent-orchestration-plan/00-overview.md)와 동일) — `setRuntimeApiKey()` 등 공개 API만 사용 |
+| HC-2 | **pi-ai / pi-coding-agent 수정 금지** | upstream clone snapshot 정책 ([agent-orchestration-plan](../agent-orchestration-plan/00-overview.md)와 동일) — `setRuntimeApiKey()` 등 공개 API만 사용 |
 | HC-3 | **OAuth 토큰 로그 출력 금지** | 첫 4자만 표시 후 마스킹 (`sk-abc***`), 전체값 절대 dump 안 함 |
 | HC-4 | **Gemini 도입 금지** | 사용자 결정 — ToS 보수적 입장 |
 | HC-5 | **Renderer 프로세스에 평문 토큰 전송 금지** | 모든 토큰은 main 프로세스에서만 보관, renderer에는 "로그인됨 / 만료 시각" 메타데이터만 |

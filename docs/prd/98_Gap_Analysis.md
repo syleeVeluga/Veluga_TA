@@ -163,7 +163,7 @@
 
 ## 12. Baseline Resolution Notes (2026-05-23)
 
-- [RESOLVED] GAP-P1-01: Open Cowork source is now present as a Git submodule at `packages/cowork-core`, pinned to upstream commit `d4318943fb070d0863bed930eb70a95c6e7c4487`. The concrete hook mapping is recorded in `docs/cowork-hooks.md`.
+- [RESOLVED] GAP-P1-01: Open Cowork source is now present as a vendored clone snapshot at `packages/cowork-core`, pinned to upstream commit `d4318943fb070d0863bed930eb70a95c6e7c4487`. The concrete hook mapping is recorded in `docs/cowork-hooks.md`.
 - [NEW] GAP-P1-09: Open Cowork has no exported first-class `beforeToolCall` hook. Veluga `ToolInterceptor` must either wrap `ToolDefinition.execute(...)` near `src/main/claude/agent-runner.ts` before `createAgentSession(...)`, or introduce a minimal upstream shim that exposes this wrapper point.
 
 ## 13. Phase 1 & Phase 2 Implementation Resolution (2026-05-23)

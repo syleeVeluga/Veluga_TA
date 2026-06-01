@@ -66,7 +66,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## 5. Project Overview
 
-Veluga is an enterprise AI agent platform built for closed-network government and finance workflows. It forks [Open Cowork](https://github.com/open-cowork/cowork) (MIT) and layers policy enforcement, KB integration, approval routing, and audit on top.
+Veluga is an enterprise AI agent platform built for closed-network government and finance workflows. It uses [Open Cowork](https://github.com/open-cowork/cowork) (MIT) as a vendored upstream clone snapshot and layers policy enforcement, KB integration, approval routing, and audit on top.
 
 **Core principles:**
 
@@ -81,7 +81,7 @@ Veluga is an enterprise AI agent platform built for closed-network government an
 ```text
 Veluga_TA/
 ├── packages/
-│   ├── cowork-core/          # Upstream Open Cowork fork (Electron + React)
+│   ├── cowork-core/          # Upstream Open Cowork clone snapshot (Electron + React)
 │   │   ├── src/main/         # Electron main process
 │   │   ├── src/renderer/     # React UI
 │   │   └── src/preload/      # IPC bridge

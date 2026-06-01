@@ -16,7 +16,7 @@
 
 ## Context
 
-Veluga_TA (Electron + React, forked from Cowork) currently lists outdated Anthropic
+Veluga_TA (Electron + React, derived from a Cowork clone snapshot) currently lists outdated Anthropic
 models in its provider presets, hides model switching behind Settings → API even
 after multiple provider keys are configured, and exposes pi-ai's six-level
 extended-thinking budget as a single binary checkbox. The result is:
