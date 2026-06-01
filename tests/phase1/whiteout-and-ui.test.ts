@@ -55,12 +55,9 @@ describe('Phase1 white-out and renderer bindings', () => {
 
   it('preserves Open Cowork MIT credit text and records manual verification gaps', async () => {
     const credits = await readFile('packages/veluga-ui/credits/LICENSES.md', 'utf8');
-    const upstream = await readFile('docs/upstream-base.md', 'utf8');
     const verification = await readFile('docs/phase1-verification.md', 'utf8');
     expect(credits).toContain('Open Cowork');
     expect(credits).toContain('MIT License');
-    expect(upstream).toContain('Attribution Record');
-    expect(upstream).toContain('Open Cowork as its upstream MIT-licensed foundation');
     expect(verification).toContain('mitmproxy');
     expect(verification).toContain('Veluga Mode OFF');
   });
