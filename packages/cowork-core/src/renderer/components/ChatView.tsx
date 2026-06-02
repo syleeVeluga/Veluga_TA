@@ -8,11 +8,13 @@ import {
   useActiveTurn,
   usePendingTurns,
   useActiveExecutionClock,
+  usePendingDialogs,
 } from '../store/selectors';
 import { useAppStore } from '../store';
 import { useIPC } from '../hooks/useIPC';
 import { MessageCard } from './MessageCard';
 import { ChatHeaderModelSwitcher } from './ChatHeaderModelSwitcher';
+import { AskUserQuestionPanel } from './AskUserQuestionPanel';
 import type { Message, ContentBlock } from '../types';
 import { Send, Square, Plus, Loader2, Plug, X, Clock } from 'lucide-react';
 
@@ -34,8 +36,9 @@ export function ChatView() {
   const activeTurn = useActiveTurn();
   const pendingTurns = usePendingTurns();
   const executionClock = useActiveExecutionClock();
+  const { pendingQuestions } = usePendingDialogs();
   const setGlobalNotice = useAppStore((s) => s.setGlobalNotice);
-  const { continueSession, stopSession, isElectron } = useIPC();
+  const { continueSession, stopSession, respondToQuestion, isElectron } = useIPC();
   const [prompt, setPrompt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeConnectors, setActiveConnectors] = useState<
@@ -771,6 +774,15 @@ export function ChatView() {
                 ))}
               </div>
             )}
+
+            {(() => {
+              const activeQuestion = pendingQuestions.find(
+                (q) => q.sessionId === activeSessionId
+              );
+              return activeQuestion ? (
+                <AskUserQuestionPanel request={activeQuestion} onRespond={respondToQuestion} />
+              ) : null;
+            })()}
 
             <div
               className={`flex items-end gap-2 p-3.5 rounded-[1.75rem] bg-background/88 border border-border-muted shadow-soft transition-colors ${

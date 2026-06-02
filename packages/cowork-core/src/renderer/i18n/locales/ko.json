@@ -742,6 +742,16 @@
     "thinking": "Thinking",
     "executionTime": "실행 시간: {{time}}"
   },
+  "askUserQuestion": {
+    "title": "질문",
+    "skip": "건너뛰기",
+    "skipAll": "모두 건너뛰기",
+    "orDirect": "또는 직접 답장...",
+    "pager": "{{total}}개 중 {{current}}개",
+    "send": "보내기",
+    "next": "다음",
+    "prev": "이전"
+  },
   "schedule": {
     "createTitle": "Schedule 만들기",
     "editTitle": "Schedule 편집",

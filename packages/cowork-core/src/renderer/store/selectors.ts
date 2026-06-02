@@ -292,6 +292,7 @@ export function usePendingDialogs() {
     useShallow((s) => ({
       pendingPermission: s.pendingPermission,
       pendingSudoPassword: s.pendingSudoPassword,
+      pendingQuestions: s.pendingQuestions,
     }))
   );
 }

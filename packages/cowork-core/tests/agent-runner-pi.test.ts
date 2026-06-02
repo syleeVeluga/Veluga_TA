@@ -111,8 +111,11 @@ describe('ClaudeAgentRunner pi-coding-agent integration', () => {
     expect(agentRunnerContent).not.toContain(": JSON.stringify(event.result || '');");
   });
 
-  it('does not reference removed AskUserQuestion or TodoWrite tools', () => {
-    expect(agentRunnerContent).not.toContain('AskUserQuestion');
+  it('registers AskUserQuestion as a guarded custom tool and keeps TodoWrite removed', () => {
+    expect(agentRunnerContent).toContain("name: 'AskUserQuestion'");
+    expect(agentRunnerContent).toContain('buildAskUserQuestionTool');
+    expect(agentRunnerContent).toContain('this.requestUserQuestion');
+    expect(agentRunnerContent).toContain('formatAnswersForModel');
     expect(agentRunnerContent).not.toContain('TodoWrite');
     expect(agentRunnerContent).not.toContain('pendingQuestions');
   });

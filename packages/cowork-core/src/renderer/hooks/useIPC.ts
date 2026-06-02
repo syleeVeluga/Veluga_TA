@@ -9,6 +9,7 @@ import type {
   Message,
   TraceStep,
   ContentBlock,
+  AskUserQuestionAnswer,
 } from '../types';
 import i18n from '../i18n/config';
 
@@ -224,6 +225,14 @@ export function useIPC() {
             }
             break;
           }
+
+          case 'askUserQuestion.request':
+            store.enqueuePendingQuestion(event.payload);
+            break;
+
+          case 'askUserQuestion.dismiss':
+            store.removePendingQuestion(event.payload.toolUseId);
+            break;
 
           case 'config.status': {
             console.log('[useIPC] config.status received:', event.payload.isConfigured);
@@ -715,6 +724,19 @@ export function useIPC() {
     [send, setPendingSudoPassword]
   );
 
+  const removePendingQuestion = useAppStore((s) => s.removePendingQuestion);
+
+  const respondToQuestion = useCallback(
+    (toolUseId: string, answers: AskUserQuestionAnswer[]) => {
+      send({
+        type: 'askUserQuestion.response',
+        payload: { toolUseId, answers },
+      });
+      removePendingQuestion(toolUseId);
+    },
+    [send, removePendingQuestion]
+  );
+
   const selectFolder = useCallback(async (): Promise<string | null> => {
     if (!isElectron) {
       return '/mock/folder/path';
@@ -766,6 +788,7 @@ export function useIPC() {
     getSessionTraceSteps,
     respondToPermission,
     respondToSudoPassword,
+    respondToQuestion,
     selectFolder,
     getWorkingDir,
     changeWorkingDir,

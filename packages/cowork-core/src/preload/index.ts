@@ -60,6 +60,7 @@ const ALLOWED_CLIENT_EVENTS: ReadonlySet<string> = new Set<ClientEvent['type']>(
   'session.getTraceSteps',
   'permission.response',
   'sudo.password.response',
+  'askUserQuestion.response',
   'settings.update',
   'folder.select',
   'workdir.get',

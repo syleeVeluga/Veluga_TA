@@ -24,7 +24,15 @@ import {
 } from '@mariozechner/pi-coding-agent';
 import { Type, type TSchema } from '@sinclair/typebox';
 import { getSharedAuthStorage, ModelRegistry } from './shared-auth';
-import type { Session, Message, TraceStep, ServerEvent, ContentBlock } from '../../renderer/types';
+import type {
+  Session,
+  Message,
+  TraceStep,
+  ServerEvent,
+  ContentBlock,
+  AskUserQuestionAnswer,
+  QuestionItem,
+} from '../../renderer/types';
 import { v4 as uuidv4 } from 'uuid';
 import { PathResolver } from '../sandbox/path-resolver';
 import { MCPManager } from '../mcp/mcp-manager';
@@ -323,6 +331,68 @@ function buildMcpCustomTools(mcpManager: MCPManager): ToolDefinition[] {
   });
 }
 
+function formatAnswersForModel(questions: QuestionItem[], answers: AskUserQuestionAnswer[]): string {
+  return questions
+    .map((question, index) => {
+      const answer = answers[index];
+      const heading = question.header
+        ? `[${question.header}] ${question.question}`
+        : question.question;
+      if (!answer || answer.skipped) {
+        return `${heading}\n-> (skipped)`;
+      }
+
+      const parts: string[] = [];
+      if (answer.selectedLabels.length > 0) {
+        parts.push(answer.selectedLabels.join(', '));
+      }
+      if (answer.customText) {
+        parts.push(answer.customText);
+      }
+
+      return `${heading}\n-> ${parts.join(' / ') || '(no response)'}`;
+    })
+    .join('\n\n');
+}
+
+function buildAskUserQuestionTool(
+  requestUserQuestion: NonNullable<AgentRunnerOptions['requestUserQuestion']>,
+  sessionId: string
+): ToolDefinition<TSchema, unknown> {
+  const parameters = Type.Object({
+    questions: Type.Array(
+      Type.Object({
+        question: Type.String(),
+        header: Type.Optional(Type.String()),
+        options: Type.Optional(
+          Type.Array(
+            Type.Object({
+              label: Type.String(),
+              description: Type.Optional(Type.String()),
+            })
+          )
+        ),
+        multiSelect: Type.Optional(Type.Boolean()),
+      })
+    ),
+  });
+
+  return {
+    name: 'AskUserQuestion',
+    label: 'Ask user',
+    description: 'Ask the user for a decision or missing input before continuing.',
+    parameters,
+    async execute(toolCallId, params) {
+      const questions = (params as { questions: QuestionItem[] }).questions;
+      const answers = await requestUserQuestion(sessionId, toolCallId, questions);
+      return {
+        content: [{ type: 'text' as const, text: formatAnswersForModel(questions, answers) }],
+        details: undefined,
+      };
+    },
+  };
+}
+
 /**
  * Get shell environment with proper PATH (including node, npm, etc.)
  * GUI apps on macOS don't inherit shell PATH, so we need to extract it
@@ -434,6 +504,11 @@ interface AgentRunnerOptions {
     toolUseId: string,
     command: string
   ) => Promise<string | null>;
+  requestUserQuestion?: (
+    sessionId: string,
+    toolUseId: string,
+    questions: QuestionItem[]
+  ) => Promise<AskUserQuestionAnswer[]>;
 }
 
 interface CachedPiSession {
@@ -461,6 +536,11 @@ export class ClaudeAgentRunner {
     toolUseId: string,
     command: string
   ) => Promise<string | null>;
+  private requestUserQuestion?: (
+    sessionId: string,
+    toolUseId: string,
+    questions: QuestionItem[]
+  ) => Promise<AskUserQuestionAnswer[]>;
   private pathResolver: PathResolver;
   private mcpManager?: MCPManager;
   private _pluginRuntimeService?: PluginRuntimeService;
@@ -786,6 +866,7 @@ ${hints.join('\n')}
     this.sendToRenderer = options.sendToRenderer;
     this.saveMessage = options.saveMessage;
     this.requestSudoPassword = options.requestSudoPassword;
+    this.requestUserQuestion = options.requestUserQuestion;
     this.pathResolver = pathResolver;
     this.mcpManager = mcpManager;
     this._pluginRuntimeService = pluginRuntimeService;
@@ -1874,6 +1955,7 @@ If your answer uses linkable content from MCP tools, include a "Sources:" sectio
 Tool routing:
 - If user explicitly asks to use Chrome/browser/web navigation, prioritize Chrome MCP tools (mcp__Chrome__*) over generic WebSearch/WebFetch.
 - Use WebSearch/WebFetch only when Chrome MCP is unavailable or the user explicitly asks for generic web search.
+- When you need a user decision, missing parameter, or confirmation, call the AskUserQuestion tool with concise options instead of guessing.
 </tool_behavior>`,
         this.getBundledPathHints(),
       ]
@@ -1887,7 +1969,10 @@ Tool routing:
       // Re-read every query so newly added/removed MCP servers take effect immediately.
       const mcpCustomTools = this.mcpManager ? buildMcpCustomTools(this.mcpManager) : [];
       const extensionCustomTools = extensionResult.customTools || [];
-      const customTools = [...mcpCustomTools, ...extensionCustomTools];
+      const askUserQuestionTools = this.requestUserQuestion
+        ? [buildAskUserQuestionTool(this.requestUserQuestion, session.id)]
+        : [];
+      const customTools = [...mcpCustomTools, ...extensionCustomTools, ...askUserQuestionTools];
       if (mcpCustomTools.length > 0) {
         log(
           `[ClaudeAgentRunner] Registered ${mcpCustomTools.length} MCP tools as customTools:`,
@@ -1899,6 +1984,9 @@ Tool routing:
           `[ClaudeAgentRunner] Registered ${extensionCustomTools.length} extension tools as customTools:`,
           extensionCustomTools.map((t) => t.name).join(', ')
         );
+      }
+      if (askUserQuestionTools.length > 0) {
+        log('[ClaudeAgentRunner] Registered AskUserQuestion custom tool');
       }
 
       // Enrich process.env.PATH for build mode — ensures Skill commands (python3, node)

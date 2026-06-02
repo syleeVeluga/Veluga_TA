@@ -19,6 +19,8 @@ import type {
   Message,
   ServerEvent,
   PermissionResult,
+  AskUserQuestionAnswer,
+  QuestionItem,
   ContentBlock,
   TextContent,
   TraceStep,
@@ -87,6 +89,14 @@ export class SessionManager {
     string,
     { sessionId: string; resolve: (password: string | null) => void }
   > = new Map();
+  private pendingUserQuestions: Map<
+    string,
+    {
+      sessionId: string;
+      fallbackAnswers: AskUserQuestionAnswer[];
+      resolve: (answers: AskUserQuestionAnswer[]) => void;
+    }
+  > = new Map();
   private sandboxInitPromises: Map<string, Promise<void>> = new Map();
   private sessionTitleAttempts: Set<string> = new Set();
   private titleGenerationTokens: Map<string, symbol> = new Map();
@@ -140,6 +150,8 @@ export class SessionManager {
         saveMessage: (message: Message) => this.saveMessage(message),
         requestSudoPassword: (sessionId: string, toolUseId: string, command: string) =>
           this.requestSudoPassword(sessionId, toolUseId, command),
+        requestUserQuestion: (sessionId: string, toolUseId: string, questions: QuestionItem[]) =>
+          this.requestUserQuestion(sessionId, toolUseId, questions),
       },
       this.pathResolver,
       this.mcpManager,
@@ -936,6 +948,13 @@ export class SessionManager {
         this.sendToRenderer({ type: 'sudo.password.dismiss', payload: { toolUseId } });
       }
     }
+    for (const [toolUseId, entry] of this.pendingUserQuestions) {
+      if (entry.sessionId === sessionId) {
+        entry.resolve(entry.fallbackAnswers);
+        this.pendingUserQuestions.delete(toolUseId);
+        this.sendToRenderer({ type: 'askUserQuestion.dismiss', payload: { toolUseId } });
+      }
+    }
     // Also abort any pending controller we tracked
     const controller = this.activeSessions.get(sessionId);
     if (controller) {
@@ -1243,6 +1262,43 @@ export class SessionManager {
     if (entry) {
       entry.resolve(password);
       this.pendingSudoPasswords.delete(toolUseId);
+    }
+  }
+
+  async requestUserQuestion(
+    sessionId: string,
+    toolUseId: string,
+    questions: QuestionItem[]
+  ): Promise<AskUserQuestionAnswer[]> {
+    return new Promise((resolve) => {
+      const fallbackAnswers = questions.map(() => ({ selectedLabels: [], skipped: true }));
+      // Questions ask the user to read and choose (often several), so allow far longer
+      // than the sudo password prompt's 60s before falling back to "skipped".
+      const timeout = setTimeout(() => {
+        this.pendingUserQuestions.delete(toolUseId);
+        resolve(fallbackAnswers);
+        this.sendToRenderer({ type: 'askUserQuestion.dismiss', payload: { toolUseId } });
+      }, 300_000);
+      this.pendingUserQuestions.set(toolUseId, {
+        sessionId,
+        fallbackAnswers,
+        resolve: (answers: AskUserQuestionAnswer[]) => {
+          clearTimeout(timeout);
+          resolve(answers);
+        },
+      });
+      this.sendToRenderer({
+        type: 'askUserQuestion.request',
+        payload: { toolUseId, sessionId, questions },
+      });
+    });
+  }
+
+  handleUserQuestionResponse(toolUseId: string, answers: AskUserQuestionAnswer[]): void {
+    const entry = this.pendingUserQuestions.get(toolUseId);
+    if (entry) {
+      entry.resolve(answers);
+      this.pendingUserQuestions.delete(toolUseId);
     }
   }
 

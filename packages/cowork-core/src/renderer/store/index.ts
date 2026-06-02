@@ -5,6 +5,7 @@ import type {
   TraceStep,
   PermissionRequest,
   SudoPasswordRequest,
+  AskUserQuestionRequest,
   Settings,
   AppConfig,
   SandboxSetupProgress,
@@ -93,6 +94,9 @@ interface AppState {
   // Sudo password
   pendingSudoPassword: SudoPasswordRequest | null;
 
+  // Ask user question — FIFO queue so concurrent tool calls aren't dropped
+  pendingQuestions: AskUserQuestionRequest[];
+
   // Settings
   settings: Settings;
 
@@ -158,6 +162,9 @@ interface AppState {
   setPendingPermission: (permission: PermissionRequest | null) => void;
 
   setPendingSudoPassword: (request: SudoPasswordRequest | null) => void;
+
+  enqueuePendingQuestion: (request: AskUserQuestionRequest) => void;
+  removePendingQuestion: (toolUseId: string) => void;
 
   setSettings: (updates: Partial<Settings>) => void;
   updateSettings: (updates: Partial<Settings>) => void;
@@ -229,6 +236,7 @@ export const useAppStore = create<AppState>((set) => ({
   settingsTab: null,
   pendingPermission: null,
   pendingSudoPassword: null,
+  pendingQuestions: [],
   settings: defaultSettings,
   appConfig: null,
   isConfigured: false,
@@ -548,6 +556,18 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Sudo password actions
   setPendingSudoPassword: (request) => set({ pendingSudoPassword: request }),
+
+  // Ask user question actions
+  enqueuePendingQuestion: (request) =>
+    set((state) => ({
+      pendingQuestions: state.pendingQuestions.some((q) => q.toolUseId === request.toolUseId)
+        ? state.pendingQuestions
+        : [...state.pendingQuestions, request],
+    })),
+  removePendingQuestion: (toolUseId) =>
+    set((state) => ({
+      pendingQuestions: state.pendingQuestions.filter((q) => q.toolUseId !== toolUseId),
+    })),
 
   // Settings actions
   setSettings: (updates) =>

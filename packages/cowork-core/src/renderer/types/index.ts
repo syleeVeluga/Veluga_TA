@@ -440,6 +440,18 @@ export interface QuestionItem {
   multiSelect?: boolean;
 }
 
+export interface AskUserQuestionRequest {
+  toolUseId: string;
+  sessionId: string;
+  questions: QuestionItem[];
+}
+
+export interface AskUserQuestionAnswer {
+  selectedLabels: string[];
+  customText?: string;
+  skipped?: boolean;
+}
+
 export interface PermissionRule {
   tool: string;
   pattern?: string;
@@ -458,6 +470,7 @@ export type ClientEvent =
   | { type: 'session.getTraceSteps'; payload: { sessionId: string } }
   | { type: 'permission.response'; payload: { toolUseId: string; result: PermissionResult } }
   | { type: 'sudo.password.response'; payload: { toolUseId: string; password: string | null } }
+  | { type: 'askUserQuestion.response'; payload: { toolUseId: string; answers: AskUserQuestionAnswer[] } }
   | { type: 'settings.update'; payload: Record<string, unknown> }
   | { type: 'folder.select'; payload: Record<string, never> }
   | { type: 'workdir.get'; payload: Record<string, never> }
@@ -514,6 +527,8 @@ export type ServerEvent =
   | { type: 'permission.dismiss'; payload: { toolUseId: string } }
   | { type: 'sudo.password.request'; payload: SudoPasswordRequest }
   | { type: 'sudo.password.dismiss'; payload: { toolUseId: string } }
+  | { type: 'askUserQuestion.request'; payload: AskUserQuestionRequest }
+  | { type: 'askUserQuestion.dismiss'; payload: { toolUseId: string } }
   | { type: 'trace.step'; payload: { sessionId: string; step: TraceStep } }
   | { type: 'trace.update'; payload: { sessionId: string; stepId: string; updates: Partial<TraceStep> } }
   | { type: 'folder.selected'; payload: { path: string } }

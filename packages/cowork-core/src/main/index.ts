@@ -2796,6 +2796,9 @@ async function handleClientEvent(event: ClientEvent): Promise<unknown> {
     case 'sudo.password.response':
       return sm.handleSudoPasswordResponse(event.payload.toolUseId, event.payload.password);
 
+    case 'askUserQuestion.response':
+      return sm.handleUserQuestionResponse(event.payload.toolUseId, event.payload.answers);
+
     case 'folder.select': {
       const folderResult = await dialog.showOpenDialog(mainWindow!, {
         properties: ['openDirectory'],

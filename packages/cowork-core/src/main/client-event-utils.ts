@@ -11,6 +11,8 @@ export function eventRequiresSessionManager(event: ClientEvent): boolean {
     case 'session.getMessages':
     case 'session.getTraceSteps':
     case 'permission.response':
+    case 'sudo.password.response':
+    case 'askUserQuestion.response':
       return true;
     default:
       return false;

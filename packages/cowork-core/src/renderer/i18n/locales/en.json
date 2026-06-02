@@ -742,6 +742,16 @@
     "thinking": "Thinking",
     "executionTime": "Execution time: {{time}}"
   },
+  "askUserQuestion": {
+    "title": "Question",
+    "skip": "Skip",
+    "skipAll": "Skip all",
+    "orDirect": "Or reply directly...",
+    "pager": "{{current}} of {{total}}",
+    "send": "Send",
+    "next": "Next",
+    "prev": "Back"
+  },
   "schedule": {
     "createTitle": "Create Schedule",
     "editTitle": "Edit Schedule",
