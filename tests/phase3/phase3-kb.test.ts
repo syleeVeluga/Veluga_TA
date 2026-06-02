@@ -1,7 +1,7 @@
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PolicyContextStore, type KbDocChunk, type PolicyContext } from '../../packages/shared-types/src/index.js';
 import { mergePolicies } from '../../packages/policy-service/src/merge.js';
 import { RpcPolicyServiceClient } from '../../packages/policy-service/src/rpc-client.js';
@@ -9,7 +9,7 @@ import { AuditLogger } from '../../packages/veluga-main/src/audit-logger.js';
 import { knowledgeGate } from '../../packages/veluga-main/src/agents/knowledge-gate.js';
 import { resolveSkillPlan } from '../../packages/veluga-main/src/agents/skill-resolver.js';
 import { KbContractError, parseKbSearchOutput } from '../../packages/veluga-main/src/kb/kb-contract.js';
-import { KbMcpAdapter, type KbMcpClient, type KbToolName } from '../../packages/veluga-main/src/kb/kb-mcp-adapter.js';
+import { KbMcpAdapter, KbUnavailableError, type KbMcpClient, type KbToolName } from '../../packages/veluga-main/src/kb/kb-mcp-adapter.js';
 import { verifyProjectCitations } from '../../packages/veluga-main/src/citation-verifier.js';
 import { draftGovProposal } from '../../skills/domain/gov-proposal/handler.js';
 import { checkCompliance, COMPLIANCE_RULE_IDS } from '../../skills/core/compliance-checker/handler.js';
@@ -273,6 +273,53 @@ describe('Phase3 KB integration', () => {
       user: { user_id: 'rpc@veluga.io' },
       active_kb_scopes: ['policy:internal']
     });
+  });
+
+  it('aborts HTTP KB calls with the adapter timeout', async () => {
+    const originalFetch = globalThis.fetch;
+    const policy = makePhase3Policy();
+    let callSignal: AbortSignal | undefined;
+    let calls = 0;
+    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(JSON.stringify({ tools: ['kb_search', 'kb_metadata', 'kb_hybrid'] }), {
+          status: 200
+        });
+      }
+      callSignal = init?.signal ?? undefined;
+      const error = new Error('The operation was aborted');
+      error.name = 'TimeoutError';
+      throw error;
+    }) as typeof fetch;
+
+    try {
+      const adapter = new KbMcpAdapter({ url: 'http://kb.local', timeoutMs: 25 });
+      await expect(adapter.healthCheck(policy)).resolves.toBe(true);
+      const search = adapter.search({ query: 'timeout', scopes: ['law:public'] }, policy);
+      await expect(search).rejects.toThrow(KbUnavailableError);
+      await expect(search).rejects.toThrow('KB service timed out');
+      expect(callSignal).toBeInstanceOf(AbortSignal);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('reports PolicyService RPC timeout clearly', async () => {
+    let signal: AbortSignal | undefined;
+    const client = new RpcPolicyServiceClient({
+      endpoint: 'http://policy.local',
+      timeoutMs: 25,
+      fetchImpl: vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        signal = init?.signal ?? undefined;
+        const error = new Error('The operation was aborted');
+        error.name = 'TimeoutError';
+        throw error;
+      }) as typeof fetch
+    });
+
+    await expect(client.fetchAll()).rejects.toThrow('PolicyService RPC timed out after 25ms');
+    expect(signal).toBeInstanceOf(AbortSignal);
   });
 });
 

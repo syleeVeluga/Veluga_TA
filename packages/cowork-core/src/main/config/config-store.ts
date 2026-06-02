@@ -138,6 +138,9 @@ export interface AppConfig {
   // Dedicated memory runtime config
   memoryRuntime: MemoryRuntimeConfig;
 
+  // Agent stream timeout configuration
+  agentRuntime: AgentRuntimeConfig;
+
   // Enable thinking mode (show thinking steps)
   enableThinking: boolean;
   thinkingLevel?: SharedThinkingLevel;
@@ -172,6 +175,11 @@ export interface MemoryRuntimeConfig {
   evalMaxRounds?: number;
   evalArtifactsRoot?: string;
   promptIterationRounds?: number;
+}
+
+export interface AgentRuntimeConfig {
+  firstResponseTimeoutMs: number;
+  activityTimeoutMs: number;
 }
 
 const DEFAULT_CONFIG_SET_ID = 'default';
@@ -300,6 +308,10 @@ const defaultConfig: AppConfig = {
     evalMaxRounds: 12,
     evalArtifactsRoot: '',
     promptIterationRounds: 2,
+  },
+  agentRuntime: {
+    firstResponseTimeoutMs: 90000,
+    activityTimeoutMs: 300000,
   },
   enableThinking: false,
   thinkingLevel: 'off',
@@ -462,6 +474,21 @@ function normalizeMemoryRuntimeConfig(raw: unknown): MemoryRuntimeConfig {
       typeof value.promptIterationRounds === 'number' && Number.isFinite(value.promptIterationRounds)
         ? Math.max(0, Math.min(10, Math.round(value.promptIterationRounds)))
         : defaultConfig.memoryRuntime.promptIterationRounds,
+  };
+}
+
+function normalizeAgentRuntimeConfig(raw: unknown): AgentRuntimeConfig {
+  const value = typeof raw === 'object' && raw !== null ? (raw as Partial<AgentRuntimeConfig>) : {};
+  return {
+    firstResponseTimeoutMs:
+      typeof value.firstResponseTimeoutMs === 'number' &&
+      Number.isFinite(value.firstResponseTimeoutMs)
+        ? Math.max(5000, Math.round(value.firstResponseTimeoutMs))
+        : defaultConfig.agentRuntime.firstResponseTimeoutMs,
+    activityTimeoutMs:
+      typeof value.activityTimeoutMs === 'number' && Number.isFinite(value.activityTimeoutMs)
+        ? Math.max(5000, Math.round(value.activityTimeoutMs))
+        : defaultConfig.agentRuntime.activityTimeoutMs,
   };
 }
 
@@ -1072,6 +1099,7 @@ export class ConfigStore {
       sandboxEnabled: toBoolean(raw.sandboxEnabled, defaultConfig.sandboxEnabled),
       memoryEnabled: toBoolean(raw.memoryEnabled, defaultConfig.memoryEnabled),
       memoryRuntime: normalizeMemoryRuntimeConfig(raw.memoryRuntime),
+      agentRuntime: normalizeAgentRuntimeConfig(raw.agentRuntime),
       enableThinking: projected.enableThinking,
       thinkingLevel: projected.thinkingLevel,
       visibleProviders: normalizeVisibleProviders(raw.visibleProviders),

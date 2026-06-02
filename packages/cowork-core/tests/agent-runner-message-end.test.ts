@@ -100,6 +100,37 @@ describe('toUserFacingErrorText', () => {
     );
   });
 
+  it('maps stream_stalled to a mid-stream stall hint', () => {
+    expect(toUserFacingErrorText('stream_stalled', 'en')).toBe(
+      'The response started but then stopped before completion. The connection may be unstable. Try again shortly.'
+    );
+  });
+
+  it('maps abort and timeout variants to unreachable endpoint hint', () => {
+    for (const raw of [
+      'AbortError: The operation was aborted',
+      'request timed out',
+      'connect ETIMEDOUT 10.0.0.1:443',
+    ]) {
+      const result = toUserFacingErrorText(raw, 'en');
+      expect(result).toContain('gateway or model endpoint could not be reached');
+      expect(result).toContain(raw);
+    }
+  });
+
+  it('keeps HTTP-status errors that mention a timeout in their status category', () => {
+    // "504 Gateway Timeout" must stay in the server/retry category and not be
+    // captured by the generic "timeout" substring branch.
+    const gateway = toUserFacingErrorText('504 Gateway Timeout', 'en');
+    expect(gateway).toContain('upstream service returned an error');
+    expect(gateway).not.toContain('gateway or model endpoint could not be reached');
+
+    // A timeout error without an HTTP status still maps to the unreachable hint.
+    expect(toUserFacingErrorText('request timed out', 'en')).toContain(
+      'gateway or model endpoint could not be reached'
+    );
+  });
+
   it('maps errors in Korean when requested', () => {
     const result = toUserFacingErrorText('HTTP 400: bad request - ROLE_UNSPECIFIED', 'ko');
     expect(result).toContain('upstream이 요청을 거부했습니다(400)');

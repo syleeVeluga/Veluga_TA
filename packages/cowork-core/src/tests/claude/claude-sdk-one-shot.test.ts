@@ -61,6 +61,10 @@ function makeConfig(): AppConfig {
       evalArtifactsRoot: '',
       promptIterationRounds: 2,
     },
+    agentRuntime: {
+      firstResponseTimeoutMs: 90000,
+      activityTimeoutMs: 300000,
+    },
     enableThinking: false,
     isConfigured: true,
   };

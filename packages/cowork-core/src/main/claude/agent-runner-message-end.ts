@@ -23,6 +23,10 @@ const ERROR_TEXT = {
   en: {
     timeout:
       'Model response timed out. No upstream response was received for a long time. Try again later or check the current model/gateway load.',
+    streamStalled:
+      'The response started but then stopped before completion. The connection may be unstable. Try again shortly.',
+    unreachable:
+      'The gateway or model endpoint could not be reached, or did not respond in time. Check the network and endpoint settings.',
     empty:
       'The model returned an empty successful result. The current model or gateway may have a compatibility issue. Try again or switch protocol.',
     badRequest:
@@ -40,6 +44,10 @@ const ERROR_TEXT = {
     retrying: '_Agent is retrying automatically. Please wait..._',
   },
   ko: {
+    streamStalled:
+      '응답이 시작되었지만 완료 전에 멈췄습니다. 연결이 불안정할 수 있습니다. 잠시 후 다시 시도하세요.',
+    unreachable:
+      '게이트웨이 또는 모델 endpoint에 연결할 수 없거나 제한 시간 안에 응답이 없었습니다. 네트워크와 endpoint 설정을 확인하세요.',
     timeout:
       '모델 응답 시간이 초과되었습니다. 오랫동안 upstream 응답을 받지 못했습니다. 잠시 후 다시 시도하거나 현재 모델/게이트웨이 부하를 확인하세요.',
     empty:
@@ -82,6 +90,9 @@ export function toUserFacingErrorText(errorText: string, language?: AppLanguage)
   if (lower.includes('first_response_timeout')) {
     return text.timeout;
   }
+  if (lower.includes('stream_stalled')) {
+    return text.streamStalled;
+  }
   if (lower.includes('empty_success_result')) {
     return text.empty;
   }
@@ -114,6 +125,18 @@ export function toUserFacingErrorText(errorText: string, language?: AppLanguage)
     lower.includes('overloaded')
   ) {
     return withOriginalError(text.server, errorText, normalizedLanguage);
+  }
+  // Checked after the HTTP-status branches so that status-bearing errors like
+  // "504 Gateway Timeout" keep their server/rate-limit category instead of
+  // being captured here by the generic "timeout" substring.
+  if (
+    lower.includes('timed out') ||
+    lower.includes('timeout') ||
+    lower.includes('aborterror') ||
+    lower.includes('the operation was aborted') ||
+    lower.includes('etimedout')
+  ) {
+    return `${text.unreachable} (${errorText})`;
   }
   if (
     lower.includes('terminated') ||

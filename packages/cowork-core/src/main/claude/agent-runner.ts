@@ -966,6 +966,9 @@ ${hints.join('\n')}
 
     const thinkingStepId = uuidv4();
     let abortedByTimeout = false;
+    let abortedByTerminalError = false;
+    let timeoutErrorCode: 'first_response_timeout' | 'stream_stalled' =
+      'first_response_timeout';
 
     try {
       this.pathResolver.registerSession(session.id, session.mountedPaths);
@@ -2081,10 +2084,18 @@ Tool routing:
       const thinkParser = new ThinkTagStreamParser();
       const promptStartedAt = Date.now();
       const streamEventCounts = new Map<string, number>();
+      const agentRuntime = configStore.get('agentRuntime');
+      const firstResponseTimeoutMs =
+        provider === 'ollama'
+          ? Math.max(agentRuntime.firstResponseTimeoutMs, 300000)
+          : agentRuntime.firstResponseTimeoutMs;
+      const activityTimeoutMs = agentRuntime.activityTimeoutMs;
 
       // Ollama cold-start feedback: if provider is 'ollama' and no stream event arrives
       // within 10 seconds, show a "model loading" trace update so users know what's happening.
       let ollamaColdStartTimerId: ReturnType<typeof setTimeout> | undefined;
+      let firstResponseTimeoutId: ReturnType<typeof setTimeout> | undefined;
+      let activityTimeoutId: ReturnType<typeof setTimeout> | undefined;
       let receivedFirstStreamEvent = false;
       let firstStreamEventAt: number | undefined;
       if (provider === 'ollama') {
@@ -2097,8 +2108,46 @@ Tool routing:
         }, 10000);
       }
 
+      const emitTerminalError = (errorText: string, opts?: { alreadyUserFacing?: boolean }) => {
+        if (hasEmittedError) {
+          return;
+        }
+        terminalErrorText = opts?.alreadyUserFacing
+          ? errorText
+          : toUserFacingErrorText(errorText, configStore.get('language'));
+        hasEmittedError = true;
+        this.sendMessage(session.id, {
+          id: uuidv4(),
+          sessionId: session.id,
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: `**Error**: ${terminalErrorText}\n\n${getAgentErrorFollowupText(
+                terminalErrorText,
+                configStore.get('language')
+              )}`,
+            },
+          ],
+          timestamp: Date.now(),
+        });
+      };
+
+      const resetActivityTimeout = () => {
+        if (activityTimeoutId) clearTimeout(activityTimeoutId);
+        activityTimeoutId = setTimeout(() => {
+          logWarn(
+            `[ClaudeAgentRunner] Prompt timed out (no activity for ${activityTimeoutMs}ms), aborting`
+          );
+          abortedByTimeout = true;
+          timeoutErrorCode = 'stream_stalled';
+          controller.abort();
+        }, activityTimeoutMs);
+      };
+
       const markFirstStreamEvent = (eventType: string) => {
         if (receivedFirstStreamEvent) {
+          resetActivityTimeout();
           return;
         }
         receivedFirstStreamEvent = true;
@@ -2106,6 +2155,10 @@ Tool routing:
         if (ollamaColdStartTimerId) {
           clearTimeout(ollamaColdStartTimerId);
         }
+        if (firstResponseTimeoutId) {
+          clearTimeout(firstResponseTimeoutId);
+        }
+        resetActivityTimeout();
         this.sendTraceUpdate(session.id, thinkingStepId, {
           title: 'Processing request...',
         });
@@ -2124,16 +2177,19 @@ Tool routing:
         }
       };
 
-      // Activity-based timeout: reset the 5-min timer whenever the SDK sends events
-      const PROMPT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-      let activityTimeoutId: ReturnType<typeof setTimeout> | undefined;
-      const resetActivityTimeout = () => {
-        if (activityTimeoutId) clearTimeout(activityTimeoutId);
-        activityTimeoutId = setTimeout(() => {
-          logWarn('[ClaudeAgentRunner] Prompt timed out (no activity for 5 min), aborting');
+      const scheduleFirstResponseTimeout = () => {
+        if (firstResponseTimeoutId) clearTimeout(firstResponseTimeoutId);
+        firstResponseTimeoutId = setTimeout(() => {
+          if (receivedFirstStreamEvent) {
+            return;
+          }
+          logWarn(
+            `[ClaudeAgentRunner] Prompt timed out (no first response for ${firstResponseTimeoutMs}ms), aborting`
+          );
           abortedByTimeout = true;
+          timeoutErrorCode = 'first_response_timeout';
           controller.abort();
-        }, PROMPT_TIMEOUT_MS);
+        }, firstResponseTimeoutMs);
       };
 
       const recordStreamEvent = (eventType: string) => {
@@ -2151,8 +2207,11 @@ Tool routing:
         try {
           if (controller.signal.aborted) return;
 
-          // Reset activity timeout on meaningful events
-          resetActivityTimeout();
+          // Any stream event proves the connection is alive: cancel the
+          // first-response timer on the first event (whatever its type) and
+          // reset the activity timer on every subsequent one. markFirstStreamEvent
+          // is idempotent and handles both cases.
+          markFirstStreamEvent(event.type);
 
           if (event.type === 'message_update') {
             const updateType = event.assistantMessageEvent.type;
@@ -2187,7 +2246,6 @@ Tool routing:
               if (controller.signal.aborted) break;
               const ame = event.assistantMessageEvent;
               if (ame.type === 'text_delta') {
-                markFirstStreamEvent(ame.type);
                 const parsed = thinkParser.push(ame.delta);
                 if (parsed.thinking) {
                   this.sendToRenderer({
@@ -2200,14 +2258,12 @@ Tool routing:
                   this.sendPartial(session.id, parsed.text);
                 }
               } else if (ame.type === 'thinking_delta') {
-                markFirstStreamEvent(ame.type);
                 // Forward thinking delta to renderer for real-time display
                 this.sendToRenderer({
                   type: 'stream.thinking',
                   payload: { sessionId: session.id, delta: ame.delta },
                 });
               } else if (ame.type === 'toolcall_start') {
-                markFirstStreamEvent(ame.type);
                 const partial = ame.partial;
                 const toolContent = partial?.content?.[ame.contentIndex];
                 const toolName = toolContent?.type === 'toolCall' ? toolContent.name : 'unknown';
@@ -2231,6 +2287,9 @@ Tool routing:
               } else if (ame.type === 'error') {
                 const errorDetail = JSON.stringify(ame.error?.content || 'no content');
                 logCtxError('[ClaudeAgentRunner] pi-ai stream error:', ame.reason, errorDetail);
+                emitTerminalError(`${ame.reason}: ${errorDetail}`);
+                abortedByTerminalError = true;
+                controller.abort();
               }
               break;
             }
@@ -2284,25 +2343,9 @@ Tool routing:
                 );
               }
               if (resolvedPayload.errorText) {
-                terminalErrorText = resolvedPayload.errorText;
-                if (!hasEmittedError) {
-                  hasEmittedError = true;
-                  this.sendMessage(session.id, {
-                    id: uuidv4(),
-                    sessionId: session.id,
-                    role: 'assistant',
-                    content: [
-                      {
-                        type: 'text',
-                        text: `**Error**: ${resolvedPayload.errorText}\n\n${getAgentErrorFollowupText(
-                          resolvedPayload.errorText,
-                          configStore.get('language')
-                        )}`,
-                      },
-                    ],
-                    timestamp: Date.now(),
-                  });
-                }
+                // resolveMessageEndPayload already mapped this through
+                // toUserFacingErrorText; emit it verbatim to avoid double-wrapping.
+                emitTerminalError(resolvedPayload.errorText, { alreadyUserFacing: true });
                 break;
               }
               if (resolvedPayload.shouldEmitMessage) {
@@ -2469,25 +2512,14 @@ Tool routing:
             compactionStepId = undefined;
           }
           if (!hasEmittedError) {
-            hasEmittedError = true;
-            const errorText = toUserFacingErrorText(
-              toErrorText(subscribeErr),
-              configStore.get('language')
-            );
-            this.sendMessage(session.id, {
-              id: uuidv4(),
-              sessionId: session.id,
-              role: 'assistant',
-              content: [{ type: 'text', text: `**Error**: ${errorText}` }],
-              timestamp: Date.now(),
-            });
+            emitTerminalError(toErrorText(subscribeErr));
           }
         }
       });
 
       // Execute the prompt — unsubscribe in finally to prevent event listener leak
       try {
-        resetActivityTimeout();
+        scheduleFirstResponseTimeout();
         if (provider === 'ollama') {
           log(
             '[ClaudeAgentRunner] Starting Ollama prompt',
@@ -2513,6 +2545,7 @@ Tool routing:
         } catch (e) {
           logWarn('[ClaudeAgentRunner] unsubscribe error:', e);
         }
+        if (firstResponseTimeoutId) clearTimeout(firstResponseTimeoutId);
         if (activityTimeoutId) clearTimeout(activityTimeoutId);
         if (ollamaColdStartTimerId) clearTimeout(ollamaColdStartTimerId);
       }
@@ -2522,18 +2555,7 @@ Tool routing:
       // If the SDK swallowed the AbortError and returned void, detect timeout here
       if (controller.signal.aborted && abortedByTimeout) {
         logCtx('[ClaudeAgentRunner] Aborted due to timeout (detected after prompt returned)');
-        const timeoutText = toUserFacingErrorText(
-          'first_response_timeout',
-          configStore.get('language')
-        );
-        const errorMsg: Message = {
-          id: uuidv4(),
-          sessionId: session.id,
-          role: 'assistant',
-          content: [{ type: 'text', text: `**Error**: ${timeoutText}` }],
-          timestamp: Date.now(),
-        };
-        this.sendMessage(session.id, errorMsg);
+        emitTerminalError(timeoutErrorCode);
         this.sendTraceUpdate(session.id, thinkingStepId, {
           status: 'error',
           title: 'Request timed out',
@@ -2549,21 +2571,31 @@ Tool routing:
       if (error instanceof Error && error.name === 'AbortError') {
         if (abortedByTimeout) {
           logCtx('[ClaudeAgentRunner] Aborted due to timeout');
-          const timeoutText = toUserFacingErrorText(
-            'first_response_timeout',
-            configStore.get('language')
-          );
-          const errorMsg: Message = {
+          const timeoutText = toUserFacingErrorText(timeoutErrorCode, configStore.get('language'));
+          this.sendMessage(session.id, {
             id: uuidv4(),
             sessionId: session.id,
             role: 'assistant',
-            content: [{ type: 'text', text: `**Error**: ${timeoutText}` }],
+            content: [
+              {
+                type: 'text',
+                text: `**Error**: ${timeoutText}\n\n${getAgentErrorFollowupText(
+                  timeoutText,
+                  configStore.get('language')
+                )}`,
+              },
+            ],
             timestamp: Date.now(),
-          };
-          this.sendMessage(session.id, errorMsg);
+          });
           this.sendTraceUpdate(session.id, thinkingStepId, {
             status: 'error',
             title: 'Request timed out',
+          });
+        } else if (abortedByTerminalError) {
+          logCtx('[ClaudeAgentRunner] Aborted after terminal stream error');
+          this.sendTraceUpdate(session.id, thinkingStepId, {
+            status: 'error',
+            title: 'Request failed',
           });
         } else {
           logCtx('[ClaudeAgentRunner] Aborted by user');

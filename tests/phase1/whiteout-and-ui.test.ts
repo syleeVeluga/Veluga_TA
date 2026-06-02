@@ -1,6 +1,6 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { selectableKbScopes, shouldShowExternalDataBanner, visibleSkills } from '../../packages/veluga-renderer/src/policy-bindings.js';
 import { colors } from '../../packages/veluga-ui/theme.js';
 import { createOpenAICompatibleGateway } from '../../packages/veluga-main/src/llm-gateway.js';
@@ -50,6 +50,30 @@ describe('Phase1 white-out and renderer bindings', () => {
       const text = await readFile(file, 'utf8');
       expect(text, file).not.toMatch(/api\.(anthropic|openai)\.com/);
       expect(text, file).not.toMatch(/posthog|@sentry|@vercel\/analytics|datadog|@segment|mixpanel|react-ga/i);
+    }
+  });
+
+  it('passes a timeout signal to the LLM gateway and reports timeout clearly', async () => {
+    const originalFetch = globalThis.fetch;
+    let signal: AbortSignal | undefined;
+    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      signal = init?.signal ?? undefined;
+      const error = new Error('The operation was aborted');
+      error.name = 'TimeoutError';
+      throw error;
+    }) as typeof fetch;
+
+    try {
+      const gateway = createOpenAICompatibleGateway({
+        VELUGA_LLM_GATEWAY_URL: 'http://gateway.local',
+        VELUGA_LLM_GATEWAY_TIMEOUT_MS: '25'
+      });
+      await expect(
+        gateway.chat({ model: 'internal-model', messages: [{ role: 'user', content: 'hello' }] })
+      ).rejects.toThrow('LLM gateway timed out after 25ms');
+      expect(signal).toBeInstanceOf(AbortSignal);
+    } finally {
+      globalThis.fetch = originalFetch;
     }
   });
 

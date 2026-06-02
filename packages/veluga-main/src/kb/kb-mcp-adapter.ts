@@ -45,6 +45,23 @@ export class KbUnavailableError extends Error {
   }
 }
 
+function resolveTimeoutMs(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.round(value)
+    : fallback;
+}
+
+function timeoutMsFromEnv(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return resolveTimeoutMs(parsed, fallback);
+}
+
+function isAbortLike(error: unknown): boolean {
+  // Key off the abort/timeout error name only. Matching the message text would
+  // misclassify unrelated failures (e.g. "connect ETIMEDOUT") as KB timeouts.
+  return error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError');
+}
+
 export class KbMcpAdapter {
   private available = false;
   private tools = new Set<string>();
@@ -52,8 +69,15 @@ export class KbMcpAdapter {
   private readonly timeoutMs: number;
 
   constructor(private readonly options: KbAdapterOptions = {}) {
-    this.client = options.client ?? (options.url || process.env.VELUGA_KB_MCP_URL ? new HttpKbClient(options.url ?? process.env.VELUGA_KB_MCP_URL!) : null);
-    this.timeoutMs = options.timeoutMs ?? 1500;
+    this.timeoutMs = resolveTimeoutMs(
+      options.timeoutMs,
+      timeoutMsFromEnv(process.env.VELUGA_KB_TIMEOUT_MS, 1500)
+    );
+    this.client =
+      options.client ??
+      (options.url || process.env.VELUGA_KB_MCP_URL
+        ? new HttpKbClient(options.url ?? process.env.VELUGA_KB_MCP_URL!, this.timeoutMs)
+        : null);
   }
 
   isAvailable(): boolean {
@@ -200,11 +224,16 @@ export class KbMcpAdapter {
 
   private async withTimeout<T>(promise: Promise<T>): Promise<T> {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // HttpKbClient already aborts its fetch via AbortSignal.timeout(this.timeoutMs),
+    // which closes the socket cleanly. Give this race a grace window so that path
+    // wins; this Promise.race only backstops injected clients that ignore the
+    // deadline (and would otherwise leave the call pending forever).
+    const backstopMs = this.timeoutMs + 500;
     try {
       return await Promise.race([
         promise,
         new Promise<T>((_, reject) => {
-          timer = setTimeout(() => reject(new KbUnavailableError('KB service timed out')), this.timeoutMs);
+          timer = setTimeout(() => reject(new KbUnavailableError('KB service timed out')), backstopMs);
         })
       ]);
     } finally {
@@ -214,22 +243,60 @@ export class KbMcpAdapter {
 }
 
 class HttpKbClient implements KbMcpClient {
-  constructor(private readonly baseUrl: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly timeoutMs: number
+  ) {}
 
   async listTools(): Promise<string[]> {
-    const response = await fetch(new URL('/tools', this.baseUrl));
+    let response: Response;
+    try {
+      response = await fetch(new URL('/tools', this.baseUrl), {
+        signal: AbortSignal.timeout(this.timeoutMs)
+      });
+    } catch (error) {
+      if (isAbortLike(error)) throw new KbUnavailableError('KB service timed out');
+      throw new KbUnavailableError(
+        `KB service unavailable: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     if (!response.ok) throw new KbUnavailableError(`KB tool listing failed: ${response.status}`);
-    const body = (await response.json()) as { tools?: string[] };
-    return body.tools ?? [];
+    try {
+      const body = (await response.json()) as { tools?: string[] };
+      return body.tools ?? [];
+    } catch (error) {
+      // A stall during the body read aborts here rather than at the fetch call.
+      if (isAbortLike(error)) throw new KbUnavailableError('KB service timed out');
+      throw new KbUnavailableError(
+        `KB service unavailable: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   async callTool(name: KbToolName, input: unknown): Promise<unknown> {
-    const response = await fetch(new URL(`/tools/${name}`, this.baseUrl), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(input)
-    });
+    let response: Response;
+    try {
+      response = await fetch(new URL(`/tools/${name}`, this.baseUrl), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        signal: AbortSignal.timeout(this.timeoutMs),
+        body: JSON.stringify(input)
+      });
+    } catch (error) {
+      if (isAbortLike(error)) throw new KbUnavailableError('KB service timed out');
+      throw new KbUnavailableError(
+        `KB service unavailable: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     if (!response.ok) throw new KbUnavailableError(`KB tool call failed: ${response.status}`);
-    return response.json();
+    try {
+      return await response.json();
+    } catch (error) {
+      // A stall during the body read aborts here rather than at the fetch call.
+      if (isAbortLike(error)) throw new KbUnavailableError('KB service timed out');
+      throw new KbUnavailableError(
+        `KB service unavailable: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 }
