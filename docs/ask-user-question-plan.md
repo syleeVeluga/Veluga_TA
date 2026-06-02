@@ -1,10 +1,13 @@
 # 에이전트 진행 중 역질문(AskUserQuestion) 인라인 다이얼로그 구현
 
+> 📂 단계별 상세 구현 계획은 [`ask-user-question-plan/`](ask-user-question-plan/README.md) 폴더로 분리했다(타입 → 메인 → 렌더러 → i18n → 검증). 이 문서는 고수준 인덱스로 유지한다.
+
 ## Context
 
 현재 Veluga_TA는 Codex / Claude CoWork처럼 **에이전트가 실행 도중 사용자에게 역질문을 던지고 응답을 기다리는** 기능이 없다.
 
 조사 결과 확정된 사실:
+
 - pi-coding-agent SDK의 builtin 툴은 `read/bash/edit/write/grep/find/ls` **뿐이다**. `AskUserQuestion`은 SDK에도, 이 앱의 에이전트 백엔드에도 **등록되어 있지 않다.**
 - 렌더러의 `AskUserQuestionBlock.tsx`는 주석대로 "read-only display for historical messages" — 과거 메시지 렌더링용 잔존 코드일 뿐, 실제로 에이전트가 호출할 수 있는 경로가 없다.
 - 반면 **권한 요청(`requestPermission`) / sudo 비밀번호(`requestSudoPassword`)** 흐름이 "툴 핸들러 → Promise로 응답 대기 → ServerEvent로 UI 요청 → IPC 응답으로 resolve"라는 정확히 필요한 패턴을 이미 완성형으로 제공한다.
@@ -38,7 +41,9 @@
 ## 변경 파일 및 작업
 
 ### A. 타입 (단일 출처: renderer/types/index.ts)
+
 `packages/cowork-core/src/renderer/types/index.ts`
+
 - 기존 `QuestionItem` / `QuestionOption`(L430-441) **재사용**.
 - 새 타입 추가:
   - `AskUserQuestionRequest { toolUseId; sessionId; questions: QuestionItem[] }`
@@ -52,6 +57,7 @@
 ### B. Main — 툴 등록 + 응답 대기
 
 `packages/cowork-core/src/main/session/session-manager.ts`
+
 - `pendingPermissions`/`pendingSudoPasswords` Map 선언부(L85-89) 옆에 `pendingUserQuestions: Map<string, { sessionId; resolve }>` 추가.
 - `requestSudoPassword`(L1215) / `handleSudoPasswordResponse`(L1241) 패턴을 그대로 복제해:
   - `requestUserQuestion(sessionId, toolUseId, questions): Promise<AskUserQuestionAnswer[]>` — Map 등록 + 타임아웃 + `sendToRenderer({type:'askUserQuestion.request',...})`.
@@ -59,6 +65,7 @@
 - ClaudeAgentRunner 생성 시 옵션으로 `requestUserQuestion` 콜백 주입(sudo 콜백 주입 지점과 동일).
 
 `packages/cowork-core/src/main/claude/agent-runner.ts`
+
 - `AgentRunnerOptions`에 `requestUserQuestion?: (sessionId, toolUseId, questions) => Promise<AskUserQuestionAnswer[]>` 추가.
 - `AskUserQuestion` custom ToolDefinition 생성 함수 추가(이름은 렌더러 special-case와 일치하도록 정확히 `AskUserQuestion`). `buildMcpCustomTools`(L291)와 동일한 TypeBox + async execute 형태:
   - `parameters`: `Type.Object({ questions: Type.Array(Type.Object({ question, header?, options?: Array({label, description?}), multiSelect? })) })`
@@ -67,29 +74,36 @@
 - (권장) 시스템 프롬프트에 "사용자 의사결정이 필요할 때 AskUserQuestion 툴을 사용하라"는 1~2줄 가이드를 append(L1855 부근 `<tool_behavior>` 블록). 이게 없으면 모델이 툴 존재를 알아도 잘 안 쓸 수 있음.
 
 `packages/cowork-core/src/main/index.ts`
+
 - `client-invoke` switch(L2793 `permission.response` 인근)에 `case 'askUserQuestion.response': return sm.handleUserQuestionResponse(payload.toolUseId, payload.answers);` 추가.
 
 `packages/cowork-core/src/main/client-event-utils.ts` (L13)
+
 - 여기에도 `permission.response` 분기가 있으므로, 동일하게 `askUserQuestion.response` 분기를 추가(두 경로가 일관되도록 확인).
 
 `packages/cowork-core/src/preload/index.ts` (L52)
+
 - `ALLOWED_CLIENT_EVENTS` Set에 `'askUserQuestion.response'` 추가(누락 시 IPC 차단됨 — 필수).
 
 ### C. Renderer — 상태 + 인라인 UI
 
 `packages/cowork-core/src/renderer/store/index.ts`
+
 - `pendingPermission`/`pendingSudoPassword`(L90-94, 230-231) 패턴대로 `pendingQuestion: AskUserQuestionRequest | null` 상태 + `setPendingQuestion` 액션 추가.
 
 `packages/cowork-core/src/renderer/store/selectors.ts` (L289)
+
 - `usePendingDialogs()`에 `pendingQuestion` 추가(또는 ChatView 전용 selector 신설).
 
 `packages/cowork-core/src/renderer/hooks/useIPC.ts`
+
 - ServerEvent switch(L199 `permission.request` 인근)에:
   - `case 'askUserQuestion.request': store.setPendingQuestion(event.payload); break;`
   - `case 'askUserQuestion.dismiss': { if (current toolUseId 일치) store.setPendingQuestion(null); } break;`
 - `respondToPermission`(L694) 패턴대로 `respondToQuestion(toolUseId, answers)` 콜백 추가 → `send({type:'askUserQuestion.response',...})` + `setPendingQuestion(null)`. 훅 반환 객체에 노출.
 
 **새 컴포넌트** `packages/cowork-core/src/renderer/components/AskUserQuestionPanel.tsx`
+
 - 인라인 패널(모달 아님). props: `request: AskUserQuestionRequest`.
 - `AskUserQuestionBlock.tsx`의 헤더/옵션 렌더 스타일을 재사용·확장하되 **인터랙티브**로:
   - 질문 페이저: `questions.length > 1`이면 헤더 우측에 `{idx+1}개 중 {n}개` + ‹ › 네비, X 닫기(=건너뛰기 전체).
@@ -101,10 +115,13 @@
 - 상태는 로컬 useState로 질문별 답안 누적.
 
 `packages/cowork-core/src/renderer/components/ChatView.tsx` (L720)
+
 - Composer 입력 영역(L720-851)의 **textarea 컨테이너 바로 위**에 `{pendingQuestion && pendingQuestion.sessionId === activeSessionId && <AskUserQuestionPanel request={pendingQuestion} />}` 삽입. (모달인 App.tsx가 아니라 ChatView 인라인 — 이미지와 동일 위치)
 
 ### D. i18n
+
 `packages/cowork-core/src/renderer/i18n/locales/en.json` / `ko.json`
+
 - `askUserQuestion` 네임스페이스: `other`("기타"), `skip`("건너뛰기"), `orDirect`("또는 직접 답장..."), `pager`("{{total}}개 중 {{current}}개"), `send` 등.
 
 ---
