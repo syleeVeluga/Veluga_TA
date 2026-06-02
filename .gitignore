@@ -7,5 +7,6 @@ packages/cowork-core/dist-mcp/
 packages/cowork-core/dist-wsl-agent/
 packages/cowork-core/dist-lima-agent/
 packages/cowork-core/.bundle-resources/
+packages/cowork-core/release-subscription/
 coverage/
 *.sqlite
