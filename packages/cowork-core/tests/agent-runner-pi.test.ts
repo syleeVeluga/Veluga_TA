@@ -124,4 +124,12 @@ describe('ClaudeAgentRunner pi-coding-agent integration', () => {
     );
     expect(agentRunnerContent).toContain('START DOING IT');
   });
+
+  it('sets UTF-8 shell environment defaults for bash tools', () => {
+    expect(agentRunnerContent).toContain('function createUtf8ShellSpawnHook');
+    expect(agentRunnerContent).toContain('LANG: lang');
+    expect(agentRunnerContent).toContain('LC_CTYPE: context.env.LC_CTYPE || lang');
+    expect(agentRunnerContent).toContain("PYTHONUTF8: context.env.PYTHONUTF8 || '1'");
+    expect(agentRunnerContent).toContain('spawnHook: createUtf8ShellSpawnHook()');
+  });
 });

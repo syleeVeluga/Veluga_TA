@@ -9,6 +9,19 @@ import { getDefaultShell } from '../utils/shell-resolver';
 
 const DEFAULT_TERMINATION_GRACE_MS = 5000;
 const DEFAULT_TASKKILL_WAIT_MS = 3000;
+const POWERSHELL_UTF8_PREAMBLE =
+  '$utf8NoBom = [System.Text.UTF8Encoding]::new($false); [Console]::InputEncoding = $utf8NoBom; [Console]::OutputEncoding = $utf8NoBom; $OutputEncoding = $utf8NoBom';
+const POWERSHELL_BASE_ARGS = [
+  '-NoLogo',
+  '-NoProfile',
+  '-NonInteractive',
+  '-ExecutionPolicy',
+  'Bypass',
+];
+// Unquoted characters that the outer shell interprets as command separators /
+// redirections. Used to tell a self-contained PowerShell script payload apart
+// from an outer-shell pipeline that merely starts with `powershell ...`.
+const SHELL_OPERATOR_CHARS = new Set(['|', '&', ';', '<', '>']);
 
 type SpawnProcess = (command: string, args: string[], options: SpawnOptions) => ChildProcess;
 
@@ -39,15 +52,135 @@ function defaultShellResolver(cwd: string): string {
   }
 }
 
+// Applies UTF-8 locale defaults to the child environment. On Windows this
+// overlaps with agent-runner's `createUtf8ShellSpawnHook` (which seeds the same
+// vars before exec); the `||` fallbacks make this a no-op when the hook already
+// ran, while still covering direct `exec` calls (e.g. tests) that bypass the hook.
+function createUtf8ProcessEnv(env: NodeJS.ProcessEnv | undefined): NodeJS.ProcessEnv {
+  const base = env ?? process.env;
+  const lang = base.LANG || 'en_US.UTF-8';
+  return {
+    ...base,
+    LANG: lang,
+    LC_CTYPE: base.LC_CTYPE || lang,
+    PYTHONUTF8: base.PYTHONUTF8 || '1',
+    PYTHONIOENCODING: base.PYTHONIOENCODING || 'utf-8',
+  };
+}
+
+// Splits a command into shell tokens, stripping one level of quoting. Unquoted
+// whitespace and unquoted operator characters break tokens (operators become
+// their own token); characters inside quotes — including operators and spaces —
+// stay part of a single token. This lets the caller distinguish a quoted
+// PowerShell script (one token) from trailing outer-shell operators.
+function tokenizeWindowsCommand(command: string): string[] {
+  const tokens: string[] = [];
+  let current = '';
+  let quote: '"' | "'" | undefined;
+
+  const flush = () => {
+    if (current) {
+      tokens.push(current);
+      current = '';
+    }
+  };
+
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i];
+    if ((char === '"' || char === "'") && quote === undefined) {
+      quote = char;
+      continue;
+    }
+    if (char === quote) {
+      quote = undefined;
+      continue;
+    }
+    if (quote === undefined) {
+      if (/\s/.test(char)) {
+        flush();
+        continue;
+      }
+      if (SHELL_OPERATOR_CHARS.has(char)) {
+        flush();
+        tokens.push(char);
+        continue;
+      }
+    }
+    current += char;
+  }
+
+  flush();
+  return tokens;
+}
+
+function isPowerShellExecutable(executable: string): boolean {
+  const name = path.win32.basename(executable).toLowerCase();
+  return (
+    name === 'powershell' || name === 'powershell.exe' || name === 'pwsh' || name === 'pwsh.exe'
+  );
+}
+
+function extractNestedPowerShellCommand(
+  command: string
+): { shell: string; command: string } | null {
+  const tokens = tokenizeWindowsCommand(command.trim());
+  const executableIndex = tokens[0] === '&' ? 1 : 0;
+  const executable = tokens[executableIndex];
+  if (!executable || !isPowerShellExecutable(executable)) return null;
+
+  const commandIndex = tokens.findIndex((token, index) => {
+    if (index <= executableIndex) return false;
+    const normalized = token.toLowerCase();
+    return normalized === '-command' || normalized === '-c';
+  });
+  if (commandIndex === -1) return null;
+
+  // Only intercept when the script is a single self-contained argument. More than
+  // one token means trailing outer-shell operators (`powershell -Command "X" | head`)
+  // or multiple unquoted words — reconstructing those by joining would drop quoting
+  // and fold the outer shell's pipeline into the PowerShell script. In that case we
+  // bail and let the configured shell run the command verbatim.
+  const payloadTokens = tokens.slice(commandIndex + 1);
+  if (payloadTokens.length !== 1) return null;
+
+  return {
+    shell: path.win32.basename(executable).toLowerCase().startsWith('pwsh')
+      ? 'pwsh.exe'
+      : 'powershell.exe',
+    command: payloadTokens[0],
+  };
+}
+
+function buildPowerShellScript(command: string): string {
+  return `${POWERSHELL_UTF8_PREAMBLE}; ${command}`;
+}
+
+// Builds a PowerShell invocation that passes the script via -EncodedCommand
+// (Base64 of UTF-16LE). This is immune to the active console code page and to
+// outer-shell quoting, so the script — including non-ASCII literals — is decoded
+// natively by PowerShell exactly as written.
+function buildPowerShellInvocation(shell: string, command: string): WindowsShellInvocation {
+  const encoded = Buffer.from(buildPowerShellScript(command), 'utf16le').toString('base64');
+  return {
+    shell,
+    args: [...POWERSHELL_BASE_ARGS, '-EncodedCommand', encoded],
+  };
+}
+
 export function buildWindowsShellInvocation(
   command: string,
   shellPath = getDefaultShell()
 ): WindowsShellInvocation {
   const shell = normalizeShellPath(shellPath);
   const shellName = path.win32.basename(shell).toLowerCase();
+  const nestedPowerShell = extractNestedPowerShellCommand(command);
+
+  if (nestedPowerShell) {
+    return buildPowerShellInvocation(nestedPowerShell.shell, nestedPowerShell.command);
+  }
 
   if (shellName === 'cmd' || shellName === 'cmd.exe') {
-    return { shell, args: ['/d', '/s', '/c', command] };
+    return { shell, args: ['/d', '/s', '/c', `chcp 65001 > nul & ${command}`] };
   }
 
   if (
@@ -56,18 +189,7 @@ export function buildWindowsShellInvocation(
     shellName === 'pwsh' ||
     shellName === 'pwsh.exe'
   ) {
-    return {
-      shell,
-      args: [
-        '-NoLogo',
-        '-NoProfile',
-        '-NonInteractive',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-Command',
-        command,
-      ],
-    };
+    return buildPowerShellInvocation(shell, command);
   }
 
   return { shell, args: ['-c', command] };
@@ -152,7 +274,7 @@ export function createWindowsBashOperations(
         const child = spawnProcess(shell, args, {
           cwd,
           detached: false,
-          env: env ?? process.env,
+          env: createUtf8ProcessEnv(env),
           stdio: ['ignore', 'pipe', 'pipe'],
           windowsHide: true,
         });

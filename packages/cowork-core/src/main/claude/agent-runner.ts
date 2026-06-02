@@ -17,6 +17,7 @@ import {
   SessionManager as PiSessionManager,
   SettingsManager as PiSettingsManager,
   createCodingTools,
+  type BashSpawnHook,
   type BashToolOptions,
   type AgentSession as PiAgentSession,
   type ToolDefinition,
@@ -326,6 +327,22 @@ function buildMcpCustomTools(mcpManager: MCPManager): ToolDefinition[] {
  * Get shell environment with proper PATH (including node, npm, etc.)
  * GUI apps on macOS don't inherit shell PATH, so we need to extract it
  */
+
+function createUtf8ShellSpawnHook(): BashSpawnHook {
+  return (context) => {
+    const lang = context.env.LANG || 'en_US.UTF-8';
+    return {
+      ...context,
+      env: {
+        ...context.env,
+        LANG: lang,
+        LC_CTYPE: context.env.LC_CTYPE || lang,
+        PYTHONUTF8: context.env.PYTHONUTF8 || '1',
+        PYTHONIOENCODING: context.env.PYTHONIOENCODING || 'utf-8',
+      },
+    };
+  };
+}
 
 function safeStringify(value: unknown, space = 0): string {
   try {
@@ -1888,12 +1905,11 @@ Tool routing:
       // executed via Pi SDK's Bash tool can find bundled and user-installed executables.
       await enrichProcessPathForBuild();
 
-      const bashOptions: BashToolOptions | undefined =
-        process.platform === 'win32' ? { operations: createWindowsBashOperations() } : undefined;
-      const codingTools = createCodingTools(
-        effectiveCwd,
-        bashOptions ? { bash: bashOptions } : undefined
-      );
+      const bashOptions: BashToolOptions = {
+        ...(process.platform === 'win32' ? { operations: createWindowsBashOperations() } : {}),
+        spawnHook: createUtf8ShellSpawnHook(),
+      };
+      const codingTools = createCodingTools(effectiveCwd, { bash: bashOptions });
 
       // Inject a default 120s timeout for bash commands when the model omits one
       const withTimeout = ClaudeAgentRunner.wrapBashToolWithDefaultTimeout(
