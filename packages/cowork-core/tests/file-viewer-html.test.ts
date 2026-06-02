@@ -53,7 +53,7 @@ describe('HtmlViewer stage 3 controls', () => {
   it('sanitizes preview html and resets local html controls on file changes', () => {
     const source = fs.readFileSync(htmlViewerPath, 'utf8');
 
-    expect(source).toContain('DOMPurify.sanitize(text)');
+    expect(source).toContain('DOMPurify.sanitize(inlinedText, { WHOLE_DOCUMENT: true })');
     expect(source).toContain("setMode('preview');");
     expect(source).toContain('setSanitizePreview(false);');
     expect(source).toContain('[path]');

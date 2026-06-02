@@ -1,5 +1,5 @@
 import type { IpcMain } from 'electron';
-import { basename, extname, isAbsolute, join, relative, resolve } from 'path';
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'path';
 import * as fs from 'fs';
 import {
   decodePathSafely,
@@ -141,19 +141,51 @@ export function registerFileViewerIpc(
   ipcMain: Pick<IpcMain, 'handle'>,
   options: FileViewerIpcOptions
 ): void {
+  // Directories the user explicitly opened in the viewer (realpath'd). Files the
+  // user deliberately opens through the UI are viewable even when they live
+  // outside the workspace roots — but a bare `file-viewer:read` for an
+  // un-opened out-of-workspace path is still rejected, so this does not widen
+  // what the agent can pull on its own. Session-scoped (cleared on restart).
+  const grantedDirs = new Set<string>();
+
+  ipcMain.handle('file-viewer:grant-path', (_event, filePath: string): { granted: boolean } => {
+    if (!filePath || typeof filePath !== 'string') {
+      return { granted: false };
+    }
+    try {
+      const normalized = normalizeInputPath(filePath);
+      if (!isAbsolute(normalized) && !isWindowsDrivePath(normalized) && !isUncPath(normalized)) {
+        // Only explicit absolute opens grant access; relative paths stay scoped
+        // to the workspace resolution rules.
+        return { granted: false };
+      }
+      const resolved = isUncPath(normalized) ? normalized : resolve(normalized);
+      if (!fs.existsSync(resolved)) {
+        return { granted: false };
+      }
+      const real = realpath(resolved);
+      const dir = fs.statSync(real).isDirectory() ? real : dirname(real);
+      grantedDirs.add(dir);
+      return { granted: true };
+    } catch {
+      return { granted: false };
+    }
+  });
+
   ipcMain.handle('file-viewer:read', (_event, filePath: string): ReadFileResult => {
     if (!filePath || typeof filePath !== 'string') {
       options.onReject?.({ reason: 'NOT_ABSOLUTE' });
       return { error: 'NOT_ABSOLUTE' };
     }
 
-    const allowedRoots = getExistingAllowedRoots(options);
-    if (allowedRoots.length === 0) {
+    // Authorized roots = workspace roots + directories the user explicitly opened.
+    const authorizedRoots = [...getExistingAllowedRoots(options), ...grantedDirs];
+    if (authorizedRoots.length === 0) {
       options.onReject?.({ path: filePath, reason: 'OUTSIDE_WORKSPACE' });
       return { error: 'OUTSIDE_WORKSPACE' };
     }
 
-    const candidates = allowedRoots
+    const candidates = authorizedRoots
       .map((root) => ({ root, path: resolveCandidatePath(filePath, root) }))
       .filter((candidate): candidate is { root: string; path: string } => Boolean(candidate.path));
     if (candidates.length === 0) {
@@ -166,9 +198,9 @@ export function registerFileViewerIpc(
       if (!existingCandidate) {
         // Fallback: the AI may have emitted a bare filename relative to the wrong cwd.
         const fileName = bareRelativeFileName(filePath);
-        const discovered = fileName ? findFileByName(fileName, allowedRoots) : null;
+        const discovered = fileName ? findFileByName(fileName, authorizedRoots) : null;
         if (discovered) {
-          existingCandidate = { root: allowedRoots[0], path: discovered };
+          existingCandidate = { root: authorizedRoots[0], path: discovered };
         } else {
           options.onReject?.({ path: candidates[0].path, reason: 'NOT_FOUND' });
           return { error: 'NOT_FOUND' };
@@ -187,7 +219,7 @@ export function registerFileViewerIpc(
         return { error: 'READ_FAILED' };
       }
 
-      const allowedRoot = allowedRoots.find((root) => isWithinRoot(realFilePath, root));
+      const allowedRoot = authorizedRoots.find((root) => isWithinRoot(realFilePath, root));
       if (!allowedRoot) {
         options.onReject?.({ path: existingCandidate.path, reason: 'OUTSIDE_WORKSPACE' });
         return { error: 'OUTSIDE_WORKSPACE' };

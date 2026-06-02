@@ -12,6 +12,59 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
+
+/**
+ * Verify that a packaged native addon was compiled for the bundled Electron's
+ * Node ABI. A mismatch (e.g. a module built against system Node) causes the app
+ * to fail at startup with "NODE_MODULE_VERSION ... requires NODE_MODULE_VERSION
+ * ...". We load the actual shipped .node through the matching Electron binary
+ * (run-as-node) so an ABI drift aborts the build loudly instead of shipping.
+ *
+ * @param {string} nodeFile - Absolute path to the packaged .node addon
+ * @param {string} label - Human-readable module name for log/error output
+ */
+function verifyNativeAbi(nodeFile, label) {
+  if (!fs.existsSync(nodeFile)) {
+    // Not all platforms unpack every addon; nothing to verify.
+    return;
+  }
+
+  // require('electron') from Node returns the path to the Electron binary,
+  // which shares the exact ABI the packaged app's main/renderer will use.
+  let electronBin;
+  try {
+    electronBin = require('electron');
+  } catch {
+    console.warn(`  ⚠ ABI check skipped for ${label} (electron binary not resolvable)`);
+    return;
+  }
+  if (typeof electronBin !== 'string' || !fs.existsSync(electronBin)) {
+    console.warn(`  ⚠ ABI check skipped for ${label} (electron binary missing)`);
+    return;
+  }
+
+  const result = spawnSync(
+    electronBin,
+    ['-e', `require(${JSON.stringify(nodeFile)})`],
+    { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, encoding: 'utf8' }
+  );
+
+  if (result.status === 0) {
+    console.log(`  ✓ ABI ok: ${label} matches Electron's Node ABI`);
+    return;
+  }
+
+  const detail = `${result.stderr || ''}${result.stdout || ''}`.trim();
+  throw new Error(
+    `Native ABI mismatch for ${label}.\n` +
+      `  Packaged addon: ${nodeFile}\n` +
+      `  ${detail.split('\n').slice(0, 4).join('\n  ')}\n` +
+      `Fix: run "npm run rebuild" (electron-builder install-app-deps) to rebuild ` +
+      `native modules against Electron, then rebuild the app. ` +
+      `Do not pass --npmRebuild=false when packaging.`
+  );
+}
 
 /**
  * Map electron-builder arch names to koffi directory names.
@@ -199,6 +252,13 @@ module.exports = async function afterPack(context) {
       if (removedLocales > 0) console.log(`  ✓ Electron locales: removed ${removedLocales} .lproj dirs (kept en, zh_CN, zh_TW)`);
     }
   }
+
+  // --- 6. Native ABI gate: ensure shipped addons match Electron's Node ABI ---
+  // Guards against a startup crash from a module built against system Node.
+  verifyNativeAbi(
+    path.join(sqlitePkg, 'build', 'Release', 'better_sqlite3.node'),
+    'better-sqlite3'
+  );
 
   console.log(`✅ after-pack cleanup complete for ${platform}-${archName}\n`);
 };

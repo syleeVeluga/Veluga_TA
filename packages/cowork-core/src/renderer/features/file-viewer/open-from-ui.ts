@@ -14,5 +14,15 @@ export async function openFileFromUI(filePath: string, cwd?: string): Promise<vo
     return;
   }
 
+  // The user explicitly opened this file, so grant the viewer read access to it
+  // (and its directory, for rendering relative assets) even if it lives outside
+  // the workspace roots. Awaited so the grant is registered before the viewer's
+  // read fires. Best-effort: in-workspace files work regardless.
+  try {
+    await window.electronAPI?.fileViewer?.grant?.(filePath);
+  } catch {
+    /* fall through — workspace files still resolve without an explicit grant */
+  }
+
   openFileInViewer(filePath, cwd);
 }

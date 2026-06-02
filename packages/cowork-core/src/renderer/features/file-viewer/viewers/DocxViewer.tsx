@@ -6,11 +6,11 @@ import { readErrorMessage } from '../utils/read-result';
 
 export default function DocxViewer({ readResult }: ViewerComponentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [renderError, setRenderError] = useState(false);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setRenderError(false);
+    setRenderError(null);
 
     if (!readResult || 'error' in readResult || !containerRef.current) {
       return () => {
@@ -20,12 +20,30 @@ export default function DocxViewer({ readResult }: ViewerComponentProps) {
 
     const container = containerRef.current;
     container.replaceChildren();
-    const arrayBuffer = decodeBase64ArrayBuffer(readResult.buffer);
 
-    void renderAsync(arrayBuffer, containerRef.current, undefined, { renderAltChunks: false })
-      .catch(() => {
+    let arrayBuffer: ArrayBuffer;
+    try {
+      arrayBuffer = decodeBase64ArrayBuffer(readResult.buffer);
+    } catch (error) {
+      console.error('[DocxViewer] failed to decode DOCX buffer:', error);
+      setRenderError('파일 데이터를 해석할 수 없습니다.');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void renderAsync(arrayBuffer, container, undefined, { renderAltChunks: false })
+      .then(() => {
+        // A newer file may have started rendering into the same container while
+        // this render was in flight — discard the stale result.
+        if (cancelled) {
+          container.replaceChildren();
+        }
+      })
+      .catch((error) => {
+        console.error('[DocxViewer] docx-preview render failed:', error);
         if (!cancelled) {
-          setRenderError(true);
+          setRenderError('DOCX 미리보기를 표시할 수 없습니다.');
           container.replaceChildren();
         }
       });
@@ -41,7 +59,7 @@ export default function DocxViewer({ readResult }: ViewerComponentProps) {
   }
 
   if (renderError) {
-    return <div className="p-4 text-sm text-text-muted">Unable to render DOCX preview.</div>;
+    return <div className="p-4 text-sm text-text-muted">{renderError}</div>;
   }
 
   return (

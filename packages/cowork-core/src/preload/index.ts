@@ -471,6 +471,7 @@ declare global {
       showItemInFolder: (filePath: string, cwd?: string) => Promise<boolean>;
       fileViewer: {
         read: (filePath: string) => Promise<ReadFileResult>;
+        grant: (filePath: string) => Promise<{ granted: boolean }>;
       };
       selectFiles: () => Promise<string[]>;
       artifacts: {

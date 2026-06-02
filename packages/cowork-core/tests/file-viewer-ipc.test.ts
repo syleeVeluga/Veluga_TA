@@ -26,14 +26,14 @@ function withTempDir<T>(fn: (dir: string) => T): T {
 }
 
 function createReader(roots: string[]) {
-  let handler: ((_event: unknown, filePath: string) => ReadFileResult) | null = null;
+  const handlers = new Map<string, (_event: unknown, filePath: string) => unknown>();
   const reads: Array<{ path: string; root: string; size: number }> = [];
   const rejects: Array<{ path?: string; reason: string }> = [];
 
   registerFileViewerIpc(
     {
-      handle: (_channel, nextHandler) => {
-        handler = nextHandler as typeof handler;
+      handle: (channel, nextHandler) => {
+        handlers.set(channel, nextHandler as (_event: unknown, filePath: string) => unknown);
       },
     },
     {
@@ -43,12 +43,15 @@ function createReader(roots: string[]) {
     }
   );
 
-  if (!handler) {
-    throw new Error('file-viewer handler was not registered');
+  const readHandler = handlers.get('file-viewer:read');
+  const grantHandler = handlers.get('file-viewer:grant-path');
+  if (!readHandler || !grantHandler) {
+    throw new Error('file-viewer handlers were not registered');
   }
 
   return {
-    read: (filePath: string) => handler?.({}, filePath) ?? { error: 'READ_FAILED' },
+    read: (filePath: string) => (readHandler({}, filePath) ?? { error: 'READ_FAILED' }) as ReadFileResult,
+    grant: (filePath: string) => grantHandler({}, filePath) as { granted: boolean },
     reads,
     rejects,
   };
@@ -168,6 +171,57 @@ describe('file-viewer IPC read guard', () => {
       const result = reader.read(join(workspace, 'report.html'));
 
       expect(result).toEqual({ error: 'NOT_FOUND' });
+    }));
+
+  it('reads an out-of-workspace file after the user explicitly opens it', () =>
+    withTempDir((dir) => {
+      const workspace = join(dir, 'workspace');
+      mkdirSync(workspace);
+      const outsideFile = join(dir, 'outside', 'note.html');
+      mkdirSync(join(dir, 'outside'));
+      writeFileSync(outsideFile, '<p>opened</p>');
+
+      const reader = createReader([workspace]);
+
+      // Without a grant the same file is rejected…
+      expect(reader.read(outsideFile)).toEqual({ error: 'OUTSIDE_WORKSPACE' });
+
+      // …after an explicit open it becomes viewable.
+      expect(reader.grant(outsideFile)).toEqual({ granted: true });
+      const result = reader.read(outsideFile);
+      expect('buffer' in result ? Buffer.from(result.buffer, 'base64').toString('utf8') : '').toBe(
+        '<p>opened</p>'
+      );
+    }));
+
+  it('grants the opened file directory so sibling assets render', () =>
+    withTempDir((dir) => {
+      const workspace = join(dir, 'workspace');
+      mkdirSync(workspace);
+      const outsideDir = join(dir, 'deck');
+      mkdirSync(outsideDir);
+      writeFileSync(join(outsideDir, 'slide.html'), '<style>@import "shared.css"</style>');
+      writeFileSync(join(outsideDir, 'shared.css'), 'body{color:red}');
+
+      const reader = createReader([workspace]);
+      expect(reader.grant(join(outsideDir, 'slide.html'))).toEqual({ granted: true });
+
+      // The sibling stylesheet (read during inlining) is now reachable too.
+      const css = reader.read(join(outsideDir, 'shared.css'));
+      expect('buffer' in css ? Buffer.from(css.buffer, 'base64').toString('utf8') : '').toBe(
+        'body{color:red}'
+      );
+    }));
+
+  it('does not grant access from a non-existent or relative path', () =>
+    withTempDir((dir) => {
+      const workspace = join(dir, 'workspace');
+      mkdirSync(workspace);
+      const reader = createReader([workspace]);
+
+      expect(reader.grant(join(dir, 'missing', 'ghost.html'))).toEqual({ granted: false });
+      expect(reader.grant('relative/note.html')).toEqual({ granted: false });
+      expect(reader.grant('')).toEqual({ granted: false });
     }));
 
   it('returns TOO_LARGE before reading files over the limit', () =>

@@ -38,9 +38,13 @@ describe('DocxViewer stage 4', () => {
     expect(source).toContain("import { renderAsync } from 'docx-preview';");
     expect(source).toContain('decodeBase64ArrayBuffer(readResult.buffer)');
     expect(source).toContain(
-      'renderAsync(arrayBuffer, containerRef.current, undefined, { renderAltChunks: false })'
+      'renderAsync(arrayBuffer, container, undefined, { renderAltChunks: false })'
     );
-    expect(source).toContain('setRenderError(true)');
+    // Failures are surfaced with a message and logged rather than swallowed.
+    expect(source).toContain('setRenderError(');
+    expect(source).toContain('console.error');
+    // Stale renders that resolve after a file switch are discarded.
+    expect(source).toContain('if (cancelled)');
   });
 
   it('activates docx in the viewer map and file read path', () => {

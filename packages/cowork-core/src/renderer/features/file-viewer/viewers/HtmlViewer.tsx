@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import DOMPurify from 'dompurify';
 import type { ViewerComponentProps } from '../viewer-map';
 import { readErrorMessage, textFromReadResult } from '../utils/read-result';
+import { hasBlockedResources, inlineHtmlResources } from '../utils/html-inline';
 import CodeViewer from './CodeViewer';
 
 type HtmlViewMode = 'preview' | 'source';
@@ -10,15 +11,60 @@ export default function HtmlViewer({ path, readResult }: ViewerComponentProps) {
   const text = textFromReadResult(readResult);
   const [mode, setMode] = useState<HtmlViewMode>('preview');
   const [sanitizePreview, setSanitizePreview] = useState(false);
-  const sanitizedText = useMemo(
-    () => (text !== null && sanitizePreview ? DOMPurify.sanitize(text) : text),
-    [sanitizePreview, text]
-  );
+
+  // Inline relative stylesheets / @imports / images so the sandboxed iframe can
+  // render documents that reference sibling files without loosening the CSP.
+  // null until inlining resolves (or falls back to the raw document).
+  const [inlinedText, setInlinedText] = useState<string | null>(null);
 
   useEffect(() => {
     setMode('preview');
     setSanitizePreview(false);
   }, [path]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setInlinedText(null);
+
+    if (text === null) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const read = window.electronAPI?.fileViewer?.read;
+    if (!read) {
+      setInlinedText(text);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void inlineHtmlResources(text, path, read)
+      .then((result) => {
+        if (!cancelled) setInlinedText(result);
+      })
+      .catch(() => {
+        // Inlining is best-effort; fall back to the raw document.
+        if (!cancelled) setInlinedText(text);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [path, text]);
+
+  const previewText = useMemo(
+    () =>
+      inlinedText !== null && sanitizePreview
+        ? DOMPurify.sanitize(inlinedText, { WHOLE_DOCUMENT: true })
+        : inlinedText,
+    [sanitizePreview, inlinedText]
+  );
+  const blocked = useMemo(
+    () => (inlinedText !== null ? hasBlockedResources(inlinedText) : false),
+    [inlinedText]
+  );
 
   if (text === null) {
     return <div className="p-4 text-sm text-text-muted">{readErrorMessage(readResult)}</div>;
@@ -48,12 +94,22 @@ export default function HtmlViewer({ path, readResult }: ViewerComponentProps) {
         setMode={setMode}
         setSanitizePreview={setSanitizePreview}
       />
-      <iframe
-        title={path}
-        srcDoc={sanitizedText ?? ''}
-        sandbox=""
-        className="min-h-0 flex-1 border-0 bg-background"
-      />
+      {blocked && (
+        <div className="shrink-0 border-b border-border-muted bg-surface-muted/40 px-3 py-1.5 text-[11px] text-text-muted">
+          일부 스크립트·외부 리소스는 보안 미리보기에서 차단됩니다. 원본은 Source 탭에서 확인하세요.
+        </div>
+      )}
+      {previewText === null ? (
+        <div className="p-4 text-sm text-text-muted">미리보기 준비 중...</div>
+      ) : (
+        <iframe
+          key={path}
+          title={path}
+          srcDoc={previewText}
+          sandbox=""
+          className="min-h-0 flex-1 border-0 bg-background"
+        />
+      )}
     </div>
   );
 }
