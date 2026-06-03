@@ -10,6 +10,7 @@ export const SKILL_DEPENDENCIES: Record<string, string[]> = {
   docx: [],
   pptx: [],
   xlsx: [],
+  hwpx: [],
   'style-card': [],
   'citation-tracer': [],
   'citation-verifier': [],
@@ -27,10 +28,20 @@ export const SKILL_ORDER: Record<string, number> = {
   'compliance-checker': 5,
   docx: 6,
   pptx: 6,
-  xlsx: 6
+  xlsx: 6,
+  hwpx: 6
 };
 
-const WRITE_SKILLS = new Set(['gov-proposal', 'policy-research', 'legal-opinion', 'budget-review', 'docx', 'pptx', 'xlsx']);
+const WRITE_SKILLS = new Set([
+  'gov-proposal',
+  'policy-research',
+  'legal-opinion',
+  'budget-review',
+  'docx',
+  'pptx',
+  'xlsx',
+  'hwpx'
+]);
 
 export function resolveSkillPlan(suggested: string[], policy: PolicyContext): SkillActivationPlan {
   const allowed = new Set(policy.active_skill_ids);

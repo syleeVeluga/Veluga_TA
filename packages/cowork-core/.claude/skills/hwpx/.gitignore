@@ -1,0 +1,3 @@
+# Python bytecode generated when the skill scripts run in the sandbox.
+__pycache__/
+*.pyc
