@@ -15,5 +15,6 @@
 | [veluga-service-platform/](veluga-service-platform/README.md) | Veluga 계정 기반 desktop 배포·model catalog·entitlement·admin console·quota enforcement | 📝 계획 초안 |
 | [messenger-channel-migration.md](messenger-channel-migration.md) | Feishu → Discord(기본) + Slack 메신저 교체 | 📝 계획 |
 | [openai-thinking-mode-support.md](openai-thinking-mode-support.md) | OpenAI reasoning/thinking 모드 지원 | 📝 계획 (일부 관련 구현) |
+| [hwp-hwpx-support-spec.md](hwp-hwpx-support-spec.md) | 한글 HWP/HWPX 분석 및 생성 스킬 표준 설계 | 📝 계획 수립 |
 
 > 폴더형(`agent-orchestration/`, `ask-user-question/`, `file-viewer-panel/`, `subscription-login/`, `veluga-service-platform/`)은 각 폴더의 `README.md`(또는 `00-overview.md`)가 진입점이다. 단일 파일형은 그 자체가 전체 계획이다.
