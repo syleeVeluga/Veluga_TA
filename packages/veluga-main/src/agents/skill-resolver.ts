@@ -1,5 +1,7 @@
 import type { PolicyContext, SkillActivationPlan, SkillStep } from '../../../shared-types/src/index.js';
 
+// This resolver handles Veluga policy/domain skill activation. Office artifact
+// skills such as docx, pptx, and xlsx are built-ins loaded by cowork-core.
 export const SKILL_DEPENDENCIES: Record<string, string[]> = {
   'gov-proposal': ['style-card', 'citation-verifier', 'docx', 'compliance-checker'],
   'policy-research': ['style-card', 'citation-verifier', 'docx'],
