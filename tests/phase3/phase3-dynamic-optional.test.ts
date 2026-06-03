@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { ContextFragment, IntentPlan, WorkerTask, WorkerType, WorkPlan } from '../../packages/shared-types/src/index.js';
 import { VelugaOrchestrator } from '../../packages/veluga-main/src/orchestrator/orchestrator.js';
 import { buildWorkPlan, sanitizeGeneratedWorkPlan } from '../../packages/veluga-main/src/orchestrator/planner.js';
-import { BoundedSubSessionBudgetError, BoundedSubSessionRunner } from '../../packages/veluga-main/src/orchestrator/sub-session.js';
+import {
+  BoundedSubSessionBudgetError,
+  BoundedSubSessionRunner,
+  BUILTIN_GENERAL_SUBAGENT_PERSONA,
+  SUMMARY_WITH_CITATIONS_CONTRACT
+} from '../../packages/veluga-main/src/orchestrator/sub-session.js';
 import { makePolicy } from '../phase1/helpers.js';
 
 describe('Phase3 optional dynamic orchestration', () => {
@@ -121,9 +126,14 @@ describe('Phase3 optional dynamic orchestration', () => {
     let calls = 0;
     const request = {
       id: 'sub-a',
+      parentSessionId: 'parent-a',
       objective: 'Summarize isolated evidence.',
       boundaries: ['Return summary only.'],
-      tokenBudget: 10
+      tokenBudget: 10,
+      depth: 1,
+      persona: BUILTIN_GENERAL_SUBAGENT_PERSONA,
+      toolScope: ['read'],
+      outputContract: SUMMARY_WITH_CITATIONS_CONTRACT
     };
     const disabled = new BoundedSubSessionRunner({
       enabled: false,
@@ -131,7 +141,15 @@ describe('Phase3 optional dynamic orchestration', () => {
       tokenBudget: 10,
       run: async () => {
         calls += 1;
-        return { id: 'sub-a', summary: 'should not run', citations: [], tokensUsed: 1 };
+        return {
+          id: 'sub-a',
+          parentSessionId: 'parent-a',
+          personaId: 'general_subagent',
+          summary: 'should not run',
+          citations: [],
+          tokensUsed: 1,
+          status: 'completed'
+        };
       }
     });
 
@@ -142,10 +160,27 @@ describe('Phase3 optional dynamic orchestration', () => {
       enabled: true,
       maxSubSessions: 1,
       tokenBudget: 10,
-      run: async (subRequest) => ({ id: subRequest.id, summary: 'summary only', citations: [], tokensUsed: 5 })
+      run: async (subRequest) => ({
+        id: subRequest.id,
+        parentSessionId: subRequest.parentSessionId,
+        personaId: subRequest.persona.id,
+        summary: 'summary only',
+        citations: [],
+        tokensUsed: 5,
+        status: 'completed'
+      })
     });
     await expect(enabled.runAll([request], new AbortController().signal)).resolves.toEqual([
-      { id: 'sub-a', summary: 'summary only', citations: [], tokensUsed: 5 }
+      {
+        id: 'sub-a',
+        parentSessionId: 'parent-a',
+        personaId: 'general_subagent',
+        summary: 'summary only',
+        citations: [],
+        tokensUsed: 5,
+        status: 'completed',
+        error: undefined
+      }
     ]);
     await expect(enabled.runAll([request, { ...request, id: 'sub-b' }], new AbortController().signal)).rejects.toThrow(
       BoundedSubSessionBudgetError
@@ -155,9 +190,57 @@ describe('Phase3 optional dynamic orchestration', () => {
       enabled: true,
       maxSubSessions: 1,
       tokenBudget: 10,
-      run: async (subRequest) => ({ id: subRequest.id, summary: 'too large', citations: [], tokensUsed: 11 })
+      run: async (subRequest) => ({
+        id: subRequest.id,
+        parentSessionId: subRequest.parentSessionId,
+        personaId: subRequest.persona.id,
+        summary: 'too large',
+        citations: [],
+        tokensUsed: 11,
+        status: 'completed'
+      })
     });
     await expect(overBudget.runAll([request], new AbortController().signal)).rejects.toThrow(BoundedSubSessionBudgetError);
+  });
+
+  it('enforces bounded sub-session depth and allowed tool scope', async () => {
+    const request = {
+      id: 'sub-scope',
+      parentSessionId: 'parent-a',
+      objective: 'Summarize isolated evidence.',
+      boundaries: ['Return summary only.'],
+      tokenBudget: 10,
+      depth: 1,
+      persona: BUILTIN_GENERAL_SUBAGENT_PERSONA,
+      toolScope: ['read', 'bash'],
+      outputContract: SUMMARY_WITH_CITATIONS_CONTRACT
+    };
+    const runner = new BoundedSubSessionRunner({
+      enabled: true,
+      maxSubSessions: 1,
+      tokenBudget: 10,
+      maxDepth: 1,
+      allowedToolScope: ['read'],
+      run: async (subRequest) => ({
+        id: subRequest.id,
+        parentSessionId: subRequest.parentSessionId,
+        personaId: subRequest.persona.id,
+        summary: `scope:${subRequest.toolScope.join(',')}`,
+        citations: [],
+        tokensUsed: 1,
+        status: 'completed'
+      })
+    });
+
+    await expect(runner.runAll([request], new AbortController().signal)).resolves.toMatchObject([
+      { summary: 'scope:read' }
+    ]);
+    await expect(
+      runner.runAll([{ ...request, id: 'sub-depth', depth: 2 }], new AbortController().signal)
+    ).rejects.toThrow(BoundedSubSessionBudgetError);
+    await expect(
+      runner.runAll([{ ...request, id: 'sub-denied', toolScope: ['bash'] }], new AbortController().signal)
+    ).rejects.toThrow(BoundedSubSessionBudgetError);
   });
 });
 

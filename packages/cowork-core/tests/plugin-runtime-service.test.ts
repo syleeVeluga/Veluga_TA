@@ -72,6 +72,47 @@ function createPluginFixture(root: string, pluginName: string): string {
   return pluginRoot;
 }
 
+function createAgentTeamFixture(
+  root: string,
+  pluginName: string,
+  agents: Array<{ file: string; id?: string; name: string; body: string }>
+): string {
+  const pluginRoot = path.join(root, pluginName);
+  fs.mkdirSync(path.join(pluginRoot, '.claude-plugin'), { recursive: true });
+  fs.writeFileSync(
+    path.join(pluginRoot, '.claude-plugin', 'plugin.json'),
+    JSON.stringify(
+      {
+        name: pluginName,
+        version: '1.0.0',
+        description: `${pluginName} team`,
+        agents: './agents',
+      },
+      null,
+      2
+    ),
+    'utf8'
+  );
+  fs.mkdirSync(path.join(pluginRoot, 'agents'), { recursive: true });
+  for (const agent of agents) {
+    fs.writeFileSync(
+      path.join(pluginRoot, 'agents', agent.file),
+      [
+        '---',
+        `id: ${agent.id || path.basename(agent.file, '.md')}`,
+        `name: ${agent.name}`,
+        'description: Test persona',
+        'defaultToolScope: read, grep, glob',
+        '---',
+        `# ${agent.name}`,
+        agent.body,
+      ].join('\n'),
+      'utf8'
+    );
+  }
+  return pluginRoot;
+}
+
 async function createRuntimeService(options?: { catalogService?: any; commandRunner?: any }) {
   const { PluginRuntimeService } = await import('../src/main/skills/plugin-runtime-service');
   const fakeCatalogService = options?.catalogService ?? ({
@@ -353,17 +394,130 @@ describe('PluginRuntimeService', () => {
 
     expect(result.plugin.componentsEnabled).toEqual({
       skills: true,
-      commands: true,
+      commands: false,
       agents: true,
       hooks: false,
       mcp: false,
     });
     expect(fs.existsSync(path.join(result.plugin.sourcePath, 'skills'))).toBe(true);
     expect(fs.existsSync(path.join(result.plugin.runtimePath, 'skills'))).toBe(true);
-    expect(fs.existsSync(path.join(result.plugin.runtimePath, 'commands'))).toBe(true);
+    expect(fs.existsSync(path.join(result.plugin.runtimePath, 'commands'))).toBe(false);
     expect(fs.existsSync(path.join(result.plugin.runtimePath, 'agents'))).toBe(true);
     expect(fs.existsSync(path.join(result.plugin.runtimePath, 'hooks'))).toBe(false);
     expect(fs.existsSync(path.join(result.plugin.runtimePath, '.mcp.json'))).toBe(false);
+  });
+
+  it('installs Veluga local catalog plugins without Claude CLI and exposes personas', async () => {
+    const fixturesRoot = path.join(testRoot, 'fixtures');
+    const pluginRoot = createAgentTeamFixture(fixturesRoot, 'deep-agent-basic-team', [
+      {
+        file: 'planner.md',
+        name: 'Planner',
+        body: 'Plan bounded work and return tagged evidence. [parametric:high]',
+      },
+      {
+        file: 'reviewer.md',
+        name: 'Reviewer',
+        body: 'Review bounded work and return tagged evidence. [parametric:high]',
+      },
+    ]);
+    const listVelugaPlugins = vi.fn(async () => [
+      {
+        name: 'deep-agent-basic-team',
+        description: 'Safe team',
+        version: '1.0.0',
+        authorName: 'Veluga',
+        installable: true,
+        hasManifest: true,
+        componentCounts: { skills: 0, commands: 0, agents: 2, hooks: 0, mcp: 0 },
+        skillCount: 0,
+        hasSkills: false,
+        pluginId: 'deep-agent-basic-team',
+        catalogSource: 'veluga-offline-bundle',
+        localPath: pluginRoot,
+      },
+    ]);
+    const catalogService = {
+      listVelugaPlugins,
+      listAnthropicPlugins: vi.fn(async () => {
+        throw new Error('network unavailable');
+      }),
+    } as any;
+    const commandRunner = vi.fn();
+
+    const service = await createRuntimeService({ catalogService, commandRunner });
+    const result = await service.install('deep-agent-basic-team');
+    const snapshot = await service.getAgentPersonaSnapshot();
+
+    expect(commandRunner).not.toHaveBeenCalled();
+    expect(result.plugin.catalogSource).toBe('veluga-offline-bundle');
+    expect(snapshot.personas.map((persona) => persona.id)).toEqual(['planner', 'reviewer']);
+  });
+
+  it('removes personas when the agents component is disabled', async () => {
+    const fixturesRoot = path.join(testRoot, 'fixtures');
+    const pluginRoot = createAgentTeamFixture(fixturesRoot, 'agent-toggle-team', [
+      {
+        file: 'reviewer.md',
+        name: 'Reviewer',
+        body: 'Review bounded work and return tagged evidence. [parametric:high]',
+      },
+    ]);
+    const service = await createRuntimeService();
+
+    const installResult = await service.installFromDirectory(pluginRoot, {
+      catalogSource: 'veluga-offline-bundle',
+    });
+    expect((await service.getAgentPersonaSnapshot()).personas).toHaveLength(1);
+
+    await service.setComponentEnabled(installResult.plugin.pluginId, 'agents', false);
+    expect((await service.getAgentPersonaSnapshot()).personas).toEqual([]);
+  });
+
+  it('namespaces plugin persona id collisions', async () => {
+    const fixturesRoot = path.join(testRoot, 'fixtures');
+    const firstRoot = createAgentTeamFixture(fixturesRoot, 'first-team', [
+      {
+        file: 'reviewer.md',
+        id: 'reviewer',
+        name: 'Reviewer',
+        body: 'Review first team work. [parametric:high]',
+      },
+    ]);
+    const secondRoot = createAgentTeamFixture(fixturesRoot, 'second-team', [
+      {
+        file: 'reviewer.md',
+        id: 'reviewer',
+        name: 'Reviewer',
+        body: 'Review second team work. [parametric:high]',
+      },
+    ]);
+    const service = await createRuntimeService();
+
+    await service.installFromDirectory(firstRoot, { catalogSource: 'veluga-offline-bundle' });
+    await service.installFromDirectory(secondRoot, { catalogSource: 'veluga-offline-bundle' });
+    const snapshot = await service.getAgentPersonaSnapshot();
+
+    expect(snapshot.personas.map((persona) => persona.id)).toEqual([
+      'reviewer',
+      'second-team/reviewer',
+    ]);
+  });
+
+  it('rejects plugins that contain blocked LLM endpoints or telemetry strings', async () => {
+    const fixturesRoot = path.join(testRoot, 'fixtures');
+    const pluginRoot = createAgentTeamFixture(fixturesRoot, 'deep-agent-risky-team', [
+      {
+        file: 'researcher.md',
+        name: 'Researcher',
+        body: `Call https://${'api'}.${'openai'}.${'com'}/v1 directly and report through ${'Post'}${'Hog'}.`,
+      },
+    ]);
+    const service = await createRuntimeService();
+
+    await expect(
+      service.installFromDirectory(pluginRoot, { catalogSource: 'veluga-offline-bundle' })
+    ).rejects.toThrow('Plugin failed Veluga scrub');
   });
 
   it('re-materializes runtime when hooks and mcp are enabled', async () => {

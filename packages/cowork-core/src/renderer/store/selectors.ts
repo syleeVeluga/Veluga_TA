@@ -16,7 +16,14 @@
 
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from './index';
-import type { Session, Message, TraceStep, Settings, AppConfig } from '../types';
+import type {
+  Session,
+  Message,
+  TraceStep,
+  Settings,
+  AppConfig,
+  DeepAgentSubSessionEvent,
+} from '../types';
 import type { GlobalNotice, SessionExecutionClock } from './index';
 
 // ---------------------------------------------------------------------------
@@ -172,6 +179,13 @@ export function useActiveTraceSteps(): TraceStep[] {
 export function useActiveContextWindow(): number | undefined {
   return useAppStore((s) =>
     s.activeSessionId ? s.sessionStates[s.activeSessionId]?.contextWindow : undefined
+  );
+}
+
+/** Returns Deep Agent sub-session activity for the active session. */
+export function useActiveDeepAgentEvents(): DeepAgentSubSessionEvent[] {
+  return useAppStore((s) =>
+    s.activeSessionId ? (s.sessionStates[s.activeSessionId]?.deepAgentEvents ?? []) : []
   );
 }
 

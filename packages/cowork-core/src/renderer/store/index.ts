@@ -11,6 +11,7 @@ import type {
   SandboxSetupProgress,
   SandboxSyncStatus,
   SkillsStorageChangeEvent,
+  DeepAgentSubSessionEvent,
 } from '../types';
 import { applySessionUpdate } from '../utils/session-update';
 
@@ -42,6 +43,7 @@ export interface SessionState {
   executionClock: SessionExecutionClock;
   traceSteps: TraceStep[];
   contextWindow: number;
+  deepAgentEvents: DeepAgentSubSessionEvent[];
 }
 
 const DEFAULT_SESSION_STATE: SessionState = {
@@ -53,6 +55,7 @@ const DEFAULT_SESSION_STATE: SessionState = {
   executionClock: { startAt: null, endAt: null },
   traceSteps: [],
   contextWindow: 0,
+  deepAgentEvents: [],
 };
 
 // Helper to immutably update a single session's state within the record
@@ -150,6 +153,8 @@ interface AppState {
   addTraceStep: (sessionId: string, step: TraceStep) => void;
   updateTraceStep: (sessionId: string, stepId: string, updates: Partial<TraceStep>) => void;
   setTraceSteps: (sessionId: string, steps: TraceStep[]) => void;
+  upsertDeepAgentEvent: (sessionId: string, event: DeepAgentSubSessionEvent) => void;
+  clearDeepAgentEvents: (sessionId: string) => void;
 
   setLoading: (loading: boolean) => void;
   toggleSidebar: () => void;
@@ -539,6 +544,28 @@ export const useAppStore = create<AppState>((set) => ({
   setTraceSteps: (sessionId, steps) =>
     set((state) => ({
       sessionStates: patchSession(state.sessionStates, sessionId, { traceSteps: steps }),
+    })),
+
+  upsertDeepAgentEvent: (sessionId, event) =>
+    set((state) => {
+      const ss = getSession(state.sessionStates, sessionId);
+      const existingIndex = ss.deepAgentEvents.findIndex(
+        (item) => item.subSessionId === event.subSessionId
+      );
+      const deepAgentEvents =
+        existingIndex >= 0
+          ? ss.deepAgentEvents.map((item, index) =>
+              index === existingIndex ? { ...item, ...event } : item
+            )
+          : [...ss.deepAgentEvents, event];
+      return {
+        sessionStates: patchSession(state.sessionStates, sessionId, { deepAgentEvents }),
+      };
+    }),
+
+  clearDeepAgentEvents: (sessionId) =>
+    set((state) => ({
+      sessionStates: patchSession(state.sessionStates, sessionId, { deepAgentEvents: [] }),
     })),
 
   // UI actions

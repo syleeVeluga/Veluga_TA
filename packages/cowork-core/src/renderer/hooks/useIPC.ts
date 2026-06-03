@@ -10,6 +10,7 @@ import type {
   TraceStep,
   ContentBlock,
   AskUserQuestionAnswer,
+  SessionRunOptions,
 } from '../types';
 import i18n from '../i18n/config';
 
@@ -277,6 +278,10 @@ export function useIPC() {
             store.setSessionContextWindow(event.payload.sessionId, event.payload.contextWindow);
             break;
 
+          case 'deepAgent.subSession':
+            store.upsertDeepAgentEvent(event.payload.sessionId, event.payload);
+            break;
+
           case 'error':
             console.error('[useIPC] Server error:', event.payload.message);
             store.setLoading(false);
@@ -524,7 +529,11 @@ export function useIPC() {
 
   // Continue an existing session
   const continueSession = useCallback(
-    async (sessionId: string, promptOrContent: string | ContentBlock[]) => {
+    async (
+      sessionId: string,
+      promptOrContent: string | ContentBlock[],
+      options?: SessionRunOptions
+    ) => {
       setLoading(true);
       console.log('[useIPC] Continuing session:', sessionId);
 
@@ -546,6 +555,9 @@ export function useIPC() {
       const hasActiveTurn = Boolean(ss?.activeTurn);
       const hasPending = (ss?.pendingTurns?.length ?? 0) > 0;
       const shouldQueue = isSessionRunning || hasActiveTurn || hasPending;
+      if (!shouldQueue) {
+        store.clearDeepAgentEvents(sessionId);
+      }
       const userMessage: Message = {
         id: `msg-user-${Date.now()}`,
         sessionId,
@@ -595,6 +607,7 @@ export function useIPC() {
             sessionId,
             prompt,
             content, // Send full content blocks including images
+            options,
           },
         });
         // Loading will be reset when we receive session.status event

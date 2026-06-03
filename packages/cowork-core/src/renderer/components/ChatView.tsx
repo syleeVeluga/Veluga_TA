@@ -9,14 +9,28 @@ import {
   usePendingTurns,
   useActiveExecutionClock,
   usePendingDialogs,
+  useActiveDeepAgentEvents,
+  useAppConfig,
 } from '../store/selectors';
 import { useAppStore } from '../store';
 import { useIPC } from '../hooks/useIPC';
 import { MessageCard } from './MessageCard';
 import { ChatHeaderModelSwitcher } from './ChatHeaderModelSwitcher';
 import { AskUserQuestionPanel } from './AskUserQuestionPanel';
-import type { Message, ContentBlock } from '../types';
-import { Send, Square, Plus, Loader2, Plug, X, Clock } from 'lucide-react';
+import type { Message, ContentBlock, DeepAgentExecutionMode, DeepAgentSubSessionEvent } from '../types';
+import {
+  Send,
+  Square,
+  Plus,
+  Loader2,
+  Plug,
+  X,
+  Clock,
+  Bot,
+  Circle,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
 
 type AttachedFile = {
   name: string;
@@ -37,10 +51,13 @@ export function ChatView() {
   const pendingTurns = usePendingTurns();
   const executionClock = useActiveExecutionClock();
   const { pendingQuestions } = usePendingDialogs();
+  const appConfig = useAppConfig();
+  const deepAgentEvents = useActiveDeepAgentEvents();
   const setGlobalNotice = useAppStore((s) => s.setGlobalNotice);
   const { continueSession, stopSession, respondToQuestion, isElectron } = useIPC();
   const [prompt, setPrompt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [executionMode, setExecutionMode] = useState<DeepAgentExecutionMode>('default');
   const [activeConnectors, setActiveConnectors] = useState<
     { id: string; name: string; connected: boolean; toolCount: number }[]
   >([]);
@@ -69,6 +86,13 @@ export function ChatView() {
   const pendingCount = pendingTurns.length;
   const isSessionRunning = activeSession?.status === 'running';
   const canStop = isSessionRunning || hasActiveTurn || pendingCount > 0;
+  const deepAgentAvailable = appConfig?.deepAgentEnabled === true;
+
+  useEffect(() => {
+    if (!deepAgentAvailable && executionMode !== 'default') {
+      setExecutionMode('default');
+    }
+  }, [deepAgentAvailable, executionMode]);
 
   const displayedMessages = useMemo(() => {
     if (!activeSessionId) return messages;
@@ -132,6 +156,30 @@ export function ChatView() {
       ? 0
       : Math.max(0, (executionClock.endAt ?? clockNow) - executionClock.startAt);
   const timerActive = Boolean(executionClock?.startAt && executionClock.endAt === null);
+
+  const deepAgentStatusLabel = useCallback(
+    (status: DeepAgentSubSessionEvent['status']): string => {
+      const key = `chat.deepAgentStatus${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+      return t(key);
+    },
+    [t]
+  );
+
+  const deepAgentStatusClass = (status: DeepAgentSubSessionEvent['status']): string => {
+    if (status === 'completed') return 'text-success';
+    if (status === 'failed' || status === 'aborted') return 'text-error';
+    return 'text-accent';
+  };
+
+  const deepAgentStatusIcon = (event: DeepAgentSubSessionEvent) => {
+    if (event.status === 'completed') {
+      return <CheckCircle2 className="w-3.5 h-3.5 text-success" />;
+    }
+    if (event.status === 'failed' || event.status === 'aborted') {
+      return <AlertTriangle className="w-3.5 h-3.5 text-error" />;
+    }
+    return <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />;
+  };
 
   // Debounced scroll function to prevent scroll conflicts
   const scrollToBottom = useRef((behavior: ScrollBehavior = 'auto', immediate: boolean = false) => {
@@ -600,7 +648,11 @@ export function ChatView() {
       }
 
       // Send message with content blocks
-      await continueSession(activeSessionId, contentBlocks);
+      await continueSession(
+        activeSessionId,
+        contentBlocks,
+        deepAgentAvailable ? { executionMode } : undefined
+      );
 
       // Clean up
       setPrompt('');
@@ -703,6 +755,49 @@ export function ChatView() {
                 <span className="text-sm text-text-secondary">{t('chat.processing')}</span>
               </div>
             )}
+
+          {deepAgentEvents.length > 0 && (
+            <div className="border-y border-border-muted py-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+                <Bot className="w-4 h-4 text-accent" />
+                <span>{t('chat.deepAgentActivity')}</span>
+              </div>
+              <div className="space-y-2">
+                {deepAgentEvents.map((event) => (
+                  <div
+                    key={event.subSessionId}
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 text-xs"
+                  >
+                    <div className="pt-0.5">{deepAgentStatusIcon(event)}</div>
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-medium text-text-primary truncate max-w-full">
+                          {event.personaName}
+                        </span>
+                        <span className={deepAgentStatusClass(event.status)}>
+                          {deepAgentStatusLabel(event.status)}
+                        </span>
+                        {typeof event.tokensUsed === 'number' && event.tokensUsed > 0 && (
+                          <span className="text-text-muted">
+                            {t('chat.deepAgentTokens', { count: event.tokensUsed })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-text-secondary leading-5 break-words">
+                        {event.objective}
+                      </p>
+                      {event.error && (
+                        <p className="text-error leading-5 break-words">{event.error}</p>
+                      )}
+                    </div>
+                    <span className="text-[10px] uppercase text-text-muted">
+                      {event.subSessionId.slice(-6)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Real-time execution timer */}
           {liveElapsed > 0 && (
@@ -826,6 +921,41 @@ export function ChatView() {
               />
 
               <div className="flex items-center gap-2">
+                {deepAgentAvailable && (
+                  <div
+                    className="grid grid-cols-2 h-9 rounded-2xl border border-border-muted overflow-hidden bg-surface-muted"
+                    role="group"
+                    aria-label={t('chat.executionMode')}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExecutionMode('default')}
+                      className={`min-w-[4.5rem] px-2 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors ${
+                        executionMode === 'default'
+                          ? 'bg-background text-text-primary'
+                          : 'text-text-muted hover:text-text-primary'
+                      }`}
+                      title={t('chat.modeDefault')}
+                    >
+                      <Circle className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t('chat.modeDefault')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExecutionMode('deep_agent')}
+                      className={`min-w-[5.75rem] px-2 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors ${
+                        executionMode === 'deep_agent'
+                          ? 'bg-background text-text-primary'
+                          : 'text-text-muted hover:text-text-primary'
+                      }`}
+                      title={t('chat.modeDeepAgent')}
+                    >
+                      <Bot className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t('chat.modeDeepAgent')}</span>
+                    </button>
+                  </div>
+                )}
+
                 <ChatHeaderModelSwitcher />
 
                 {canStop && (

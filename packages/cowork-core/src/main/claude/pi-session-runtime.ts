@@ -8,6 +8,9 @@ export interface PiSessionRuntimeSignatureInput {
   modelBaseUrl?: string;
   effectiveCwd?: string;
   apiKey?: string;
+  executionMode?: string;
+  deepAgentEnabled?: boolean;
+  deepAgentPersonaSignature?: string;
 }
 
 function normalizeText(value: string | undefined): string {
@@ -33,5 +36,8 @@ export function buildPiSessionRuntimeSignature(
     modelBaseUrl: normalizeText(input.modelBaseUrl).replace(/\/+$/, ''),
     effectiveCwd: normalizeText(input.effectiveCwd),
     apiKeyFingerprint: fingerprintSecret(input.apiKey),
+    executionMode: normalizeText(input.executionMode),
+    deepAgentEnabled: input.deepAgentEnabled === true,
+    deepAgentPersonaSignature: normalizeText(input.deepAgentPersonaSignature),
   });
 }

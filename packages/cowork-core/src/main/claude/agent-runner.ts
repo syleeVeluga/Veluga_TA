@@ -22,7 +22,7 @@ import {
   type AgentSession as PiAgentSession,
   type ToolDefinition,
 } from '@mariozechner/pi-coding-agent';
-import { Type, type TSchema } from '@sinclair/typebox';
+import { Type, type Static, type TSchema } from '@sinclair/typebox';
 import { getSharedAuthStorage, ModelRegistry } from './shared-auth';
 import type {
   Session,
@@ -32,6 +32,7 @@ import type {
   ContentBlock,
   AskUserQuestionAnswer,
   QuestionItem,
+  SessionRunOptions,
 } from '../../renderer/types';
 import { v4 as uuidv4 } from 'uuid';
 import { PathResolver } from '../sandbox/path-resolver';
@@ -83,6 +84,14 @@ import {
 } from './tool-result-utils';
 import { fetchOllamaModelInfo } from '../config/ollama-api';
 import { createWindowsBashOperations } from './windows-bash-operations';
+import {
+  BUILTIN_GENERAL_SUBAGENT_PERSONA,
+  SUMMARY_WITH_CITATIONS_CONTRACT,
+  type BoundedSubSessionRequest,
+  type BoundedSubSessionResult,
+  type CitationTag,
+  type SubAgentPersona,
+} from '../../../../shared-types/src/index.js';
 
 // Virtual workspace path shown to the model (hides real sandbox path)
 const VIRTUAL_WORKSPACE_PATH = '/workspace';
@@ -94,6 +103,26 @@ When writing Mermaid flowcharts:
 - Put visible node text in quoted labels, for example n1["Contract review / API check?"].
 - Put edge labels in quoted edge labels, for example n1 -->|"allow / deny?"| n2.
 </markdown_rendering_guidance>`;
+
+const DEFAULT_DEEP_AGENT_MAX_SUBSESSIONS = 3;
+const DEFAULT_DEEP_AGENT_MAX_DEPTH = 1;
+const DEFAULT_DEEP_AGENT_TOKEN_BUDGET = 24_000;
+
+const SpawnAgentParamsSchema = Type.Object(
+  {
+    objective: Type.String({ minLength: 1 }),
+    boundaries: Type.Array(Type.String()),
+    personaId: Type.Optional(Type.String()),
+    toolScope: Type.Optional(Type.Array(Type.String())),
+    tokenBudget: Type.Optional(Type.Number()),
+    outputShape: Type.Optional(
+      Type.Union([Type.Literal('summary_with_citations'), Type.Literal('review_verdict')])
+    ),
+  },
+  { additionalProperties: false }
+);
+
+type SpawnAgentParams = Static<typeof SpawnAgentParamsSchema>;
 
 /**
  * Estimate chars-per-token ratio based on content language.
@@ -391,6 +420,125 @@ function buildAskUserQuestionTool(
       };
     },
   };
+}
+
+function normalizeToolScopeName(value: string | undefined): string {
+  return (value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function toolScopeAliases(value: string): string[] {
+  const normalized = normalizeToolScopeName(value);
+  if (normalized === 'glob') return ['glob', 'find'];
+  if (normalized === 'listdirectory') return ['listdirectory', 'ls'];
+  if (normalized === 'webfetch') return ['webfetch'];
+  if (normalized === 'websearch') return ['websearch'];
+  return [normalized];
+}
+
+function scopeAllowsTool(toolName: string | undefined, requestedScope: string[], parentAllowedTools: string[]): boolean {
+  const tool = normalizeToolScopeName(toolName);
+  if (!tool) return false;
+  const scopeAliases = new Set(requestedScope.flatMap(toolScopeAliases));
+  const parentAliases = new Set(parentAllowedTools.flatMap(toolScopeAliases));
+  return scopeAliases.has(tool) && parentAliases.has(tool);
+}
+
+function filterToolsForSubAgent(
+  tools: ToolDefinition[],
+  requestedScope: string[],
+  parentAllowedTools: string[]
+): ToolDefinition[] {
+  return tools.filter((tool) => scopeAllowsTool(tool.name, requestedScope, parentAllowedTools));
+}
+
+function normalizeRequestedToolScope(
+  requestedScope: string[] | undefined,
+  persona: SubAgentPersona,
+  parentAllowedTools: string[]
+): string[] {
+  const requested = (requestedScope?.length ? requestedScope : persona.defaultToolScope)
+    .map((tool) => tool.trim())
+    .filter(Boolean);
+  const parentAliases = new Set(parentAllowedTools.flatMap(toolScopeAliases));
+  return [...new Set(requested.filter((tool) => toolScopeAliases(tool).some((alias) => parentAliases.has(alias))))];
+}
+
+function extractTextFromPiMessage(message: unknown): string {
+  if (!message || typeof message !== 'object') return '';
+  const content = (message as { content?: unknown }).content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((block) => {
+      if (!block || typeof block !== 'object') return '';
+      const typedBlock = block as { type?: unknown; text?: unknown };
+      return typedBlock.type === 'text' && typeof typedBlock.text === 'string' ? typedBlock.text : '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function extractCitationTags(text: string): CitationTag[] {
+  const tags: CitationTag[] = [];
+  const seen = new Set<string>();
+
+  for (const match of text.matchAll(/\[parametric:(high|low)\]/g)) {
+    const level = match[1] as 'high' | 'low';
+    const key = `parametric:${level}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      tags.push({ kind: 'parametric', level });
+    }
+  }
+
+  for (const match of text.matchAll(/\[src:([^\]|]+)\|(kb|nb)\]/g)) {
+    const sourceId = match[1].trim();
+    const sourceType = match[2];
+    const key = `${sourceType}:${sourceId}`;
+    if (!sourceId || seen.has(key)) continue;
+    seen.add(key);
+    if (sourceType === 'kb') {
+      tags.push({ kind: 'kb', doc_id: sourceId, as_of: 'runtime' });
+    } else {
+      tags.push({ kind: 'nb', file_id: sourceId, chunk_id: 'runtime' });
+    }
+  }
+
+  return tags;
+}
+
+function tokenUsageTotal(usage: Message['tokenUsage'] | undefined): number {
+  return (usage?.input ?? 0) + (usage?.output ?? 0);
+}
+
+function buildChildPrompt(request: BoundedSubSessionRequest): string {
+  return [
+    `<subagent_persona id="${request.persona.id}">`,
+    request.persona.systemPrefix,
+    '</subagent_persona>',
+    '<subagent_assignment>',
+    `Objective: ${request.objective}`,
+    `Boundaries:\n${request.boundaries.map((boundary) => `- ${boundary}`).join('\n')}`,
+    `Allowed tools: ${request.toolScope.join(', ')}`,
+    `Output contract: ${request.outputContract.shape}. Every sentence must include a trust tag: [src:id|kb], [src:id|nb], [parametric:high], or [parametric:low].`,
+    '</subagent_assignment>',
+  ].join('\n\n');
+}
+
+function serializeSpawnAgentOutput(result: BoundedSubSessionResult): string {
+  return JSON.stringify(
+    {
+      subSessionId: result.id,
+      parentSessionId: result.parentSessionId,
+      personaId: result.personaId,
+      status: result.status,
+      summary: result.summary,
+      citations: result.citations,
+      tokensUsed: result.tokensUsed,
+      error: result.error,
+    },
+    null,
+    2
+  );
 }
 
 /**
@@ -1033,7 +1181,142 @@ ${hints.join('\n')}
     return model;
   }
 
-  async run(session: Session, prompt: string, existingMessages: Message[]): Promise<void> {
+  // Phase 1 (native primitive): the live spawn_agent tool enforces budget/scope/
+  // depth inline here. The orchestrator-side planner and BoundedSubSessionRunner
+  // in veluga-main (Phase 3) reimplement the same guards for multi-step patterns
+  // and are not yet wired to this path — keep the two budget/validation rules in
+  // sync until they are consolidated.
+  private buildSpawnAgentTool(context: {
+    sessionId: string;
+    parentAllowedTools: string[];
+    personas: SubAgentPersona[];
+    runChild: (
+      request: BoundedSubSessionRequest,
+      signal: AbortSignal | undefined
+    ) => Promise<BoundedSubSessionResult>;
+  }): ToolDefinition<TSchema, unknown> {
+    let subSessionCount = 0;
+    let reservedTokens = 0;
+    const personaPool = [BUILTIN_GENERAL_SUBAGENT_PERSONA, ...context.personas];
+    const personaIds = personaPool.map((persona) => persona.id).join(', ');
+
+    const fail = (
+      id: string,
+      error: string,
+      overrides: Partial<BoundedSubSessionResult> = {}
+    ): BoundedSubSessionResult => ({
+      id,
+      parentSessionId: context.sessionId,
+      personaId: overrides.personaId ?? BUILTIN_GENERAL_SUBAGENT_PERSONA.id,
+      summary: overrides.summary ?? '',
+      citations: overrides.citations ?? [],
+      tokensUsed: overrides.tokensUsed ?? 0,
+      status: 'failed',
+      error,
+    });
+
+    const asToolResult = (result: BoundedSubSessionResult) => ({
+      content: [{ type: 'text' as const, text: serializeSpawnAgentOutput(result) }],
+      details: result,
+    });
+
+    return {
+      name: 'spawn_agent',
+      label: 'Spawn agent',
+      description:
+        'Delegate one bounded subtask to a Veluga subagent. Use only for separable analysis or review work in Deep Agent mode.',
+      promptSnippet:
+        'spawn_agent: delegate a bounded subtask to a subagent with objective, boundaries, toolScope, and tokenBudget.',
+      promptGuidelines: [
+        'Use spawn_agent only for bounded subtasks that can return a concise tagged summary.',
+        'Do not request a toolScope broader than the user task needs.',
+        'Every subagent objective must include explicit boundaries.',
+        `Available persona ids: ${personaIds}`,
+      ],
+      parameters: SpawnAgentParamsSchema,
+      async execute(toolCallId, rawParams, signal) {
+        const params = rawParams as SpawnAgentParams;
+        const subSessionId = toolCallId || uuidv4();
+        const objective = params.objective.trim();
+        const boundaries = params.boundaries.map((boundary) => boundary.trim()).filter(Boolean);
+        const requestedPersonaId = params.personaId?.trim() || BUILTIN_GENERAL_SUBAGENT_PERSONA.id;
+        const persona = personaPool.find((candidate) => candidate.id === requestedPersonaId);
+
+        if (!objective) return asToolResult(fail(subSessionId, 'objective is required'));
+        if (boundaries.length === 0) {
+          return asToolResult(fail(subSessionId, 'boundaries are required'));
+        }
+        if (!persona) {
+          return asToolResult(
+            fail(subSessionId, `persona not available: ${requestedPersonaId}`, {
+              personaId: requestedPersonaId,
+            })
+          );
+        }
+        if (subSessionCount >= DEFAULT_DEEP_AGENT_MAX_SUBSESSIONS) {
+          return asToolResult(fail(subSessionId, 'max sub-session count exceeded'));
+        }
+
+        const toolScope = normalizeRequestedToolScope(
+          params.toolScope,
+          persona,
+          context.parentAllowedTools
+        );
+        if (toolScope.length === 0) {
+          return asToolResult(fail(subSessionId, 'requested tool scope is not allowed'));
+        }
+
+        const remainingBudget = DEFAULT_DEEP_AGENT_TOKEN_BUDGET - reservedTokens;
+        const requestedBudget =
+          typeof params.tokenBudget === 'number' && Number.isFinite(params.tokenBudget)
+            ? Math.floor(params.tokenBudget)
+            : Math.min(8_000, remainingBudget);
+        const tokenBudget = Math.min(requestedBudget, remainingBudget);
+        if (tokenBudget <= 0) return asToolResult(fail(subSessionId, 'token budget exceeded'));
+
+        subSessionCount += 1;
+        reservedTokens += tokenBudget;
+
+        const request: BoundedSubSessionRequest = {
+          id: subSessionId,
+          parentSessionId: context.sessionId,
+          objective,
+          boundaries,
+          tokenBudget,
+          depth: DEFAULT_DEEP_AGENT_MAX_DEPTH,
+          persona,
+          toolScope,
+          outputContract:
+            params.outputShape === 'review_verdict'
+              ? { shape: 'review_verdict', schemaRef: 'SubAgentReviewVerdict' }
+              : SUMMARY_WITH_CITATIONS_CONTRACT,
+        };
+
+        const result = await context.runChild(request, signal);
+        // Reconcile the up-front reservation against actual usage so unused budget
+        // is returned to the pool for later spawn_agent calls in this turn. A child
+        // that overshoots its budget keeps the full reservation (never refunds more).
+        const actualTokens = Math.max(0, result.tokensUsed);
+        reservedTokens -= tokenBudget - Math.min(actualTokens, tokenBudget);
+
+        // Deep Agent's output contract requires trust-tagged evidence. A completed
+        // child that produced no parseable citation tags is intentionally rejected
+        // so untagged claims never reach the parent session.
+        const checkedResult =
+          result.status === 'completed' && result.citations.length === 0
+            ? { ...result, status: 'failed' as const, error: 'insufficient tagged evidence' }
+            : result;
+        return asToolResult(checkedResult);
+      },
+    };
+  }
+
+  async run(
+    session: Session,
+    prompt: string,
+    existingMessages: Message[],
+    options?: SessionRunOptions
+  ): Promise<void> {
     const runStartTime = Date.now();
     logCtx('[ClaudeAgentRunner] run() started');
 
@@ -1652,6 +1935,24 @@ ${hints.join('\n')}
         enableThinking: configStore.get('enableThinking'),
       }) as SharedThinkingLevel;
       logCtx('[ClaudeAgentRunner] Thinking level:', thinkingLevel);
+      const executionMode = options?.executionMode ?? 'default';
+      const deepAgentEnabled =
+        executionMode === 'deep_agent' && runtimeConfig.deepAgentEnabled === true;
+      const effectiveExecutionMode = deepAgentEnabled ? 'deep_agent' : 'default';
+      const deepAgentPersonaSnapshot =
+        deepAgentEnabled && this._pluginRuntimeService
+          ? await this._pluginRuntimeService.getAgentPersonaSnapshot()
+          : { personas: [], warnings: [] };
+      for (const warning of deepAgentPersonaSnapshot.warnings) {
+        logWarn('[ClaudeAgentRunner] Deep Agent persona skipped:', warning);
+      }
+      const deepAgentPersonaSignature = JSON.stringify(
+        deepAgentPersonaSnapshot.personas.map((persona) => ({
+          id: persona.id,
+          pluginId: persona.pluginId,
+          sourcePathHash: persona.sourcePathHash,
+        }))
+      );
       const sessionRuntimeSignature = buildPiSessionRuntimeSignature({
         configProvider: runtimeConfig.provider,
         customProtocol: runtimeConfig.customProtocol,
@@ -1660,6 +1961,9 @@ ${hints.join('\n')}
         modelBaseUrl: piModel.baseUrl,
         effectiveCwd,
         apiKey,
+        executionMode: effectiveExecutionMode,
+        deepAgentEnabled,
+        deepAgentPersonaSignature,
       });
       const skillPaths = await this.resolveSkillPaths(session.id);
       const skillsSignature = JSON.stringify(skillPaths);
@@ -1972,22 +2276,7 @@ Tool routing:
       const askUserQuestionTools = this.requestUserQuestion
         ? [buildAskUserQuestionTool(this.requestUserQuestion, session.id)]
         : [];
-      const customTools = [...mcpCustomTools, ...extensionCustomTools, ...askUserQuestionTools];
-      if (mcpCustomTools.length > 0) {
-        log(
-          `[ClaudeAgentRunner] Registered ${mcpCustomTools.length} MCP tools as customTools:`,
-          mcpCustomTools.map((t) => t.name).join(', ')
-        );
-      }
-      if (extensionCustomTools.length > 0) {
-        log(
-          `[ClaudeAgentRunner] Registered ${extensionCustomTools.length} extension tools as customTools:`,
-          extensionCustomTools.map((t) => t.name).join(', ')
-        );
-      }
-      if (askUserQuestionTools.length > 0) {
-        log('[ClaudeAgentRunner] Registered AskUserQuestion custom tool');
-      }
+      const baseCustomTools = [...mcpCustomTools, ...extensionCustomTools, ...askUserQuestionTools];
 
       // Enrich process.env.PATH for build mode — ensures Skill commands (python3, node)
       // executed via Pi SDK's Bash tool can find bundled and user-installed executables.
@@ -2009,6 +2298,191 @@ Tool routing:
       // createAgentSession.tools expects Tool[] (4-param execute). The extra ctx
       // parameter is simply not passed by the session runner — safe to cast.
       const wrappedTools = this.wrapBashToolForSudo(withTimeout, session.id, effectiveCwd);
+
+      const runChildSubSession = async (
+        request: BoundedSubSessionRequest,
+        signal: AbortSignal | undefined
+      ): Promise<BoundedSubSessionResult> => {
+        if (signal?.aborted) {
+          return {
+            id: request.id,
+            parentSessionId: request.parentSessionId,
+            personaId: request.persona.id,
+            summary: '',
+            citations: [],
+            tokensUsed: 0,
+            status: 'aborted',
+            error: 'parent session aborted',
+          };
+        }
+
+        this.sendToRenderer({
+          type: 'deepAgent.subSession',
+          payload: {
+            sessionId: session.id,
+            subSessionId: request.id,
+            parentSessionId: request.parentSessionId,
+            personaName: request.persona.name,
+            status: 'running',
+            objective: request.objective,
+          },
+        });
+
+        const childTools = filterToolsForSubAgent(
+          wrappedTools,
+          request.toolScope,
+          session.allowedTools
+        );
+        const childCustomTools = filterToolsForSubAgent(
+          baseCustomTools,
+          request.toolScope,
+          session.allowedTools
+        );
+        let childText = '';
+        let finalText = '';
+        let tokensUsed = 0;
+        let childPiSession: PiAgentSession | undefined;
+
+        try {
+          const { DefaultResourceLoader } = await import('@mariozechner/pi-coding-agent');
+          const resourceLoader = new DefaultResourceLoader({
+            cwd: effectiveCwd,
+            additionalSkillPaths: skillPaths,
+            appendSystemPrompt: [
+              coworkAppendPrompt,
+              request.persona.systemPrefix,
+              'Return only the requested subagent result. Do not write parent-session prose.',
+            ].join('\n\n'),
+          });
+          await resourceLoader.reload();
+
+          const childModelRegistry = new ModelRegistry(authStorage);
+          const { session: createdChildSession } = await createAgentSession({
+            model: piModel,
+            thinkingLevel,
+            authStorage,
+            modelRegistry: childModelRegistry,
+            tools: childTools as unknown as ReturnType<typeof createCodingTools>,
+            customTools: childCustomTools,
+            sessionManager: PiSessionManager.inMemory(),
+            settingsManager: PiSettingsManager.inMemory({
+              compaction: { enabled: true },
+              retry: { enabled: true, maxRetries: 1 },
+            }),
+            resourceLoader,
+            cwd: effectiveCwd,
+          });
+          childPiSession = createdChildSession;
+
+          const disposeOnAbort = () => childPiSession?.dispose();
+          signal?.addEventListener('abort', disposeOnAbort, { once: true });
+          const unsubscribe = childPiSession.subscribe((event) => {
+            if (event.type === 'message_update') {
+              const update = event.assistantMessageEvent;
+              if (update.type === 'text_delta') {
+                childText += update.delta;
+              }
+            } else if (event.type === 'message_end') {
+              finalText = extractTextFromPiMessage(event.message) || childText;
+              tokensUsed = tokenUsageTotal(normalizeTokenUsage((event.message as { usage?: unknown }).usage));
+            }
+          });
+
+          try {
+            await childPiSession.prompt(buildChildPrompt(request));
+          } finally {
+            unsubscribe();
+            signal?.removeEventListener('abort', disposeOnAbort);
+          }
+
+          const summary = (finalText || childText).trim();
+          const citations = extractCitationTags(summary);
+          const status = signal?.aborted ? 'aborted' : 'completed';
+          const result: BoundedSubSessionResult = {
+            id: request.id,
+            parentSessionId: request.parentSessionId,
+            personaId: request.persona.id,
+            summary,
+            citations,
+            tokensUsed,
+            status,
+          };
+
+          this.sendToRenderer({
+            type: 'deepAgent.subSession',
+            payload: {
+              sessionId: session.id,
+              subSessionId: request.id,
+              parentSessionId: request.parentSessionId,
+              personaName: request.persona.name,
+              status,
+              objective: request.objective,
+              tokensUsed,
+              summary,
+            },
+          });
+          return result;
+        } catch (error) {
+          const result: BoundedSubSessionResult = {
+            id: request.id,
+            parentSessionId: request.parentSessionId,
+            personaId: request.persona.id,
+            summary: '',
+            citations: [],
+            tokensUsed,
+            status: signal?.aborted ? 'aborted' : 'failed',
+            error: toErrorText(error),
+          };
+          this.sendToRenderer({
+            type: 'deepAgent.subSession',
+            payload: {
+              sessionId: session.id,
+              subSessionId: request.id,
+              parentSessionId: request.parentSessionId,
+              personaName: request.persona.name,
+              status: result.status,
+              objective: request.objective,
+              tokensUsed,
+              error: result.error,
+            },
+          });
+          return result;
+        } finally {
+          childPiSession?.dispose();
+        }
+      };
+
+      const deepAgentTools =
+        deepAgentEnabled
+          ? [
+              this.buildSpawnAgentTool({
+                sessionId: session.id,
+                parentAllowedTools: session.allowedTools,
+                personas: deepAgentPersonaSnapshot.personas,
+                runChild: runChildSubSession,
+              }),
+            ]
+          : [];
+      const customTools = [...baseCustomTools, ...deepAgentTools];
+
+      if (mcpCustomTools.length > 0) {
+        log(
+          `[ClaudeAgentRunner] Registered ${mcpCustomTools.length} MCP tools as customTools:`,
+          mcpCustomTools.map((t) => t.name).join(', ')
+        );
+      }
+      if (extensionCustomTools.length > 0) {
+        log(
+          `[ClaudeAgentRunner] Registered ${extensionCustomTools.length} extension tools as customTools:`,
+          extensionCustomTools.map((t) => t.name).join(', ')
+        );
+      }
+      if (askUserQuestionTools.length > 0) {
+        log('[ClaudeAgentRunner] Registered AskUserQuestion custom tool');
+      }
+      if (deepAgentTools.length > 0) {
+        log('[ClaudeAgentRunner] Registered Deep Agent custom tool: spawn_agent');
+      }
 
       // Diagnostic: log tools being passed to SDK (helps debug Ollama tool use)
       logCtx(`[ClaudeAgentRunner] Session reuse check: cached=${!!cachedSession}`);

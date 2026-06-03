@@ -28,6 +28,7 @@ function makeConfig(timeoutMs: number): AppConfig {
     language: 'ko',
     sandboxEnabled: false,
     memoryEnabled: true,
+    deepAgentEnabled: false,
     memoryRuntime: {
       llm: {
         inheritFromActive: true,

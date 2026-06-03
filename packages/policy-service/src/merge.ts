@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type {
   Clearance,
+  DeepAgentPolicy,
   DynamicOrchestrationPolicy,
   HitlMode,
   InstitutionPolicyMerged,
@@ -48,6 +49,7 @@ export interface SessionPolicyInput extends PolicyTierRules {
   enable_veluga_orchestration?: boolean;
   kb_token_budget?: number;
   dynamic_orchestration?: Partial<DynamicOrchestrationPolicy>;
+  deep_agent?: Partial<DeepAgentPolicy>;
 }
 
 export interface MergePolicyInput {
@@ -61,6 +63,17 @@ export interface MergePolicyInput {
 
 function unique(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))].sort();
+}
+
+const MAX_DEEP_AGENT_TOKEN_BUDGET = 1_000_000;
+
+// Returns a clamped, positive integer budget, or undefined for missing/invalid
+// values so the runtime falls back to its own default ceiling.
+function sanitizeTokenBudget(value: number | undefined): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  return Math.min(MAX_DEEP_AGENT_TOKEN_BUDGET, Math.floor(value));
 }
 
 function chooseWithDenyPrecedence(
@@ -145,6 +158,11 @@ export function mergePolicies(input: MergePolicyInput): PolicyContextSnapshot {
     ...(project?.active_skills ?? [])
   ]).filter((skill) => !deniedSkills.has(skill));
 
+  const enable_veluga_orchestration =
+    input.session?.enable_veluga_orchestration ?? institution.default_veluga_mode;
+  const requestedDeepAgent = input.session?.deep_agent ?? {};
+  const deepAgentEnabled = enable_veluga_orchestration && requestedDeepAgent.enabled === true;
+
   const snapshot: PolicyContextSnapshot = {
     policy_version_id: versionFor({ ...input, generated_at: undefined }),
     user: {
@@ -172,14 +190,34 @@ export function mergePolicies(input: MergePolicyInput): PolicyContextSnapshot {
     active_skill_ids,
     active_mcp_connectors: org.active_mcp_connectors,
     veluga: {
-      enable_veluga_orchestration:
-        input.session?.enable_veluga_orchestration ?? institution.default_veluga_mode,
+      enable_veluga_orchestration,
       policy_guard_mode: institution.policy_guard_mode,
       kb_token_budget: input.session?.kb_token_budget,
       dynamic_orchestration: {
         conditional_edges: input.session?.dynamic_orchestration?.conditional_edges ?? false,
         bounded_subsessions: input.session?.dynamic_orchestration?.bounded_subsessions ?? false,
         dynamic_dag: input.session?.dynamic_orchestration?.dynamic_dag ?? false
+      },
+      deep_agent: {
+        enabled: deepAgentEnabled,
+        max_depth: Math.max(0, Math.min(3, Math.floor(requestedDeepAgent.max_depth ?? 1))),
+        max_subsessions: Math.max(
+          1,
+          Math.min(8, Math.floor(requestedDeepAgent.max_subsessions ?? 3))
+        ),
+        token_budget: sanitizeTokenBudget(requestedDeepAgent.token_budget),
+        allowed_tool_scopes: unique(requestedDeepAgent.allowed_tool_scopes ?? ['read', 'grep', 'glob']),
+        allowed_patterns: (requestedDeepAgent.allowed_patterns ?? [
+          'producer_reviewer',
+          'supervisor',
+          'fanout_summarize'
+        ]).filter(
+          (pattern): pattern is DeepAgentPolicy['allowed_patterns'][number] =>
+            pattern === 'producer_reviewer' ||
+            pattern === 'supervisor' ||
+            pattern === 'fanout_summarize'
+        ),
+        max_replans: Math.max(0, Math.min(3, Math.floor(requestedDeepAgent.max_replans ?? 1)))
       }
     },
     hitl_mode: institution.hitl_mode

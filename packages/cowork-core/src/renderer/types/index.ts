@@ -218,7 +218,8 @@ export interface PluginCatalogItemV2 {
   pluginId?: string;
   installCommand?: string;
   detailUrl?: string;
-  catalogSource?: 'claude-marketplace';
+  catalogSource?: 'claude-marketplace' | 'veluga-marketplace' | 'veluga-offline-bundle';
+  localPath?: string;
 }
 
 export interface PluginCatalogItem extends PluginCatalogItemV2 {
@@ -235,6 +236,7 @@ export interface InstalledPlugin {
   enabled: boolean;
   sourcePath: string;
   runtimePath: string;
+  catalogSource?: 'claude-marketplace' | 'veluga-marketplace' | 'veluga-offline-bundle';
   componentCounts: PluginComponentCounts;
   componentsEnabled: PluginComponentEnabledState;
   installedAt: number;
@@ -452,6 +454,24 @@ export interface AskUserQuestionAnswer {
   skipped?: boolean;
 }
 
+export type DeepAgentExecutionMode = 'default' | 'deep_agent';
+
+export interface SessionRunOptions {
+  executionMode?: DeepAgentExecutionMode;
+}
+
+export interface DeepAgentSubSessionEvent {
+  sessionId: string;
+  subSessionId: string;
+  parentSessionId: string;
+  personaName: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'aborted';
+  objective: string;
+  tokensUsed?: number;
+  summary?: string;
+  error?: string;
+}
+
 export interface PermissionRule {
   tool: string;
   pattern?: string;
@@ -461,7 +481,7 @@ export interface PermissionRule {
 // IPC Event types
 export type ClientEvent =
   | { type: 'session.start'; payload: { title: string; prompt: string; cwd?: string; allowedTools?: string[]; content?: ContentBlock[]; memoryEnabled?: boolean } }
-  | { type: 'session.continue'; payload: { sessionId: string; prompt: string; content?: ContentBlock[] } }
+  | { type: 'session.continue'; payload: { sessionId: string; prompt: string; content?: ContentBlock[]; options?: SessionRunOptions } }
   | { type: 'session.stop'; payload: { sessionId: string } }
   | { type: 'session.delete'; payload: { sessionId: string } }
   | { type: 'session.batchDelete'; payload: { sessionIds: string[] } }
@@ -539,6 +559,7 @@ export type ServerEvent =
   | { type: 'plugins.runtimeApplied'; payload: { sessionId: string; plugins: Array<{ name: string; path: string }> } }
   | { type: 'workdir.changed'; payload: { path: string } }
   | { type: 'session.contextInfo'; payload: { sessionId: string; contextWindow: number } }
+  | { type: 'deepAgent.subSession'; payload: DeepAgentSubSessionEvent }
   | { type: 'navigate.to'; payload: { page: 'welcome' | 'settings' | 'session'; tab?: string; sessionId?: string } }
   | { type: 'native-theme.changed'; payload: { shouldUseDarkColors: boolean } }
   | { type: 'new-session' }
@@ -660,6 +681,7 @@ export interface AppConfig {
   language?: AppLanguage;
   sandboxEnabled?: boolean;
   memoryEnabled?: boolean;
+  deepAgentEnabled?: boolean;
   memoryRuntime?: MemoryRuntimeConfig;
   enableThinking?: boolean;
   thinkingLevel?: SharedThinkingLevel;

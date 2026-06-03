@@ -139,6 +139,9 @@ export interface AppConfig {
   // Global memory toggle
   memoryEnabled: boolean;
 
+  // Deep Agent Mode gate
+  deepAgentEnabled: boolean;
+
   // Dedicated memory runtime config
   memoryRuntime: MemoryRuntimeConfig;
 
@@ -204,6 +207,7 @@ const DIRECT_READ_KEYS = new Set<keyof AppConfig>([
   'language',
   'sandboxEnabled',
   'memoryEnabled',
+  'deepAgentEnabled',
   'enableThinking',
   'thinkingLevel',
   'visibleProviders',
@@ -284,6 +288,7 @@ const defaultConfig: AppConfig = {
   language: 'ko',
   sandboxEnabled: false,
   memoryEnabled: true,
+  deepAgentEnabled: false,
   memoryRuntime: {
     llm: {
       inheritFromActive: true,
@@ -1122,6 +1127,7 @@ export class ConfigStore {
       language: isAppLanguage(raw.language) ? raw.language : defaultConfig.language,
       sandboxEnabled: toBoolean(raw.sandboxEnabled, defaultConfig.sandboxEnabled),
       memoryEnabled: toBoolean(raw.memoryEnabled, defaultConfig.memoryEnabled),
+      deepAgentEnabled: toBoolean(raw.deepAgentEnabled, defaultConfig.deepAgentEnabled),
       memoryRuntime: normalizeMemoryRuntimeConfig(raw.memoryRuntime),
       agentRuntime: normalizeAgentRuntimeConfig(raw.agentRuntime),
       enableThinking: projected.enableThinking,
@@ -1579,6 +1585,10 @@ export class ConfigStore {
         updates.sandboxEnabled !== undefined ? updates.sandboxEnabled : current.sandboxEnabled,
       memoryEnabled:
         updates.memoryEnabled !== undefined ? updates.memoryEnabled : current.memoryEnabled,
+      deepAgentEnabled:
+        updates.deepAgentEnabled !== undefined
+          ? updates.deepAgentEnabled
+          : current.deepAgentEnabled,
       memoryRuntime:
         updates.memoryRuntime !== undefined
           ? normalizeMemoryRuntimeConfig(updates.memoryRuntime)

@@ -108,18 +108,61 @@ export interface DynamicWorkPlan {
   maxReplans: number;
 }
 
+export type DeepAgentExecutionMode = 'default' | 'deep_agent';
+
+export interface SubAgentPersona {
+  id: string;
+  name: string;
+  description: string;
+  systemPrefix: string;
+  defaultToolScope: string[];
+  source: 'builtin' | 'plugin';
+  pluginId?: string;
+  sourcePathHash?: string;
+}
+
+export interface SubAgentOutputContract {
+  shape: 'summary_with_citations' | 'review_verdict';
+  schemaRef: string;
+}
+
+export const BUILTIN_GENERAL_SUBAGENT_PERSONA: SubAgentPersona = {
+  id: 'general_subagent',
+  name: 'General subagent',
+  description: 'General-purpose bounded assistant for delegated subtasks.',
+  systemPrefix:
+    'You are a bounded Veluga subagent. Complete only the assigned objective, obey the boundaries and tool scope, and return tagged evidence.',
+  defaultToolScope: ['read', 'grep', 'glob'],
+  source: 'builtin'
+};
+
+export const SUMMARY_WITH_CITATIONS_CONTRACT: SubAgentOutputContract = {
+  shape: 'summary_with_citations',
+  schemaRef: 'SubAgentSummaryWithCitations'
+};
+
 export interface BoundedSubSessionRequest {
   id: string;
+  parentSessionId: string;
   objective: string;
   boundaries: string[];
   tokenBudget: number;
+  depth: number;
+  persona: SubAgentPersona;
+  toolScope: string[];
+  outputContract: SubAgentOutputContract;
+  policyContextRef?: string;
 }
 
 export interface BoundedSubSessionResult {
   id: string;
+  parentSessionId: string;
+  personaId: string;
   summary: string;
   citations: CitationTag[];
   tokensUsed: number;
+  status: 'completed' | 'failed' | 'aborted';
+  error?: string;
 }
 
 export interface WorkPlan {

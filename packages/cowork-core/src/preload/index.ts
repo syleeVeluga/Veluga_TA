@@ -247,8 +247,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   plugins: {
-    listCatalog: (options?: { installableOnly?: boolean }): Promise<PluginCatalogItemV2[]> =>
-      ipcRenderer.invoke('plugins.listCatalog', options),
+    listCatalog: (options?: {
+      installableOnly?: boolean;
+      catalogSource?: 'claude-marketplace' | 'veluga-marketplace' | 'veluga-offline-bundle' | 'all';
+    }): Promise<PluginCatalogItemV2[]> => ipcRenderer.invoke('plugins.listCatalog', options),
     listInstalled: (): Promise<InstalledPlugin[]> => ipcRenderer.invoke('plugins.listInstalled'),
     install: (pluginName: string): Promise<PluginInstallResultV2> =>
       ipcRenderer.invoke('plugins.install', pluginName),
@@ -541,7 +543,14 @@ declare global {
         openStoragePath: () => Promise<{ success: boolean; path: string; error?: string }>;
       };
       plugins: {
-        listCatalog: (options?: { installableOnly?: boolean }) => Promise<PluginCatalogItemV2[]>;
+        listCatalog: (options?: {
+          installableOnly?: boolean;
+          catalogSource?:
+            | 'claude-marketplace'
+            | 'veluga-marketplace'
+            | 'veluga-offline-bundle'
+            | 'all';
+        }) => Promise<PluginCatalogItemV2[]>;
         listInstalled: () => Promise<InstalledPlugin[]>;
         install: (pluginName: string) => Promise<PluginInstallResultV2>;
         setEnabled: (pluginId: string, enabled: boolean) => Promise<PluginToggleResult>;

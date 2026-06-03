@@ -56,6 +56,7 @@ describe('Phase1 policy merge and SSO', () => {
     expect(snapshot.active_skill_ids).toEqual(['custom-skill', 'docx-format', 'system-self-help']);
     expect(snapshot.active_mcp_connectors).toEqual(['mcp-a']);
     expect(snapshot.veluga.enable_veluga_orchestration).toBe(false);
+    expect(snapshot.veluga.deep_agent.enabled).toBe(false);
     expect(snapshot.veluga.kb_token_budget).toBe(1200);
     expect(snapshot.hitl_mode).toBe('strict');
     expect(snapshot.policy_version_id).toMatch(/^pol_/);
@@ -73,6 +74,49 @@ describe('Phase1 policy merge and SSO', () => {
     store.update({ ...snapshot, policy_version_id: 'pol_next' });
     unsubscribe();
     expect(observed).toBe('pol_next');
+  });
+
+  it('keeps deep agent mode behind Veluga orchestration and session policy', () => {
+    const allowed = mergePolicies({
+      identity: { user_id: 'p5', dept: 'finance', roles: ['analyst'], clearance: 'internal' },
+      institution: { default_veluga_mode: true, policy_guard_mode: 'dry-run' },
+      org: { default_skills: ['system-self-help'], kb_scopes: [] },
+      user: {},
+      session: {
+        deep_agent: {
+          enabled: true,
+          max_depth: 2,
+          max_subsessions: 4,
+          token_budget: 10000,
+          allowed_tool_scopes: ['read', 'grep'],
+          allowed_patterns: ['producer_reviewer'],
+          max_replans: 2
+        }
+      }
+    });
+
+    expect(allowed.veluga.deep_agent).toMatchObject({
+      enabled: true,
+      max_depth: 2,
+      max_subsessions: 4,
+      token_budget: 10000,
+      allowed_tool_scopes: ['grep', 'read'],
+      allowed_patterns: ['producer_reviewer'],
+      max_replans: 2
+    });
+
+    const disabledByVeluga = mergePolicies({
+      identity: { user_id: 'p6', dept: 'finance', roles: ['analyst'], clearance: 'internal' },
+      institution: { default_veluga_mode: true, policy_guard_mode: 'dry-run' },
+      org: { default_skills: ['system-self-help'], kb_scopes: [] },
+      user: {},
+      session: {
+        enable_veluga_orchestration: false,
+        deep_agent: { enabled: true }
+      }
+    });
+
+    expect(disabledByVeluga.veluga.deep_agent.enabled).toBe(false);
   });
 
   it('covers null project, lower-tier fill, and mock outage stale fallback', async () => {

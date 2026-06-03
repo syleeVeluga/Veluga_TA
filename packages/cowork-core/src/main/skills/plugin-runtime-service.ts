@@ -18,6 +18,8 @@ import { getDefaultShell } from '../utils/shell-resolver';
 import { withRetry } from '../utils/retry';
 import { pluginRegistryStore } from './plugin-registry-store';
 import { PluginCatalogService } from './plugin-catalog-service';
+import { scrubPluginDirectory } from './plugin-scrubber';
+import { AgentPersonaRegistry, type AgentPersonaRegistrySnapshot } from './agent-persona-registry';
 
 const execFileAsync = promisify(execFile);
 
@@ -97,9 +99,18 @@ export class PluginRuntimeService {
     this.commandRunner = commandRunner;
   }
 
-  async listCatalog(options?: { installableOnly?: boolean }): Promise<PluginCatalogItemV2[]> {
+  async listCatalog(options?: {
+    installableOnly?: boolean;
+    catalogSource?: 'claude-marketplace' | 'veluga-marketplace' | 'veluga-offline-bundle' | 'all';
+  }): Promise<PluginCatalogItemV2[]> {
     const installableOnly = options?.installableOnly === true;
-    const plugins = await this.catalogService.listAnthropicPlugins(false, installableOnly);
+    const source = options?.catalogSource ?? 'claude-marketplace';
+    const plugins =
+      source === 'veluga-marketplace' || source === 'veluga-offline-bundle'
+        ? await this.listVelugaCatalogPlugins(installableOnly)
+        : source === 'all'
+          ? await this.listAllCatalogPlugins(installableOnly)
+          : await this.catalogService.listAnthropicPlugins(false, installableOnly);
     return plugins.map((plugin) => ({
       name: plugin.name,
       description: plugin.description,
@@ -112,6 +123,7 @@ export class PluginRuntimeService {
       installCommand: plugin.installCommand,
       detailUrl: plugin.detailUrl,
       catalogSource: plugin.catalogSource,
+      localPath: plugin.localPath,
     }));
   }
 
@@ -121,8 +133,12 @@ export class PluginRuntimeService {
 
   async install(pluginRef: string): Promise<PluginInstallResultV2> {
     log(`[PluginRuntime] Install requested: ${pluginRef}`);
-    const catalog = await this.catalogService.listAnthropicPlugins(false, false);
     const requested = pluginRef.trim();
+    if (requested && fs.existsSync(requested) && fs.statSync(requested).isDirectory()) {
+      return this.installFromDirectory(requested, { catalogSource: 'veluga-offline-bundle' });
+    }
+
+    const catalog = await this.listAllCatalogPlugins(false);
     const loweredRequested = requested.toLowerCase();
     const targetPlugin = this.resolveCatalogPlugin(catalog, loweredRequested);
     if (!targetPlugin) {
@@ -133,18 +149,40 @@ export class PluginRuntimeService {
     if (!pluginId) {
       throw new Error(`Unable to resolve plugin id for ${pluginRef}`);
     }
+    if (
+      targetPlugin.catalogSource === 'veluga-marketplace' ||
+      targetPlugin.catalogSource === 'veluga-offline-bundle'
+    ) {
+      if (!targetPlugin.localPath) {
+        throw new Error(`Local path missing for Veluga plugin: ${pluginId}`);
+      }
+      log(`[PluginRuntime] Installing Veluga local plugin: ${pluginId}`);
+      return this.installFromDirectory(targetPlugin.localPath, {
+        pluginId,
+        catalogSource: targetPlugin.catalogSource,
+      });
+    }
+
     log(`[PluginRuntime] Resolved marketplace plugin id: ${pluginId} (from ${pluginRef})`);
 
     await this.installWithClaudeCli(pluginId);
     const pluginRootPath = await this.resolveInstallPathFromCli(pluginId);
-    const result = await this.installFromDirectory(pluginRootPath);
+    const result = await this.installFromDirectory(pluginRootPath, {
+      catalogSource: targetPlugin.catalogSource,
+    });
     log(
       `[PluginRuntime] Install completed: ${result.plugin.name} (${result.plugin.pluginId}), source=${result.plugin.sourcePath}, runtime=${result.plugin.runtimePath}`
     );
     return result;
   }
 
-  async installFromDirectory(pluginRootPath: string): Promise<PluginInstallResultV2> {
+  async installFromDirectory(
+    pluginRootPath: string,
+    options?: {
+      pluginId?: string;
+      catalogSource?: InstalledPlugin['catalogSource'];
+    }
+  ): Promise<PluginInstallResultV2> {
     if (!fs.existsSync(pluginRootPath) || !fs.statSync(pluginRootPath).isDirectory()) {
       throw new Error('Plugin directory does not exist');
     }
@@ -152,10 +190,14 @@ export class PluginRuntimeService {
 
     const sourceManifest = this.readManifest(pluginRootPath);
     const displayName = sourceManifest?.name?.trim() || path.basename(pluginRootPath);
-    const pluginId = this.sanitizePluginId(displayName);
+    const pluginId = options?.pluginId || this.sanitizePluginId(displayName);
     const sourcePath = this.getSourcePath(pluginId);
     const runtimePath = this.getRuntimePath(pluginId);
     const componentCounts = this.detectComponentCounts(pluginRootPath, sourceManifest);
+    const scrubResult = scrubPluginDirectory(pluginRootPath, componentCounts);
+    if (!scrubResult.accepted) {
+      throw new Error(`Plugin failed Veluga scrub: ${scrubResult.errors.join('; ')}`);
+    }
 
     await this.removePathWithRetries(sourcePath);
     await this.removePathWithRetries(runtimePath);
@@ -173,6 +215,7 @@ export class PluginRuntimeService {
       enabled: hasAnyComponent,
       sourcePath,
       runtimePath,
+      catalogSource: options?.catalogSource,
       componentCounts,
       componentsEnabled: defaultComponentState,
       installedAt: now,
@@ -187,7 +230,7 @@ export class PluginRuntimeService {
       throw new Error(`Failed to persist installed plugin: ${pluginId}`);
     }
 
-    const warnings: string[] = [];
+    const warnings: string[] = [...scrubResult.warnings];
     if (!sourceManifest) {
       warnings.push('plugin.json not found, generated runtime manifest with defaults');
     }
@@ -291,6 +334,36 @@ export class PluginRuntimeService {
       }
     }
     return ready;
+  }
+
+  async getAgentPersonaSnapshot(): Promise<AgentPersonaRegistrySnapshot> {
+    const plugins = await this.getEnabledRuntimePlugins();
+    return AgentPersonaRegistry.fromInstalledPlugins(plugins);
+  }
+
+  private async listAllCatalogPlugins(installableOnly: boolean): Promise<PluginCatalogItemV2[]> {
+    const velugaPlugins = await this.listVelugaCatalogPlugins(installableOnly);
+    try {
+      const marketplacePlugins = await this.catalogService.listAnthropicPlugins(
+        false,
+        installableOnly
+      );
+      return [...velugaPlugins, ...marketplacePlugins];
+    } catch (error) {
+      if (velugaPlugins.length > 0) {
+        return velugaPlugins;
+      }
+      throw error;
+    }
+  }
+
+  private async listVelugaCatalogPlugins(installableOnly: boolean): Promise<PluginCatalogItemV2[]> {
+    const catalogService = this.catalogService as PluginCatalogService & {
+      listVelugaPlugins?: (installableOnly?: boolean) => Promise<PluginCatalogItemV2[]>;
+    };
+    return catalogService.listVelugaPlugins
+      ? catalogService.listVelugaPlugins(installableOnly)
+      : [];
   }
 
   private static async defaultCommandRunner(
@@ -670,7 +743,7 @@ export class PluginRuntimeService {
   ): PluginComponentEnabledState {
     return {
       skills: componentCounts.skills > 0,
-      commands: componentCounts.commands > 0,
+      commands: false,
       agents: componentCounts.agents > 0,
       hooks: false,
       mcp: false,

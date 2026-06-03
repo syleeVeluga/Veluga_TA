@@ -85,6 +85,24 @@ describe('ClaudeAgentRunner pi-coding-agent integration', () => {
     expect(agentRunnerContent).toContain('runtimeSignature: sessionRuntimeSignature');
   });
 
+  it('registers spawn_agent only through deep-agent execution options', () => {
+    expect(agentRunnerContent).toContain("const executionMode = options?.executionMode ?? 'default'");
+    expect(agentRunnerContent).toContain("executionMode === 'deep_agent'");
+    expect(agentRunnerContent).toContain('runtimeConfig.deepAgentEnabled === true');
+    expect(agentRunnerContent).toContain('const effectiveExecutionMode = deepAgentEnabled ?');
+    expect(agentRunnerContent).toContain('deepAgentPersonaSignature');
+    expect(agentRunnerContent).toContain("name: 'spawn_agent'");
+    expect(agentRunnerContent).toContain('Registered Deep Agent custom tool: spawn_agent');
+    expect(agentRunnerContent).toContain("type: 'deepAgent.subSession'");
+  });
+
+  it('keeps child sessions out of parent transcript persistence', () => {
+    expect(agentRunnerContent).toContain('PiSessionManager.inMemory()');
+    expect(agentRunnerContent).toContain('childPiSession?.dispose()');
+    expect(agentRunnerContent).toContain('Return only the requested subagent result');
+    expect(agentRunnerContent).not.toContain('saveMessage(child');
+  });
+
   it('uses the normalized route protocol so openrouter follows the openai-compatible path', () => {
     expect(agentRunnerContent).toContain('resolvePiRouteProtocol');
     expect(agentRunnerContent).toContain('const configProtocol = resolvePiRouteProtocol(');

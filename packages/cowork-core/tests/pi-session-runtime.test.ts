@@ -55,4 +55,36 @@ describe('pi session runtime signature', () => {
 
     expect(normalized).toBe(original);
   });
+
+  it('changes when deep agent execution mode changes', () => {
+    const original = buildPiSessionRuntimeSignature({
+      ...baseInput,
+      executionMode: 'default',
+      deepAgentEnabled: false,
+    });
+    const deepAgent = buildPiSessionRuntimeSignature({
+      ...baseInput,
+      executionMode: 'deep_agent',
+      deepAgentEnabled: true,
+    });
+
+    expect(deepAgent).not.toBe(original);
+  });
+
+  it('changes when deep agent persona registry changes', () => {
+    const original = buildPiSessionRuntimeSignature({
+      ...baseInput,
+      executionMode: 'deep_agent',
+      deepAgentEnabled: true,
+      deepAgentPersonaSignature: '[{"id":"reviewer","sourcePathHash":"a"}]',
+    });
+    const changed = buildPiSessionRuntimeSignature({
+      ...baseInput,
+      executionMode: 'deep_agent',
+      deepAgentEnabled: true,
+      deepAgentPersonaSignature: '[{"id":"reviewer","sourcePathHash":"b"}]',
+    });
+
+    expect(changed).not.toBe(original);
+  });
 });

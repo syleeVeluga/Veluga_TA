@@ -8,6 +8,16 @@ export interface DynamicOrchestrationPolicy {
   dynamic_dag: boolean;
 }
 
+export interface DeepAgentPolicy {
+  enabled: boolean;
+  max_depth: number;
+  max_subsessions: number;
+  token_budget?: number;
+  allowed_tool_scopes: string[];
+  allowed_patterns: Array<'producer_reviewer' | 'supervisor' | 'fanout_summarize'>;
+  max_replans: number;
+}
+
 export interface PolicyTierRules {
   external_apis?: 'allow' | 'deny';
   audit_log?: 'required' | 'optional';
@@ -61,6 +71,7 @@ export interface PolicyContext {
     policy_guard_mode: PolicyGuardMode;
     kb_token_budget?: number;
     dynamic_orchestration: DynamicOrchestrationPolicy;
+    deep_agent: DeepAgentPolicy;
   };
   hitl_mode: HitlMode;
   stale?: boolean;

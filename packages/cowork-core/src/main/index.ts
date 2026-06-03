@@ -1830,17 +1830,26 @@ ipcMain.handle('skills.openStoragePath', async () => {
   return { success: true, path: storagePath };
 });
 
-ipcMain.handle('plugins.listCatalog', async (_event, options?: { installableOnly?: boolean }) => {
-  try {
-    if (!pluginRuntimeService) {
-      throw new Error('PluginRuntimeService not initialized');
+ipcMain.handle(
+  'plugins.listCatalog',
+  async (
+    _event,
+    options?: {
+      installableOnly?: boolean;
+      catalogSource?: 'claude-marketplace' | 'veluga-marketplace' | 'veluga-offline-bundle' | 'all';
     }
-    return await pluginRuntimeService.listCatalog(options);
-  } catch (error) {
-    logError('[Plugins] Error listing catalog:', error);
-    throw error;
+  ) => {
+    try {
+      if (!pluginRuntimeService) {
+        throw new Error('PluginRuntimeService not initialized');
+      }
+      return await pluginRuntimeService.listCatalog(options);
+    } catch (error) {
+      logError('[Plugins] Error listing catalog:', error);
+      throw error;
+    }
   }
-});
+);
 
 ipcMain.handle('plugins.listInstalled', async () => {
   try {
@@ -2766,7 +2775,8 @@ async function handleClientEvent(event: ClientEvent): Promise<unknown> {
       return sm.continueSession(
         event.payload.sessionId,
         event.payload.prompt,
-        event.payload.content
+        event.payload.content,
+        event.payload.options
       );
 
     case 'session.stop':

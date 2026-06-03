@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { PluginCatalogService } from '../src/main/skills/plugin-catalog-service';
 
 const CLAUDE_PLUGINS_URL = 'https://claude.com/plugins';
@@ -130,6 +133,59 @@ describe('PluginCatalogService', () => {
         catalogSource: 'claude-marketplace',
       })
     );
+  });
+
+  it('reads Veluga offline bundle catalog without fetching marketplace URLs', async () => {
+    const testRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'veluga-plugin-catalog-'));
+    try {
+      const pluginRoot = path.join(testRoot, 'deep-agent-basic-team');
+      fs.mkdirSync(path.join(pluginRoot, '.claude-plugin'), { recursive: true });
+      fs.writeFileSync(
+        path.join(pluginRoot, '.claude-plugin', 'plugin.json'),
+        JSON.stringify({
+          name: 'deep-agent-basic-team',
+          version: '1.0.0',
+          description: 'Safe persona team',
+          agents: './agents',
+        }),
+        'utf8'
+      );
+      fs.mkdirSync(path.join(pluginRoot, 'agents'), { recursive: true });
+      fs.writeFileSync(path.join(pluginRoot, 'agents', 'reviewer.md'), '# Reviewer', 'utf8');
+      const indexPath = path.join(testRoot, 'index.json');
+      fs.writeFileSync(
+        indexPath,
+        JSON.stringify({
+          plugins: [
+            {
+              pluginId: 'deep-agent-basic-team',
+              path: './deep-agent-basic-team',
+              catalogSource: 'veluga-offline-bundle',
+            },
+          ],
+        }),
+        'utf8'
+      );
+      const fetchMock = vi.fn();
+      const service = new PluginCatalogService(fetchMock as typeof fetch, {
+        velugaCatalogPath: indexPath,
+      });
+
+      const plugins = await service.listVelugaPlugins();
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(plugins).toEqual([
+        expect.objectContaining({
+          name: 'deep-agent-basic-team',
+          pluginId: 'deep-agent-basic-team',
+          catalogSource: 'veluga-offline-bundle',
+          localPath: pluginRoot,
+          componentCounts: expect.objectContaining({ agents: 1 }),
+        }),
+      ]);
+    } finally {
+      fs.rmSync(testRoot, { recursive: true, force: true });
+    }
   });
 
   it('surfaces readable error when marketplace fetch fails', async () => {

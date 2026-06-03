@@ -77,7 +77,9 @@
     "themeLight": "라이트",
     "themeDark": "다크",
     "themeSystem": "시스템",
-    "language": "언어"
+    "language": "언어",
+    "deepAgentMode": "딥 에이전트 모드",
+    "deepAgentModeDesc": "채팅에 딥 에이전트 모드 선택기를 표시하고 제한된 하위 세션을 허용합니다."
   },
   "memory": {
     "title": "Memory",
@@ -693,7 +695,17 @@
     "modelSwitcher": "모델 전환",
     "connectorCount": "{{count}}개 connector",
     "connectorCount_one": "{{count}}개 connector",
-    "connectorCount_other": "{{count}}개 connector"
+    "connectorCount_other": "{{count}}개 connector",
+    "executionMode": "실행 모드",
+    "modeDefault": "기본",
+    "modeDeepAgent": "딥 에이전트",
+    "deepAgentActivity": "하위 에이전트",
+    "deepAgentTokens": "{{count}} 토큰",
+    "deepAgentStatusQueued": "대기",
+    "deepAgentStatusRunning": "실행 중",
+    "deepAgentStatusCompleted": "완료",
+    "deepAgentStatusFailed": "실패",
+    "deepAgentStatusAborted": "중단"
   },
   "context": {
     "progress": "진행",
