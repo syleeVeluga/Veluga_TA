@@ -157,14 +157,14 @@ graph TD
 
 ---
 
-## 단계 로드맵 (개요 — 상세는 후속 문서)
+## 단계 로드맵 (개요 — 상세는 후속 문서 참조)
 
-| Phase | 목표 | 핵심 산출물(예정) |
-|---|---|---|
-| **1 — 네이티브 primitive + 기본 가용** | `spawn_agent` 코어 추가, 모드 셀렉터, 자식 세션 UI 스트리밍, veluga 가드 결선 | agent-runner 수정(절제), BoundedSubSessionRunner 라이브 결선, shared-types persona/스코프 확장, 렌더러 서브에이전트 패널 |
-| **2 — 마켓플레이스 수용** | Veluga 자체 카탈로그·설치 경로, 활성화 게이팅, agents→persona 번역 계약, 가드레일 스크럽 | 카탈로그/설치 대체(화이트아웃), persona 레지스트리, 스크럽 검사기, 검증 패키지 1~2종 |
-| **3 — 검토 패턴·동적성** | Producer-Reviewer/Supervisor 게이트, 효과 입증 시 동적 위임 확장 | 검토 게이트, 재계획 가드, A/B 효과 측정 |
-| **검증** | 모드 OFF 패리티·E2E·관측성·예산/깊이 가드·게이트웨이/화이트아웃 회귀 | 테스트 매트릭스, CI 가드 |
+| Phase | 목표 | 상세 문서 | 핵심 산출물 |
+|---|---|---|---|
+| **1 — 네이티브 primitive + 기본 가용** | `spawn_agent` 코어 추가, 모드 셀렉터, 자식 세션 UI 스트리밍, veluga 가드 결선 | [10-phase1-native-primitive.md](10-phase1-native-primitive.md) | agent-runner 수정(절제), BoundedSubSessionRunner 라이브 결선, shared-types persona/스코프 확장, 렌더러 서브에이전트 패널 |
+| **2 — 마켓플레이스 수용** | Veluga 자체 카탈로그·설치 경로, 활성화 게이팅, agents→persona 번역 계약, 가드레일 스크럽 | [11-phase2-marketplace-intake.md](11-phase2-marketplace-intake.md) | 카탈로그/설치 대체(화이트아웃), persona 레지스트리, 스크럽 검사기, 검증 패키지 1~2종 |
+| **3 — 검토 패턴·동적성** | Producer-Reviewer/Supervisor 게이트, 효과 입증 시 동적 위임 확장 | [12-phase3-review-patterns.md](12-phase3-review-patterns.md) | 검토 게이트, 재계획 가드, A/B 효과 측정 |
+| **검증** | 모드 OFF 패리티·E2E·관측성·예산/깊이 가드·게이트웨이/화이트아웃 회귀 | [20-verification.md](20-verification.md) | 테스트 매트릭스, CI 가드 |
 
 > 타입 메모: 현행 [`BoundedSubSessionRequest`](../../../packages/shared-types/src/intent.ts)는 `{id, objective, boundaries, tokenBudget}`뿐. `persona/systemPrefix`·`toolScope`·`parentSessionId`·`depth`·`outputContract` 추가가 Phase 1 선결(shared-types는 Veluga 소유).
 

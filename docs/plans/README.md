@@ -7,7 +7,7 @@
 | 계획 | Scope | 상태 (2026-06-03) |
 |---|---|---|
 | [agent-orchestration/](agent-orchestration/README.md) | 오케스트레이터-워커 + 태스크 FSM + `node:sqlite` 체크포인트 | ✅ 구현 완료 (Phase 3는 플래그 default OFF) |
-| [deep-agent-mode/](deep-agent-mode/README.md) | 입력창 선택형 멀티에이전트(딥 에이전트) 모드 — 코어 네이티브 `spawn_agent` primitive + 기존 orchestration 가드, harness는 마켓플레이스/활성화 기반 수용 | 📝 계획 초안 (Overview, rev.2) |
+| [deep-agent-mode/](deep-agent-mode/README.md) | 입력창 선택형 멀티에이전트(딥 에이전트) 모드 — 코어 네이티브 `spawn_agent` primitive + 기존 orchestration 가드, harness는 마켓플레이스/활성화 기반 수용 | 📝 단계별 구현 계획 작성 |
 | [ask-user-question/](ask-user-question/README.md) | 에이전트 실행 중 사용자 역질문 인라인 다이얼로그 | ✅ 구현 완료 (`11692eb`) |
 | [file-viewer-panel/](file-viewer-panel/00-overview.md) | 인앱 파일 인라인 뷰어 (코드/MD/PDF/DOCX/XLSX/HTML) | ✅ 구현 완료 |
 | [model-and-thinking-ui.md](model-and-thinking-ui.md) | 최신 모델 프리셋·헤더 모델 스위처·thinking 레벨 선택 | ✅ 구현 완료 (`3ee82a8`) |

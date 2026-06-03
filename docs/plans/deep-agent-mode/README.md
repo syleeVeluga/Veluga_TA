@@ -4,7 +4,7 @@
 > Scope: 입력창에서 사용자가 선택하는 **멀티에이전트 실행 모드**. [harness](https://github.com/revfactory/harness) / [harness-100](https://github.com/revfactory/harness-100)의 "다중 전문가 협업 팀" 패턴을 Veluga가 수용 가능하게 한다.
 > 확정 결정(rev.2): **① 코어 선택 수정 — 네이티브 서브에이전트 primitive(`spawn_agent`)** · **② 기존 `agent-orchestration` 위에 정책·예산·내구성 가드로 확장** · **③ 하네스 = 마켓플레이스/활성화 기반(직접 이식 아님)** · **④ 멀티에이전트 기본 가용을 1순위 목표로**
 
-이 폴더는 **개요(Overview)** 단계 산출물이다. 상세 구현은 후속 문서(`10-*` …)에서 단계적으로 작성한다.
+이 폴더는 **개요(Overview)** 와 단계별 구현 계획 산출물이다. 구현 전에는 `01`→`02`→`03`으로 근거와 gap을 재확인하고, 실제 구현은 `10`부터 단계별로 진행한다.
 
 ---
 
@@ -29,13 +29,13 @@
 | # | 문서 | 내용 | 상태 |
 |---|---|---|---|
 | 00 | [개요 (Overview)](00-overview.md) | 목적·범위·확정결정·불변식/해제구분·엔진결정·하네스 마켓수용·6패턴·토폴로지·모드UX·로드맵·성공기준·변경이력 | 📝 본 단계 |
-| 01 | 배경 & 조사 (예정) | upstream `pi-coding-agent` primitive 부재 정밀 확인, harness 6패턴·plugin 컴포넌트(agents/skills) 구조 분석 | ⏳ 후속 |
-| 02 | 갭 분석 (예정) | 코어 수정 표면·타입 격차·마켓 카탈로그 화이트아웃 대체 지점 | ⏳ 후속 |
-| 03 | 아키텍처 (예정) | `spawn_agent` 시그니처·persona contract·자식세션 스트리밍·예산/깊이/취소 전파 상세 | ⏳ 후속 |
-| 10 | Phase 1 — 네이티브 primitive + 기본 가용 (예정) | agent-runner 절제 수정, 모드 셀렉터, 자식세션 UI, veluga 가드 결선 | ⏳ 후속 |
-| 11 | Phase 2 — 마켓플레이스 수용 (예정) | Veluga 자체 카탈로그·설치 경로, 활성화 게이팅, agents→persona 번역, 스크럽 | ⏳ 후속 |
-| 12 | Phase 3 — 검토 패턴·동적성 (예정) | Producer-Reviewer/Supervisor 게이트, 효과 입증 시 동적 위임 | ⏳ 후속 |
-| 20 | 검증 (예정) | 모드 OFF 패리티·E2E·관측성·예산/깊이 가드·게이트웨이/화이트아웃 회귀 | ⏳ 후속 |
+| 01 | [배경 & 조사](01-background-research.md) | upstream `pi-coding-agent` primitive 부재 정밀 확인, harness 6패턴·plugin 컴포넌트(agents/skills) 구조 분석 | 📝 계획 작성 |
+| 02 | [갭 분석](02-gap-analysis.md) | 코어 수정 표면·타입 격차·마켓 카탈로그 화이트아웃 대체 지점 | 📝 계획 작성 |
+| 03 | [아키텍처](03-architecture.md) | `spawn_agent` 시그니처·persona contract·자식세션 스트리밍·예산/깊이/취소 전파 상세 | 📝 계획 작성 |
+| 10 | [Phase 1 — 네이티브 primitive + 기본 가용](10-phase1-native-primitive.md) | agent-runner 절제 수정, 모드 셀렉터, 자식세션 UI, veluga 가드 결선 | 📝 구현 계획 |
+| 11 | [Phase 2 — 마켓플레이스 수용](11-phase2-marketplace-intake.md) | Veluga 자체 카탈로그·설치 경로, 활성화 게이팅, agents→persona 번역, 스크럽 | 📝 구현 계획 |
+| 12 | [Phase 3 — 검토 패턴·동적성](12-phase3-review-patterns.md) | Producer-Reviewer/Supervisor 게이트, 효과 입증 시 동적 위임 | 📝 구현 계획 |
+| 20 | [검증](20-verification.md) | 모드 OFF 패리티·E2E·관측성·예산/깊이 가드·게이트웨이/화이트아웃 회귀 | 📝 검증 계획 |
 
 ---
 
@@ -55,6 +55,6 @@
 
 ## 다음 단계
 
-1. 본 Overview(rev.2) 검토·승인 — 특히 **엔진 반전(코어에 `spawn_agent` 추가)** 과 **마켓플레이스 수용** 방향 확인.
-2. 승인 후 `01`(배경)·`02`(갭)·`03`(아키텍처) → `10`부터 단계별 상세.
-3. 상세 확정 전 코드 변경 없음. 미결 항목은 [00-overview.md §미해결 및 후속 결정](00-overview.md#미해결-및-후속-결정).
+1. `01`·`02`·`03`의 조사/갭/아키텍처 계획으로 구현 전 확인 항목을 잠근다.
+2. `10`부터 Phase 1 → Phase 2 → Phase 3 순서로 구현한다. Phase 1은 설치 없는 기본 가용이 목표이며, 마켓플레이스 수용은 Phase 2다.
+3. 각 Phase는 [20-verification.md](20-verification.md)의 해당 매트릭스와 root `npm run verify`를 통과해야 완료로 표시한다. 미결 항목은 [00-overview.md §미해결 및 후속 결정](00-overview.md#미해결-및-후속-결정).
