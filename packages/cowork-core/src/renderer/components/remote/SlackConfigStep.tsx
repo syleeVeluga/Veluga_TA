@@ -66,11 +66,12 @@ export function SlackConfigStep({
 
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => onSocketModeChange(!useSocketMode)}
             className={`relative w-10 h-6 rounded-full transition-colors ${useSocketMode ? 'bg-accent' : 'bg-border'}`}
           >
             <span
-              className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${useSocketMode ? 'translate-x-5' : 'translate-x-1'}`}
+              className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${useSocketMode ? 'translate-x-4' : 'translate-x-0'}`}
             />
           </button>
           <div>
