@@ -254,6 +254,11 @@ describe('api config state helpers', () => {
     expect(FALLBACK_PROVIDER_PRESETS.anthropic.models.map((item) => item.id)).toContain(
       'claude-sonnet-4-6'
     );
+    expect(
+      FALLBACK_PROVIDER_PRESETS.anthropic.models
+        .map((item) => item.id)
+        .filter((id) => id.endsWith('-4-7') && !id.includes('opus'))
+    ).toEqual([]);
     expect(FALLBACK_PROVIDER_PRESETS.gemini.models.map((item) => item.id)).toContain(
       'gemini-3.1-pro-preview'
     );
