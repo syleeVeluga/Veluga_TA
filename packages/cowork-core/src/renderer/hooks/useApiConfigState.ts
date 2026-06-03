@@ -15,7 +15,11 @@ import type {
 } from '../types';
 import { isLoopbackBaseUrl } from '../../shared/network/loopback';
 import { DEFAULT_OLLAMA_BASE_URL, normalizeOllamaBaseUrl } from '../../shared/ollama-base-url';
-import { API_PROVIDER_PRESETS, getModelInputGuidance } from '../../shared/api-model-presets';
+import {
+  API_PROVIDER_PRESETS,
+  getModelInputGuidance,
+  normalizeGeminiModelId,
+} from '../../shared/api-model-presets';
 import { deriveThinkingLevel, type SharedThinkingLevel } from '../../shared/thinking';
 import {
   COMMON_PROVIDER_SETUPS,
@@ -244,13 +248,11 @@ function isPristineCustomProfile(
 
   const apiKey = profile.apiKey?.trim() || '';
   const baseUrl = profile.baseUrl?.trim() || fallback.baseUrl;
-  const model = profile.model?.trim() || fallback.model;
-  const legacyDefaultModel =
-    profileKey === 'custom:openai'
-      ? 'gpt-5.4'
-      : profileKey === 'custom:gemini'
-        ? 'gemini-2.5-flash'
-        : '';
+  const model = normalizeGeminiModelId(profile.model?.trim() || fallback.model);
+  // custom:gemini's legacy default (gemini-2.5-flash) is normalized to the current
+  // fallback model before this comparison, so the `model === fallback.model` check
+  // below already covers it; only custom:openai still has a distinct legacy default.
+  const legacyDefaultModel = profileKey === 'custom:openai' ? 'gpt-5.4' : '';
 
   return (
     apiKey === '' &&
@@ -274,7 +276,7 @@ function normalizeProfile(
       ...fallback,
       apiKey: '',
       baseUrl: fallback.baseUrl,
-      model: profile.model?.trim() || fallback.model,
+      model: normalizeGeminiModelId(profile.model?.trim() || fallback.model),
       customModel: '',
       useCustomModel: true,
       contextWindow: '',
@@ -282,7 +284,11 @@ function normalizeProfile(
     };
   }
 
-  const modelValue = profile?.model?.trim() || fallback.model;
+  const rawModelValue = profile?.model?.trim() || fallback.model;
+  const modelValue =
+    profileKey === 'gemini' || profileKey === 'custom:gemini' || profileKey === 'openrouter'
+      ? normalizeGeminiModelId(rawModelValue)
+      : rawModelValue;
   const rawBaseUrl = profile?.baseUrl?.trim() || fallback.baseUrl;
   const hasPresetModel = modelPresetForProfile(profileKey, presets).models.some(
     (item) => item.id === modelValue

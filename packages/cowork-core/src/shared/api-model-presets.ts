@@ -30,6 +30,32 @@ export interface ModelInputGuidance {
   hint: string;
 }
 
+export const GEMINI_CHAT_MODELS = [
+  { id: 'gemini-3.5-flash', name: 'gemini-3.5-flash (latest)' },
+  { id: 'gemini-3.1-pro-preview', name: 'gemini-3.1-pro-preview' },
+  { id: 'gemini-3.1-pro-preview-customtools', name: 'gemini-3.1-pro-preview-customtools' },
+  { id: 'gemini-3.1-flash-lite', name: 'gemini-3.1-flash-lite' },
+];
+
+const RETIRED_GEMINI_MODEL_REPLACEMENTS: Record<string, string> = {
+  'gemini-3-flash-preview': 'gemini-3.5-flash',
+  'gemini-3.1-flash-lite-preview': 'gemini-3.1-flash-lite',
+  'gemini-2.5-pro': 'gemini-3.1-pro-preview',
+  'gemini-2.5-flash': 'gemini-3.5-flash',
+  'gemini-2.5-flash-lite': 'gemini-3.1-flash-lite',
+  'google/gemini-3-flash-preview': 'google/gemini-3.5-flash',
+  'google/gemini-3.1-flash-lite-preview': 'google/gemini-3.1-flash-lite',
+  'google/gemini-2.5-pro': 'google/gemini-3.1-pro-preview',
+  'google/gemini-2.5-flash': 'google/gemini-3.5-flash',
+  'google/gemini-2.5-flash-lite': 'google/gemini-3.1-flash-lite',
+};
+
+export function normalizeGeminiModelId(modelId: string): string {
+  const trimmed = modelId.trim();
+  const unprefixed = trimmed.startsWith('gemini/') ? trimmed.slice('gemini/'.length) : trimmed;
+  return RETIRED_GEMINI_MODEL_REPLACEMENTS[unprefixed] || unprefixed;
+}
+
 export const API_PROVIDER_PRESETS: SharedProviderPresets = {
   openrouter: {
     name: 'OpenRouter',
@@ -43,9 +69,8 @@ export const API_PROVIDER_PRESETS: SharedProviderPresets = {
       { id: 'anthropic/claude-haiku-4-5', name: 'anthropic/claude-haiku-4-5' },
       { id: 'openai/gpt-5.4', name: 'openai/gpt-5.4' },
       { id: 'openai/gpt-5.3-codex', name: 'openai/gpt-5.3-codex' },
+      { id: 'google/gemini-3.1-flash-lite', name: 'google/gemini-3.1-flash-lite' },
       { id: 'google/gemini-3.1-pro-preview', name: 'google/gemini-3.1-pro-preview' },
-      { id: 'google/gemini-3-flash-preview', name: 'google/gemini-3-flash-preview' },
-      { id: 'google/gemini-2.5-flash', name: 'google/gemini-2.5-flash' },
     ],
     keyPlaceholder: 'sk-or-v1-...',
     keyHint: 'Get it from openrouter.ai/keys',
@@ -83,15 +108,7 @@ export const API_PROVIDER_PRESETS: SharedProviderPresets = {
   gemini: {
     name: 'Gemini',
     baseUrl: 'https://generativelanguage.googleapis.com',
-    models: [
-      { id: 'gemini-3.5-flash', name: 'gemini-3.5-flash (latest)' },
-      { id: 'gemini-3.1-pro-preview', name: 'gemini-3.1-pro-preview' },
-      { id: 'gemini-3-flash-preview', name: 'gemini-3-flash-preview' },
-      { id: 'gemini-3.1-flash-lite-preview', name: 'gemini-3.1-flash-lite-preview' },
-      { id: 'gemini-2.5-pro', name: 'gemini-2.5-pro' },
-      { id: 'gemini-2.5-flash', name: 'gemini-2.5-flash' },
-      { id: 'gemini-2.5-flash-lite', name: 'gemini-2.5-flash-lite' },
-    ],
+    models: GEMINI_CHAT_MODELS,
     keyPlaceholder: 'AIza...',
     keyHint: 'Get it from aistudio.google.com',
   },
@@ -138,9 +155,8 @@ export const PI_AI_CURATED_PRESETS: Record<string, { piProvider: string; pick: s
       'anthropic/claude-haiku-4-5',
       'openai/gpt-5.4',
       'openai/gpt-5.3-codex',
+      'google/gemini-3.1-flash-lite',
       'google/gemini-3.1-pro-preview',
-      'google/gemini-3-flash-preview',
-      'google/gemini-2.5-flash',
     ],
   },
   anthropic: {
@@ -172,11 +188,8 @@ export const PI_AI_CURATED_PRESETS: Record<string, { piProvider: string; pick: s
     pick: [
       'gemini-3.5-flash',
       'gemini-3.1-pro-preview',
-      'gemini-3-flash-preview',
-      'gemini-3.1-flash-lite-preview',
-      'gemini-2.5-pro',
-      'gemini-2.5-flash',
-      'gemini-2.5-flash-lite',
+      'gemini-3.1-pro-preview-customtools',
+      'gemini-3.1-flash-lite',
     ],
   },
 };
@@ -201,7 +214,7 @@ export function getModelInputGuidance(
 
   if (provider === 'custom' && customProtocol === 'gemini') {
     return {
-      placeholder: 'gemini-3.5-flash, gemini-3.1-pro-preview, gemini-2.5-flash',
+      placeholder: 'gemini-3.5-flash, gemini-3.1-pro-preview, gemini-3.1-flash-lite',
       hint: 'Use the exact model ID for the selected protocol or endpoint.',
     };
   }
@@ -229,7 +242,7 @@ export function getModelInputGuidance(
 
   if (provider === 'gemini') {
     return {
-      placeholder: 'gemini-3.5-flash, gemini-3.1-pro-preview, gemini-2.5-flash',
+      placeholder: 'gemini-3.5-flash, gemini-3.1-pro-preview, gemini-3.1-flash-lite',
       hint: 'Use the exact model ID for the selected protocol or endpoint.',
     };
   }

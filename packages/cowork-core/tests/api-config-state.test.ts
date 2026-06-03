@@ -199,17 +199,17 @@ describe('api config state helpers', () => {
       activeProfileKey: 'custom:gemini',
       apiKey: 'AIza-relay',
       baseUrl: 'https://gemini-proxy.example/v1',
-      model: 'gemini/gemini-2.5-pro',
+      model: 'gemini/gemini-3.1-pro-preview',
       profiles: {
         gemini: {
           apiKey: 'AIza-official',
           baseUrl: 'https://generativelanguage.googleapis.com',
-          model: 'gemini/gemini-2.5-flash',
+          model: 'gemini/gemini-3.5-flash',
         },
         'custom:gemini': {
           apiKey: 'AIza-relay',
           baseUrl: 'https://gemini-proxy.example/v1',
-          model: 'gemini/gemini-2.5-pro',
+          model: 'gemini/gemini-3.1-pro-preview',
         },
       },
       isConfigured: true,
@@ -261,6 +261,15 @@ describe('api config state helpers', () => {
     ).toEqual([]);
     expect(FALLBACK_PROVIDER_PRESETS.gemini.models.map((item) => item.id)).toContain(
       'gemini-3.1-pro-preview'
+    );
+    expect(FALLBACK_PROVIDER_PRESETS.gemini.models.map((item) => item.id)).toContain(
+      'gemini-3.1-flash-lite'
+    );
+    expect(FALLBACK_PROVIDER_PRESETS.gemini.models.map((item) => item.id)).not.toContain(
+      'gemini-3-flash-preview'
+    );
+    expect(FALLBACK_PROVIDER_PRESETS.gemini.models.map((item) => item.id)).not.toContain(
+      'gemini-2.5-flash'
     );
     expect(FALLBACK_PROVIDER_PRESETS.custom.models.map((item) => item.id)).toContain(
       'kimi-k2-thinking'

@@ -29,7 +29,11 @@ import {
   shouldAllowEmptyGeminiApiKey,
   shouldUseAnthropicAuthToken,
 } from './auth-utils';
-import { API_PROVIDER_PRESETS, PI_AI_CURATED_PRESETS } from '../../shared/api-model-presets';
+import {
+  API_PROVIDER_PRESETS,
+  PI_AI_CURATED_PRESETS,
+  normalizeGeminiModelId,
+} from '../../shared/api-model-presets';
 import {
   deriveThinkingLevel,
   isThinkingLevel,
@@ -245,7 +249,7 @@ const defaultProfiles: Record<ProviderProfileKey, ProviderProfile> = {
   'custom:gemini': {
     apiKey: '',
     baseUrl: 'https://generativelanguage.googleapis.com',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
   },
 };
 
@@ -438,7 +442,8 @@ function normalizeMemoryModelRuntimeConfig(
 }
 
 function normalizeMemoryRuntimeConfig(raw: unknown): MemoryRuntimeConfig {
-  const value = typeof raw === 'object' && raw !== null ? (raw as Partial<MemoryRuntimeConfig>) : {};
+  const value =
+    typeof raw === 'object' && raw !== null ? (raw as Partial<MemoryRuntimeConfig>) : {};
   return {
     llm: normalizeMemoryModelRuntimeConfig(value.llm, defaultConfig.memoryRuntime.llm),
     embedding: normalizeMemoryModelRuntimeConfig(
@@ -471,7 +476,8 @@ function normalizeMemoryRuntimeConfig(raw: unknown): MemoryRuntimeConfig {
         ? value.evalArtifactsRoot
         : defaultConfig.memoryRuntime.evalArtifactsRoot,
     promptIterationRounds:
-      typeof value.promptIterationRounds === 'number' && Number.isFinite(value.promptIterationRounds)
+      typeof value.promptIterationRounds === 'number' &&
+      Number.isFinite(value.promptIterationRounds)
         ? Math.max(0, Math.min(10, Math.round(value.promptIterationRounds)))
         : defaultConfig.memoryRuntime.promptIterationRounds,
   };
@@ -631,6 +637,9 @@ export class ConfigStore {
       if (profile?.model?.startsWith('gemini/')) {
         profile.model = profile.model.slice('gemini/'.length);
       }
+      if (profile?.model) {
+        profile.model = normalizeGeminiModelId(profile.model);
+      }
     }
     // Fix openrouter baseUrl: /api → /api/v1
     const orProfile = config.profiles?.openrouter;
@@ -644,10 +653,21 @@ export class ConfigStore {
         /^(anthropic\/claude-(?:sonnet|opus|haiku)-4)-5\b/,
         '$1.5'
       );
+      orProfile.model = normalizeGeminiModelId(orProfile.model);
     }
-    // Also fix the flat model field (legacy compat)
-    if (config.model?.startsWith('gemini/')) {
-      config.model = config.model.slice('gemini/'.length);
+    // Also fix the flat model field (legacy compat) — only when the active provider
+    // actually routes through gemini/openrouter, mirroring the per-profile gating above.
+    const flatModelUsesGeminiNormalization =
+      config.provider === 'gemini' ||
+      (config.provider === 'custom' && config.customProtocol === 'gemini') ||
+      config.provider === 'openrouter';
+    if (flatModelUsesGeminiNormalization) {
+      if (config.model?.startsWith('gemini/')) {
+        config.model = config.model.slice('gemini/'.length);
+      }
+      if (config.model) {
+        config.model = normalizeGeminiModelId(config.model);
+      }
     }
     // Fix flat baseUrl for openrouter
     if (config.baseUrl === 'https://openrouter.ai/api' && config.provider === 'openrouter') {
@@ -669,10 +689,14 @@ export class ConfigStore {
     profile: Partial<ProviderProfile> | undefined
   ): ProviderProfile {
     const fallback = this.getDefaultProfile(profileKey);
-    const model =
+    const rawModel =
       typeof profile?.model === 'string' && profile.model.trim()
         ? profile.model.trim()
         : fallback.model;
+    const model =
+      profileKey === 'gemini' || profileKey === 'custom:gemini' || profileKey === 'openrouter'
+        ? normalizeGeminiModelId(rawModel)
+        : rawModel;
     const rawBaseUrl =
       typeof profile?.baseUrl === 'string' && profile.baseUrl.trim()
         ? profile.baseUrl.trim()

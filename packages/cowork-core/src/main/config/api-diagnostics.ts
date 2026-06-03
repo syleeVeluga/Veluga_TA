@@ -378,7 +378,7 @@ async function stepAuth(input: DiagnosticInput, step: DiagnosticStep): Promise<v
       const clientBaseUrl = resolveClientBaseUrl(input);
       const httpOptions = { ...(clientBaseUrl ? { baseUrl: clientBaseUrl } : {}), timeout: 15000 };
       const client = new GoogleGenAI({ apiKey, httpOptions });
-      const modelToCheck = input.model?.trim() || 'gemini-3-flash-preview';
+      const modelToCheck = input.model?.trim() || 'gemini-3.5-flash';
       await client.models.get({ model: modelToCheck });
       step.status = 'ok';
     } catch (err) {
@@ -546,13 +546,29 @@ async function stepModel(input: DiagnosticInput, step: DiagnosticStep): Promise<
       step.status = 'ok';
     } else {
       step.status = 'fail';
-      step.error = result.details;
-      step.fix = getModelDiagnosticFix(result.errorType, input.model);
+      const details = result.details || '';
+      if (
+        isGeminiProtocol(input) &&
+        result.errorType === 'unknown' &&
+        isGeminiModelsGetProbeUnavailable({ message: details })
+      ) {
+        step.error = 'Gemini SDK model probe is unavailable for this provider response.';
+        step.fix = `model_request_failed:${input.model}`;
+      } else {
+        step.error = result.details;
+        step.fix = getModelDiagnosticFix(result.errorType, input.model);
+      }
     }
   } catch (err) {
     step.status = 'fail';
-    step.error = getErrorMessage(err);
-    step.fix = `model_unavailable:${input.model}`;
+    const errorInfo = getApiErrorInfo(err);
+    if (isGeminiProtocol(input) && isGeminiModelsGetProbeUnavailable(errorInfo)) {
+      step.error = 'Gemini SDK model probe is unavailable for this provider response.';
+      step.fix = `model_request_failed:${input.model}`;
+    } else {
+      step.error = errorInfo.message;
+      step.fix = `model_unavailable:${input.model}`;
+    }
   }
   step.latencyMs = Date.now() - start;
 }

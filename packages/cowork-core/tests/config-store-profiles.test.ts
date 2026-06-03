@@ -152,14 +152,14 @@ describe('ConfigStore provider profiles', () => {
       provider: 'gemini',
       apiKey: 'AIza-official',
       baseUrl: 'https://generativelanguage.googleapis.com',
-      model: 'gemini/gemini-2.5-flash',
+      model: 'gemini/gemini-3.5-flash',
     });
     store.update({
       provider: 'custom',
       customProtocol: 'gemini',
       apiKey: 'AIza-relay',
       baseUrl: 'https://gemini-proxy.example/v1',
-      model: 'gemini/gemini-2.5-pro',
+      model: 'gemini/gemini-3.1-pro-preview',
     });
 
     const customGeminiView = store.getAll();
@@ -172,7 +172,7 @@ describe('ConfigStore provider profiles', () => {
     const geminiView = store.getAll();
     expect(geminiView.provider).toBe('gemini');
     expect(geminiView.apiKey).toBe('AIza-official');
-    expect(geminiView.model).toBe('gemini-2.5-flash');
+    expect(geminiView.model).toBe('gemini-3.5-flash');
   });
 
   it('treats global configured state as any set usable while active set can still be unusable', () => {
@@ -226,7 +226,7 @@ describe('ConfigStore provider profiles', () => {
       customProtocol: 'gemini',
       apiKey: '',
       baseUrl: 'http://127.0.0.1:8082',
-      model: 'gemini/gemini-2.5-flash',
+      model: 'gemini/gemini-3.5-flash',
     });
 
     expect(store.hasUsableCredentialsForActiveSet()).toBe(true);

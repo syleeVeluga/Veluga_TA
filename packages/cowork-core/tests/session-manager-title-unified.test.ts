@@ -125,7 +125,7 @@ describe('SessionManager unified title generation', () => {
     configStore.set('customProtocol', 'gemini');
     configStore.set('apiKey', 'AIza-test');
     configStore.set('baseUrl', 'https://generativelanguage.googleapis.com');
-    configStore.set('model', 'gemini/gemini-2.5-flash');
+    configStore.set('model', 'gemini/gemini-3.5-flash');
 
     const proto = SessionManager.prototype as unknown as {
       generateTitleWithConfig(titlePrompt: string): Promise<string | null>;
@@ -140,7 +140,7 @@ describe('SessionManager unified title generation', () => {
       expect.objectContaining({
         provider: 'gemini',
         customProtocol: 'gemini',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
       })
     );
   });

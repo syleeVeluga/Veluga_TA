@@ -90,7 +90,7 @@ describe('runConfigApiTest', () => {
         customProtocol: 'gemini',
         apiKey: 'AIza-test',
         baseUrl: 'https://generativelanguage.googleapis.com',
-        model: 'gemini/gemini-2.5-flash',
+        model: 'gemini/gemini-3.5-flash',
       },
       {
         ...createConfig(),
@@ -99,7 +99,7 @@ describe('runConfigApiTest', () => {
         activeProfileKey: 'gemini',
         apiKey: 'AIza-test',
         baseUrl: 'https://generativelanguage.googleapis.com',
-        model: 'gemini/gemini-2.5-flash',
+        model: 'gemini/gemini-3.5-flash',
       }
     );
 

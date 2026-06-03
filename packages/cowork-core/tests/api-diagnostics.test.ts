@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => {
   const tcpConnect = vi.fn();
   const tlsConnect = vi.fn();
   const openaiModelsList = vi.fn();
+  const geminiModelsGet = vi.fn();
   const fetch = vi.fn();
   const probeWithClaudeSdk = vi.fn();
 
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => {
     tcpConnect,
     tlsConnect,
     openaiModelsList,
+    geminiModelsGet,
     fetch,
     probeWithClaudeSdk,
   };
@@ -41,6 +43,12 @@ vi.mock('openai', () => ({
   default: class MockOpenAI {
     models = { list: mocks.openaiModelsList };
     chat = { completions: { create: vi.fn() } };
+  },
+}));
+
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: class MockGoogleGenAI {
+    models = { get: mocks.geminiModelsGet };
   },
 }));
 
@@ -91,12 +99,14 @@ describe('runDiagnostics TLS step', () => {
     mocks.tcpConnect.mockReset();
     mocks.tlsConnect.mockReset();
     mocks.openaiModelsList.mockReset();
+    mocks.geminiModelsGet.mockReset();
     mocks.fetch.mockReset();
     mocks.probeWithClaudeSdk.mockReset();
     global.fetch = mocks.fetch;
 
     mocks.dnsLookup.mockResolvedValue({ address: '127.0.0.1', family: 4 });
     mocks.openaiModelsList.mockResolvedValue({});
+    mocks.geminiModelsGet.mockResolvedValue({});
     mocks.probeWithClaudeSdk.mockResolvedValue({ ok: true, latencyMs: 10 });
 
     mocks.tcpConnect.mockImplementation(() => {
@@ -294,6 +304,31 @@ describe('runDiagnostics TLS step', () => {
       expect(modelStep?.fix).toBe(expectedFix);
     }
   );
+
+  it('does not report Gemini SDK models.get crashes as an invalid model name', async () => {
+    mocks.probeWithClaudeSdk.mockResolvedValue({
+      ok: false,
+      errorType: 'unknown',
+      details: "Cannot read properties of undefined (reading 'get')",
+    });
+
+    const result = await runDiagnostics({
+      provider: 'gemini',
+      customProtocol: 'gemini',
+      apiKey: 'AIza-test',
+      baseUrl: 'https://generativelanguage.googleapis.com',
+      model: 'gemini-3.5-flash',
+    });
+
+    expect(result.overallOk).toBe(false);
+    expect(result.failedAt).toBe('model');
+    const modelStep = result.steps.find((s) => s.name === 'model');
+    expect(modelStep?.status).toBe('fail');
+    expect(modelStep?.error).toBe(
+      'Gemini SDK model probe is unavailable for this provider response.'
+    );
+    expect(modelStep?.fix).toBe('model_request_failed:gemini-3.5-flash');
+  });
 
   it('discovers local Ollama using the caller-provided loopback endpoint', async () => {
     mocks.fetch.mockResolvedValueOnce(

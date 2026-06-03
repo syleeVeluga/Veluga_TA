@@ -221,7 +221,7 @@ describe('ConfigStore config sets', () => {
       customProtocol: 'gemini',
       apiKey: 'AIza-existing',
       baseUrl: 'https://generativelanguage.googleapis.com',
-      model: 'gemini/gemini-2.5-pro',
+      model: 'gemini/gemini-3.1-pro-preview',
       enableThinking: false,
       isConfigured: true,
     };
@@ -234,6 +234,44 @@ describe('ConfigStore config sets', () => {
     expect(blankSet?.profiles.gemini?.apiKey).toBe('');
     expect(blankSet?.profiles.gemini?.baseUrl).toBe('https://generativelanguage.googleapis.com');
     expect(blankSet?.profiles.gemini?.model).toBe('gemini-3.5-flash');
+  });
+
+  it('migrates retired Gemini model ids to current 3.1+ ids', () => {
+    mocks.seed = {
+      provider: 'gemini',
+      customProtocol: 'gemini',
+      activeProfileKey: 'gemini',
+      apiKey: 'AIza-existing',
+      baseUrl: 'https://generativelanguage.googleapis.com',
+      model: 'gemini/gemini-2.5-flash',
+      profiles: {
+        openrouter: {
+          apiKey: 'sk-or-existing',
+          baseUrl: 'https://openrouter.ai/api/v1',
+          model: 'google/gemini-3-flash-preview',
+        },
+        gemini: {
+          apiKey: 'AIza-existing',
+          baseUrl: 'https://generativelanguage.googleapis.com',
+          model: 'gemini/gemini-2.5-flash',
+        },
+        'custom:gemini': {
+          apiKey: 'AIza-relay',
+          baseUrl: 'https://gemini-proxy.example/v1',
+          model: 'gemini-3.1-flash-lite-preview',
+        },
+      },
+      enableThinking: false,
+      isConfigured: true,
+    };
+
+    const store = new ConfigStore();
+    const config = store.getAll();
+
+    expect(config.model).toBe('gemini-3.5-flash');
+    expect(config.profiles.gemini?.model).toBe('gemini-3.5-flash');
+    expect(config.profiles.openrouter?.model).toBe('google/gemini-3.5-flash');
+    expect(config.profiles['custom:gemini']?.model).toBe('gemini-3.1-flash-lite');
   });
 
   it('persists theme preference across config mutations', () => {

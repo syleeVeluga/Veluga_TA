@@ -438,12 +438,12 @@ describe('probeWithClaudeSdk', () => {
     });
 
     const result = await probeWithClaudeSdk(
-      { provider: 'gemini', apiKey: 'AIza-bad-key', model: 'gemini-2.5-flash' },
+      { provider: 'gemini', apiKey: 'AIza-bad-key', model: 'gemini-3.5-flash' },
       createConfig({
         provider: 'gemini',
         customProtocol: 'gemini',
         apiKey: 'AIza-bad-key',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
       })
     );
 
@@ -477,12 +477,12 @@ describe('probeWithClaudeSdk', () => {
     });
 
     const result = await probeWithClaudeSdk(
-      { provider: 'gemini', apiKey: 'bad', model: 'gemini-2.5-flash' },
+      { provider: 'gemini', apiKey: 'bad', model: 'gemini-3.5-flash' },
       createConfig({
         provider: 'gemini',
         customProtocol: 'gemini',
         apiKey: 'bad',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
       })
     );
 
@@ -498,12 +498,12 @@ describe('probeWithClaudeSdk', () => {
     });
 
     const result = await probeWithClaudeSdk(
-      { provider: 'gemini', apiKey: 'bad', model: 'gemini-2.5-flash' },
+      { provider: 'gemini', apiKey: 'bad', model: 'gemini-3.5-flash' },
       createConfig({
         provider: 'gemini',
         customProtocol: 'gemini',
         apiKey: 'bad',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
       })
     );
 
@@ -519,12 +519,12 @@ describe('probeWithClaudeSdk', () => {
     });
 
     const result = await probeWithClaudeSdk(
-      { provider: 'gemini', apiKey: 'key', model: 'gemini-2.5-flash' },
+      { provider: 'gemini', apiKey: 'key', model: 'gemini-3.5-flash' },
       createConfig({
         provider: 'gemini',
         customProtocol: 'gemini',
         apiKey: 'key',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
       })
     );
 
@@ -539,12 +539,12 @@ describe('probeWithClaudeSdk', () => {
     });
 
     const result = await probeWithClaudeSdk(
-      { provider: 'gemini', apiKey: 'key', model: 'gemini-2.5-flash' },
+      { provider: 'gemini', apiKey: 'key', model: 'gemini-3.5-flash' },
       createConfig({
         provider: 'gemini',
         customProtocol: 'gemini',
         apiKey: 'key',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
       })
     );
 
