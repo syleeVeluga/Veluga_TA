@@ -87,6 +87,40 @@ describe('Phase1 agents, audit, guard, and skills', () => {
     expect(() => audit.unsafeExec('DELETE FROM audit_log WHERE id = 1')).toThrow(/append-only/);
   });
 
+  it('redacts image payloads from audit logs while keeping metadata', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'veluga-audit-image-'));
+    const audit = new AuditLogger(path.join(dir, 'audit.sqlite'));
+    await audit.init();
+    const policy = makePolicy();
+
+    audit.append({
+      session_id: 's1',
+      user_id: 'u1',
+      event_type: 'session.start',
+      payload: {
+        content: [
+          { type: 'text', text: 'Analyze the approved attachment.' },
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/png',
+              data: 'aGVsbG8='
+            }
+          }
+        ],
+        rendered: 'data:image/png;base64,aGVsbG8='
+      },
+      policy_version_id: policy.policy_version_id
+    });
+
+    const payload = audit.all()[0].payload_json;
+    expect(payload).toContain('image/png');
+    expect(payload).toContain('[image base64 omitted: 8 chars]');
+    expect(payload).toContain('[image data URL omitted: 30 chars]');
+    expect(payload).not.toContain('aGVsbG8=');
+  });
+
   it('intercepts 100 percent of wrapped tool calls and records audit events', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'veluga-tool-'));
     const audit = new AuditLogger(path.join(dir, 'audit.sqlite'));

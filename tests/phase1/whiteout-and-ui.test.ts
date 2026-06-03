@@ -77,6 +77,99 @@ describe('Phase1 white-out and renderer bindings', () => {
     }
   });
 
+  it('forwards validated image content through the internal OpenAI-compatible gateway', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestBody: unknown;
+    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      requestBody = JSON.parse(String(init?.body));
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 10, completion_tokens: 2 },
+          model: 'internal-vision'
+        }),
+        { status: 200, statusText: 'OK' }
+      );
+    }) as typeof fetch;
+
+    try {
+      const gateway = createOpenAICompatibleGateway({
+        VELUGA_LLM_GATEWAY_URL: 'http://gateway.local'
+      });
+      await expect(
+        gateway.chat({
+          model: 'internal-vision',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Analyze this approved image.' },
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: 'image/png',
+                    data: 'aGVsbG8='
+                  }
+                }
+              ]
+            }
+          ]
+        })
+      ).resolves.toMatchObject({ text: 'ok', model: 'internal-vision' });
+
+      expect(requestBody).toMatchObject({
+        model: 'internal-vision',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Analyze this approved image.' },
+              { type: 'image_url', image_url: { url: 'data:image/png;base64,aGVsbG8=' } }
+            ]
+          }
+        ]
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('rejects oversized image content before calling the LLM gateway', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn() as typeof fetch;
+
+    try {
+      const gateway = createOpenAICompatibleGateway({
+        VELUGA_LLM_GATEWAY_URL: 'http://gateway.local',
+        VELUGA_LLM_IMAGE_MAX_BYTES: '3'
+      });
+      await expect(
+        gateway.chat({
+          model: 'internal-vision',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: 'image/png',
+                    data: 'aGVsbG8='
+                  }
+                }
+              ]
+            }
+          ]
+        })
+      ).rejects.toThrow('LLM gateway image content exceeds 3 bytes');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('preserves Open Cowork MIT credit text and records manual verification gaps', async () => {
     const credits = await readFile('packages/veluga-ui/credits/LICENSES.md', 'utf8');
     const verification = await readFile('docs/reference/phase1-verification.md', 'utf8');

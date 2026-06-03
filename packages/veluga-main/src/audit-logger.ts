@@ -20,8 +20,45 @@ export const PII_PATTERNS = [
   { name: 'bank', regex: /\b\d{3,4}[-\s]?\d{2,4}[-\s]?\d{6,}\b/g, replace: '[BANK-MASKED]' }
 ];
 
+const IMAGE_DATA_URL_PATTERN = /data:image\/(?:png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+/gi;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isImageRecord(value: Record<string, unknown>): boolean {
+  return (
+    value.type === 'image' ||
+    (typeof value.mimeType === 'string' && value.mimeType.startsWith('image/')) ||
+    (typeof value.media_type === 'string' && value.media_type.startsWith('image/'))
+  );
+}
+
+function redactImagePayloads(value: unknown, parentIsImage = false): unknown {
+  if (typeof value === 'string') {
+    return value.replace(IMAGE_DATA_URL_PATTERN, (match) => `[image data URL omitted: ${match.length} chars]`);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactImagePayloads(item, parentIsImage));
+  }
+  if (!isRecord(value)) {
+    return value;
+  }
+
+  const currentIsImage = parentIsImage || isImageRecord(value);
+  return Object.fromEntries(
+    Object.entries(value).map(([key, child]) => {
+      if (currentIsImage && key === 'data' && typeof child === 'string') {
+        return [key, `[image base64 omitted: ${child.length} chars]`];
+      }
+      return [key, redactImagePayloads(child, currentIsImage || key === 'source')];
+    })
+  );
+}
+
 export function maskPii(value: unknown): string {
-  let text = typeof value === 'string' ? value : JSON.stringify(value);
+  const redacted = redactImagePayloads(value);
+  let text = typeof redacted === 'string' ? redacted : JSON.stringify(redacted);
   for (const pattern of PII_PATTERNS) {
     text = text.replace(pattern.regex, pattern.replace);
   }

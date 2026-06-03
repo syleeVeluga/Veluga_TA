@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { AuditLogger } from './audit-logger.js';
-import type { LlmGateway, Message } from './llm-gateway.js';
+import type { LlmGateway, Message, MessageContent, TextContentBlock } from './llm-gateway.js';
 import type { PolicyContext } from '../../shared-types/src/index.js';
 import { readProjectYaml, writeProjectYaml } from './project-yaml.js';
 
@@ -61,8 +61,20 @@ async function summarize(turns: Message[], gateway?: LlmGateway): Promise<string
     });
     return result.text.trim();
   }
-  const lastUser = [...turns].reverse().find((turn) => turn.role === 'user')?.content ?? '';
+  const lastUserTurn = [...turns].reverse().find((turn) => turn.role === 'user');
+  const lastUser = lastUserTurn ? contentToText(lastUserTurn.content) : '';
   return lastUser ? `Recent work: ${lastUser}` : 'Recent work summarized.';
+}
+
+function contentToText(content: MessageContent): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+  return content
+    .filter((block): block is TextContentBlock => block.type === 'text')
+    .map((block) => block.text)
+    .join(' ')
+    .trim();
 }
 
 function limitChars(value: string, max: number): string {

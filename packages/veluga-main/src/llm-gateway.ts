@@ -1,6 +1,24 @@
 export interface Message {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: MessageContent;
+}
+
+export type MessageContent = string | LlmContentBlock[];
+
+export type LlmContentBlock = TextContentBlock | ImageContentBlock;
+
+export interface TextContentBlock {
+  type: 'text';
+  text: string;
+}
+
+export interface ImageContentBlock {
+  type: 'image';
+  source: {
+    type: 'base64';
+    media_type: ImageMediaType;
+    data: string;
+  };
 }
 
 export interface ChatRequest {
@@ -21,7 +39,22 @@ export interface LlmGateway {
   chat(req: ChatRequest): Promise<ChatResponse>;
 }
 
-function timeoutFromEnv(value: string | undefined, fallback: number): number {
+export const ALLOWED_IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
+export type ImageMediaType = (typeof ALLOWED_IMAGE_MEDIA_TYPES)[number];
+
+type OpenAICompatibleMessage = {
+  role: Message['role'];
+  content: string | OpenAICompatibleContentPart[];
+};
+
+type OpenAICompatibleContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
+const DEFAULT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const allowedImageMediaTypes = new Set<string>(ALLOWED_IMAGE_MEDIA_TYPES);
+
+function positiveIntFromEnv(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : fallback;
 }
@@ -37,13 +70,60 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function normalizeBase64ImageData(value: string): { data: string; byteLength: number } {
+  const normalized = value.replace(/\s+/g, '');
+  if (!normalized || normalized.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(normalized)) {
+    throw new Error('LLM gateway image content must be valid base64');
+  }
+  return {
+    data: normalized,
+    byteLength: Buffer.from(normalized, 'base64').length
+  };
+}
+
+function toOpenAICompatibleMessages(messages: Message[], maxImageBytes: number): OpenAICompatibleMessage[] {
+  return messages.map((message) => {
+    if (typeof message.content === 'string') {
+      return { role: message.role, content: message.content };
+    }
+
+    const parts: OpenAICompatibleContentPart[] = [];
+    for (const block of message.content) {
+      if (block.type === 'text') {
+        if (block.text) parts.push({ type: 'text', text: block.text });
+        continue;
+      }
+
+      if (!allowedImageMediaTypes.has(block.source.media_type)) {
+        throw new Error(`LLM gateway image content type is not allowed: ${block.source.media_type}`);
+      }
+      const { data, byteLength } = normalizeBase64ImageData(block.source.data);
+      if (byteLength > maxImageBytes) {
+        throw new Error(`LLM gateway image content exceeds ${maxImageBytes} bytes`);
+      }
+      parts.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:${block.source.media_type};base64,${data}`
+        }
+      });
+    }
+
+    return {
+      role: message.role,
+      content: parts.length > 0 ? parts : ''
+    };
+  });
+}
+
 export function createOpenAICompatibleGateway(env: NodeJS.ProcessEnv = process.env): LlmGateway {
   const baseURL = env.VELUGA_LLM_GATEWAY_URL;
   if (!baseURL) {
     throw new Error('VELUGA_LLM_GATEWAY_URL is required; closed-network builds forbid public fallback endpoints');
   }
   const apiKey = env.VELUGA_LLM_API_KEY ?? '';
-  const timeoutMs = timeoutFromEnv(env.VELUGA_LLM_GATEWAY_TIMEOUT_MS, 120000);
+  const timeoutMs = positiveIntFromEnv(env.VELUGA_LLM_GATEWAY_TIMEOUT_MS, 120000);
+  const maxImageBytes = positiveIntFromEnv(env.VELUGA_LLM_IMAGE_MAX_BYTES, DEFAULT_MAX_IMAGE_BYTES);
   return {
     async chat(req: ChatRequest): Promise<ChatResponse> {
       let response: Response;
@@ -57,7 +137,7 @@ export function createOpenAICompatibleGateway(env: NodeJS.ProcessEnv = process.e
           signal: AbortSignal.timeout(timeoutMs),
           body: JSON.stringify({
             model: req.model,
-            messages: req.messages,
+            messages: toOpenAICompatibleMessages(req.messages, maxImageBytes),
             temperature: req.temperature,
             max_tokens: req.max_tokens,
             response_format: req.json_schema
