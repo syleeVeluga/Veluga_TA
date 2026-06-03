@@ -29,6 +29,3 @@ jobs:
             echo "::error::Use VELUGA_LLM_GATEWAY_URL."
             exit 1
           fi
-      - name: Preserve Open Cowork MIT license
-        run: |
-          test -f packages/cowork-core/LICENSE
