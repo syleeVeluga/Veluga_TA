@@ -430,7 +430,7 @@ Phase 1 시나리오 8.4와 동일하게 작동. Phase 2 기능이 비활성, Op
 
 | 위험 | 완화 |
 |---|---|
-| Cowork Project 컨테이너 hook이 예상과 다름 | Phase 1 `docs/cowork-hooks.md` 에 Project hook 위치 검증, 누락 시 GAP-P2 등록 |
+| Cowork Project 컨테이너 hook이 예상과 다름 | Phase 1 `docs/reference/cowork-hooks.md` 에 Project hook 위치 검증, 누락 시 GAP-P2 등록 |
 | style-card 추출 비결정성 (LLM 매번 다름) | 카드 한 번 추출 후 캐시, 자료 변경 감지 시에만 재추출 |
 | citation-verifier false positive (잘못 unverified) | fuzzy threshold 튜닝, 최소 95% 정확도까지 골든셋 반복 |
 | docx 워터마크 라이브러리 호환성 | python-docx 사이드카 또는 docx Skill에 의존 — 사전 PoC |
@@ -441,7 +441,7 @@ Phase 1 시나리오 8.4와 동일하게 작동. Phase 2 기능이 비활성, Op
 
 ## 12. 작업 순서 (AI agent용 8단계)
 
-1. Cowork Project hook 위치 실증 — `docs/cowork-hooks.md` 업데이트
+1. Cowork Project hook 위치 실증 — `docs/reference/cowork-hooks.md` 업데이트
 2. `project.yaml` 스키마 + 머지 엔진 확장 (Phase 1 머지 코드 재사용)
 3. `ProjectReentryHook` + `ProjectInitializer` 구현
 4. `<ProjectReentryBanner>` UI + "이어서 작업" 동작
@@ -456,7 +456,7 @@ Phase 1 시나리오 8.4와 동일하게 작동. Phase 2 기능이 비활성, Op
 
 - [x] AC-2.1 ~ AC-2.14 전수 통과
 - [x] P1 페르소나 walkthrough — Project 재진입 → 자료 요약 → 초안 작성 → 미검증 인용 0건
-- [x] `docs/cowork-hooks.md` Project 섹션 확정
+- [x] `docs/reference/cowork-hooks.md` Project 섹션 확정
 - [x] `tests/citation-verifier/golden-citations.jsonl` 100건 골든셋
 - [x] Phase 3 인계 자료 — Project 인용 태그 카탈로그 (Phase 3 KB 인용 태그와 통합 검증용)
 
@@ -494,7 +494,7 @@ Phase 1 시나리오 8.4와 동일하게 작동. Phase 2 기능이 비활성, Op
 
 ### 15.2 구현 착수 전 필수 확인 (완료됨)
 
-- [x] Phase 1 산출물 (`docs/cowork-hooks.md`, PolicyContext 타입, Audit Logger 이벤트 카탈로그) 머지 확인
+- [x] Phase 1 산출물 (`docs/reference/cowork-hooks.md`, PolicyContext 타입, Audit Logger 이벤트 카탈로그) 머지 확인
 - [x] GAP-P2-01 해소 완료 (Cowork Project hook 시그니처 확인)
 - [x] docx 워터마크 (python-docx 사이드카) 및 한국어 chunking (KSS) PoC 완료
 

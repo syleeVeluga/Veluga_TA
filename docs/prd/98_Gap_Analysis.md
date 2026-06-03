@@ -22,7 +22,7 @@
 
 | ID | 항목 | 등급 | 책임 | 데드라인 | 디폴트 가정 (없을 시) |
 | --- | --- | --- | --- | --- | --- |
-| GAP-P1-01 | **Open Cowork hook 위치 실증** (실제 함수명/시그니처) | 🚨 | AI agent + PM | Phase 1 첫 주 | 발견 결과 `docs/cowork-hooks.md` 기록 후 부재 시 PM 합의 |
+| GAP-P1-01 | **Open Cowork hook 위치 실증** (실제 함수명/시그니처) | 🚨 | AI agent + PM | Phase 1 첫 주 | 발견 결과 `docs/reference/cowork-hooks.md` 기록 후 부재 시 PM 합의 |
 | GAP-P1-02 | **사내 LLM 게이트웨이 인터페이스** (OpenAI 호환 / Anthropic 호환 / 자체) | 🚨 | 인프라팀 + PM | Phase 1 킥오프 | OpenAI 호환 가정 (mock 게이트웨이로 시작) |
 | GAP-P1-03 | **코드 서명 인증서 발급** (Win + mac) | ⚠️ | PM | Phase 1 종료 전 | 미서명 빌드로 dev 진행, 출시 차단 |
 | GAP-P1-04 | **Veluga 로고·아이콘 최종 디자인** | ⚠️ | 디자인팀 | Phase 1 첫 2주 | 임시 텍스트 로고로 진행, 둘째 주 교체 |
@@ -163,7 +163,7 @@
 
 ## 12. Baseline Resolution Notes (2026-05-23)
 
-- [RESOLVED] GAP-P1-01: Open Cowork source is now present as a vendored clone snapshot at `packages/cowork-core`, pinned to upstream commit `d4318943fb070d0863bed930eb70a95c6e7c4487`. The concrete hook mapping is recorded in `docs/cowork-hooks.md`.
+- [RESOLVED] GAP-P1-01: Open Cowork source is now present as a vendored clone snapshot at `packages/cowork-core`, pinned to upstream commit `d4318943fb070d0863bed930eb70a95c6e7c4487`. The concrete hook mapping is recorded in `docs/reference/cowork-hooks.md`.
 - [NEW] GAP-P1-09: Open Cowork has no exported first-class `beforeToolCall` hook. Veluga `ToolInterceptor` must either wrap `ToolDefinition.execute(...)` near `src/main/claude/agent-runner.ts` before `createAgentSession(...)`, or introduce a minimal upstream shim that exposes this wrapper point.
 
 ## 13. Phase 1 & Phase 2 Implementation Resolution (2026-05-23)
@@ -174,8 +174,8 @@ Phase 1과 Phase 2 구현 완료 시점 기준으로 아래 GAP이 해소되었�
 - [RESOLVED] GAP-P1-04: Veluga 로고·아이콘 및 Tailwind 팔레트 확정 (`packages/veluga-ui/theme.ts`). primary `#0B192C` / secondary `#1E3E62`.
 - [RESOLVED] GAP-P1-05: mock SSO IdP는 내부 JWT signer(`packages/policy-service/src/sso/internal.ts`)로 구현. SAML/OIDC 슬롯도 인터페이스 완성.
 - [RESOLVED] GAP-P1-08: Cowork 원본 E2E 테스트 스위트를 `tests/regression-cowork-original/`에 격리 완료.
-- [RESOLVED] GAP-P1-09: `ToolInterceptor`를 `src/main/claude/agent-runner.ts`의 `createAgentSession(...)` 진입 전 `ToolDefinition.execute` 래퍼 방식으로 구현. 상세는 `docs/cowork-hooks.md` 참조.
-- [RESOLVED] GAP-P2-01: Cowork Project hook (`project.onOpen` / `project.onClose` / `project.onSave`) 시그니처 확인 완료. `packages/veluga-main/src/project-reentry.ts` 및 `docs/cowork-hooks.md` Project 섹션 참조.
+- [RESOLVED] GAP-P1-09: `ToolInterceptor`를 `src/main/claude/agent-runner.ts`의 `createAgentSession(...)` 진입 전 `ToolDefinition.execute` 래퍼 방식으로 구현. 상세는 `docs/reference/cowork-hooks.md` 참조.
+- [RESOLVED] GAP-P2-01: Cowork Project hook (`project.onOpen` / `project.onClose` / `project.onSave`) 시그니처 확인 완료. `packages/veluga-main/src/project-reentry.ts` 및 `docs/reference/cowork-hooks.md` Project 섹션 참조.
 - [RESOLVED] GAP-P2-02: docx 워터마크는 python-docx 사이드카 방식으로 구현 (`packages/veluga-main/src/docx-adapter.ts`).
 - [RESOLVED] GAP-P2-03: 한국어 chunking은 KSS 기반으로 구현. `citation-verifier`의 chunk 분할에 적용.
 - [RESOLVED] GAP-P2-04: citation-verifier fuzzy threshold는 Levenshtein 거리 기반으로 시작, 코사인 임계값 0.85 조합. 골든셋 100건 검증 완료.
@@ -195,7 +195,7 @@ Phase 1과 Phase 2 구현 완료 시점 기준으로 아래 GAP이 해소되었�
 - [PARTIALLY-RESOLVED] GAP-P3-04 (PolicyContext 토큰을 외부 KB에 전달): `KbMcpClient.callTool()` 구현 내부에서 헤더 추가 등 전달 방식을 처리하면 된다. 정확한 전달 방식은 외부 KB 운영 주체와 합의 후 플러그인 구현에 반영.
 - [PARTIALLY-RESOLVED] GAP-P4-01 (`kb_traverse` 제공 여부): `KbMcpAdapter.hasTraverseTool()`로 런타임에 자동 감지하며, 미제공 시 `kb_metadata` + `kb_hybrid` 조합으로 자동 다운그레이드한다. 외부 KB의 실제 제공 여부는 외부 일정 추적.
 
-상세 사용법: `docs/kb-connector-plugin.md`
+상세 사용법: `docs/reference/kb-connector-plugin.md`
 
 ---
 

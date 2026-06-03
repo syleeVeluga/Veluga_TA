@@ -106,7 +106,7 @@ Veluga_TA/
 │   ├── phase3/               # KB integration
 │   └── phase4/               # Approval workflows
 ├── dev-policies/             # institution/org/project/user YAML policy fixtures
-├── docs/                     # Architecture specs and PRD
+├── docs/                     # reference/ (current contracts) · prd/ · plans/ — start at docs/README.md
 └── .github/workflows/        # CI guards (phase1-guards.yml)
 ```
 
@@ -202,4 +202,4 @@ Common types: `feat`, `fix`, `test`, `docs`, `refactor`, `chore`, `ci`
 
 ## 13. User-Facing Settings
 
-Model preset, chat-header model switching, and `thinkingLevel` UI architecture are documented in `docs/model-and-thinking-ui.md`.
+Model preset, chat-header model switching, and `thinkingLevel` UI architecture are documented in `docs/reference/model-and-thinking-ui.md`.

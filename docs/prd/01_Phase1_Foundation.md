@@ -84,7 +84,7 @@
 - [x] **AC-1.23** 빌드 산출물을 `mitmproxy` 또는 동등 도구로 5분 모니터링 → 외부 도메인 트래픽 **0 byte**
 - [x] **AC-1.24** `npm ls` 결과 — Vercel Analytics, PostHog, Sentry, Datadog, Segment, Mixpanel, GA 패키지 0건
 - [x] **AC-1.25** `electron-updater` 외부 GitHub release 호출 코드 경로 — 비활성 PR 머지됨 (또는 사내 URL 전환)
-- [x] **AC-1.26** LLM API 호출이 `VELUGA_LLM_GATEWAY_URL` 환경변수로만 라우팅 (하드코딩 외부 도메인 0건, `docs/whiteout-endpoints.md` 카탈로그 완비)
+- [x] **AC-1.26** LLM API 호출이 `VELUGA_LLM_GATEWAY_URL` 환경변수로만 라우팅 (하드코딩 외부 도메인 0건, `docs/reference/whiteout-endpoints.md` 카탈로그 완비)
 
 ### 2.5 보안 AC
 
@@ -217,7 +217,7 @@ function mergePolicies(
 | 도구 실행 직전 | `agent-runtime.beforeToolCall` 또는 HITL `explicit_permission` hook | Tool resolver를 감싸는 proxy 패턴 |
 | Renderer broadcast | `webContents.send('policy:updated', ...)` | preload에서 EventEmitter 패턴 |
 
-**Phase 1 첫 주 작업**: AI agent는 위 hook들의 실제 존재를 확인하고 `docs/cowork-hooks.md`에 매핑 결과 기록. 누락 발견 시 즉시 PM 합의.
+**Phase 1 첫 주 작업**: AI agent는 위 hook들의 실제 존재를 확인하고 `docs/reference/cowork-hooks.md`에 매핑 결과 기록. 누락 발견 시 즉시 PM 합의.
 
 ### 4.4 CI 보호 룰 (Hard Reject)
 
@@ -570,7 +570,7 @@ export const llmClient = createOpenAICompatibleClient({
 ```
 
 - Cowork 원본의 LLM 클라이언트 초기화 코드 위치 식별 → `llmGateway`로 의존성 주입.
-- `docs/whiteout-endpoints.md`에 변경 위치 카탈로그 작성.
+- `docs/reference/whiteout-endpoints.md`에 변경 위치 카탈로그 작성.
 
 #### 6.4.2 텔레메트리 제거
 
@@ -741,7 +741,7 @@ export function CreditsPage() {
 
 | 위험 | 완화 |
 |---|---|
-| Open Cowork hook 위치가 명세와 다름 | 첫 주에 `docs/cowork-hooks.md` 작성, 누락 시 GAP 등록 후 PM 합의 |
+| Open Cowork hook 위치가 명세와 다름 | 첫 주에 `docs/reference/cowork-hooks.md` 작성, 누락 시 GAP 등록 후 PM 합의 |
 | MIT 라이선스 외 충돌 의존성 (GPL 등) | `license-checker`로 빌드 시 차단, 발견 시 대체 |
 | 코드 서명 인증서 미보유 → 배포 지연 | PM이 Phase 1 시작 시점에 인증기관 신청 (병렬) |
 | 사내 LLM 게이트웨이 미준비 → 통합 지연 | Phase 1 초반에 mock 게이트웨이로 작업 → 실제 게이트웨이 연결 후 swap |
@@ -778,8 +778,8 @@ export function CreditsPage() {
 - [x] Veluga 브랜딩 데스크톱 빌드 (Win `.exe` + mac `.dmg` + Linux `.AppImage`)
 - [x] 코드 서명된 설치본
 - [x] `docs/upstream-base.md` — Open Cowork 베이스 commit SHA, hook 매핑
-- [x] `docs/cowork-hooks.md` — 결합한 hook 위치 카탈로그
-- [x] `docs/whiteout-endpoints.md` — White-out 변경 위치 카탈로그
+- [x] `docs/reference/cowork-hooks.md` — 결합한 hook 위치 카탈로그
+- [x] `docs/reference/whiteout-endpoints.md` — White-out 변경 위치 카탈로그
 - [x] `docs/whitelabel-screens.md` — 화이트라벨링 검수 스크린샷
 - [x] PolicyContext / IntentPlan / Audit 타입 패키지 (`packages/shared-types`)
 - [x] CI 보호 룰 + 회귀 테스트 + 보안 검증 통과
@@ -837,7 +837,7 @@ export function CreditsPage() {
 ### 15.2 구현 착수 전 필수 확인 (완료됨)
 
 - [x] `98_Gap_Analysis.md`의 Phase 1 🚨 블로커 2건 PM/인프라 합의 완료
-- [x] Open Cowork clone snapshot `docs/upstream-base.md`와 `docs/cowork-hooks.md` 작성 완료
+- [x] Open Cowork clone snapshot `docs/upstream-base.md`와 `docs/reference/cowork-hooks.md` 작성 완료
 - [x] 코드 서명·로고 최종본 확정 완료
 
 ### 15.3 완료 선언

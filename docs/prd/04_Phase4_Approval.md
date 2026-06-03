@@ -569,9 +569,9 @@ def verify(sealed_path) -> VerifyResult:
 - [x] AC-4.1 ~ AC-4.21 전수 통과
 - [x] P3 결재자 페르소나 E2E — 8건을 단일 Artifact로 15분 내 처리
 - [x] P1 결재 직전 점검 E2E — 개정 자동 발견 → 갱신 → 재점검 → 결재 제출 (mock 외부 KB graph 응답 기준)
-- [x] Docker 샌드박싱 운영 가이드 (`docs/sandbox-ops.md`)
-- [x] 결재시스템 connector 표준 명세 (`docs/connector-approval-spec.md`)
-- [x] 외부 KB `kb_traverse` 의존 통합 가이드 (`docs/kb-traverse-consumer.md`)
+- [x] Docker 샌드박싱 운영 가이드 (`docs/reference/sandbox-ops.md`)
+- [x] 결재시스템 connector 표준 명세 (`docs/reference/connector-approval-spec.md`)
+- [x] 외부 KB `kb_traverse` 의존 통합 가이드 (`docs/reference/kb-traverse-consumer.md`)
 
 ---
 
