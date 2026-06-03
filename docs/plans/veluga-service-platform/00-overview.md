@@ -16,8 +16,8 @@
 
 | 영역 | 현재 상태 | 이 계획에서의 의미 |
 |---|---|---|
-| Open Cowork attribution | `packages/cowork-core/LICENSE` 존재, README/PRD가 Open Cowork MIT clone snapshot을 명시 | credits/license/upstream 기록은 제품화 선행 조건 |
-| Upstream snapshot 기록 | `README.md`와 PRD는 `docs/upstream-base.md`를 언급하지만 현재 파일은 없음 | Phase 1에서 attribution baseline으로 복구 또는 신규 작성 필요 |
+| Open Cowork attribution | `packages/cowork-core/LICENSE` 존재, `README.md`가 Open Cowork MIT clone snapshot을 명시 | credits/license/upstream 기록은 제품화 선행 조건 |
+| Upstream snapshot 기록 | `README.md`는 `docs/upstream-base.md`를 언급하지만 현재 파일은 없음 | Phase 1에서 attribution baseline으로 복구 또는 신규 작성 필요 |
 | Desktop packaging | `packages/cowork-core/electron-builder.yml`의 `productName`은 `Veluga` | 계정 기반 download/update channel을 얹을 수 있음 |
 | Auth config | `ConfigStore`는 API key/baseUrl/model 중심 local 설정 | Veluga managed account profile이 별도로 필요 |
 | Model UI | model switcher와 Settings API는 hardcoded provider preset, pi-ai registry overlay, 사용자 provider visibility에 의존 | managed mode에서는 Veluga service catalog가 모델 정본이어야 함 |

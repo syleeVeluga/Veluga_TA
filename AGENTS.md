@@ -106,7 +106,7 @@ Veluga_TA/
 │   ├── phase3/               # KB integration
 │   └── phase4/               # Approval workflows
 ├── dev-policies/             # institution/org/project/user YAML policy fixtures
-├── docs/                     # reference/ (current contracts) · prd/ · plans/ — start at docs/README.md
+├── docs/                     # reference/ (current contracts) · plans/ · archive/ — start at docs/README.md
 └── .github/workflows/        # CI guards (phase1-guards.yml)
 ```
 
@@ -181,7 +181,7 @@ KB connectors are external MCP servers. Veluga consumes them via `kb-mcp-adapter
 
 ## 11. Testing Conventions
 
-- Tests live in `tests/phase{N}/` mirroring the PRD phases.
+- Tests live in `tests/phase{N}/` for the Phase 1-4 Veluga behavior suites; archived PRD files are historical context, not current implementation instructions.
 - Test files match `tests/**/*.test.ts` (vitest picks them up automatically).
 - No mocking of the policy engine or audit logger — they are cheap and must be exercised.
 - For agent tests, use the fixture policies in `dev-policies/`.

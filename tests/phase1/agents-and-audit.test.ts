@@ -27,7 +27,7 @@ describe('Phase1 agents, audit, guard, and skills', () => {
     expect(router.metrics.llm_invocations_count).toBe(0);
   });
 
-  it('classifies a 100 item golden-like sample above the PRD threshold', async () => {
+  it('classifies a 100 item golden-like sample above the acceptance threshold', async () => {
     const policy = makePolicy();
     const router = new IntentRouter();
     const samples = Array.from({ length: 100 }, (_, index) => {

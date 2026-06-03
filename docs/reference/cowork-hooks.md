@@ -26,4 +26,4 @@ Baseline source: `packages/cowork-core` at upstream commit `d4318943fb070d0863be
 
 ## Hook Gap
 
-The only material mismatch with the PRD is the lack of a named, exported `beforeToolCall` hook. The practical hook is the tool wrapper stage inside `src/main/claude/agent-runner.ts`, before tools are passed into `createAgentSession(...)`. Track this as `GAP-P1-09` until a Veluga shim or upstream extension API is chosen.
+The only material hook gap is the lack of a named, exported `beforeToolCall` hook. The practical hook is the tool wrapper stage inside `src/main/claude/agent-runner.ts`, before tools are passed into `createAgentSession(...)`. Track this until a Veluga shim or upstream extension API is chosen.

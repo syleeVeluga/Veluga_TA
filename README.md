@@ -26,22 +26,20 @@
 
 ```
 Veluga_TA/
-├── docs/                       # 문서 맵: docs/README.md (수명 기준 3영역)
+├── docs/                       # 문서 맵: docs/README.md (수명 기준)
 │   ├── README.md               # 문서 네비게이션 허브
 │   ├── reference/              # 상시 참조 — 현재 코드 계약 (에이전트 신뢰 대상)
 │   │   ├── cowork-hooks.md · whiteout-endpoints.md · sandbox-ops.md
 │   │   ├── kb-connector-plugin.md · kb-traverse-consumer.md
 │   │   ├── connector-approval-spec.md · markdown-mermaid-integration.md
 │   │   └── model-and-thinking-ui.md · phase1-verification.md
-│   ├── prd/                    # 제품 요구사항 (전 Phase 완료)
-│   │   ├── 00_Overview.md      # 미션·원칙·아키텍처 (AI 에이전트 필독)
-│   │   ├── 01~04_Phase*.md     # Phase별 구현 명세
-│   │   ├── 98_Gap_Analysis.md  # 결정 보류 항목
-│   │   └── 99_Appendix.md      # 공유 스키마, SQLite 구조, 테스트 카탈로그
-│   └── plans/                  # 기능별 설계 계획 (구현 시점 스냅샷) — plans/README.md
+│   ├── plans/                  # 기능별 설계 계획 (구현 시점 스냅샷) — plans/README.md
 │       ├── agent-orchestration/ · ask-user-question/
 │       ├── file-viewer-panel/ · subscription-login/
 │       └── model-and-thinking-ui.md · network-error-handling.md · 기타 *.md
+│   ├── prd/                    # 아카이브 안내 스텁
+│   └── archive/
+│       └── prd-initial-draft/  # 초기 PRD 초안 보관본 (현재 요구사항 아님)
 ├── packages/                   # 모노레포 패키지
 ├── skills/                     # core / domain Skill
 ├── tests/                      # phase1~4 테스트 스위트
@@ -76,8 +74,6 @@ npm run verify
 
 | 문서 | 용도 |
 |---|---|
-| [docs/README.md](docs/README.md) | 문서 네비게이션 허브 — reference / prd / plans 수명 기준 맵 |
-| [docs/prd/00_Overview.md](docs/prd/00_Overview.md) | 미션·5대 원칙·아키텍처·페르소나·용어 — AI 에이전트 작업 시작 전 필독 |
-| [docs/prd/99_Appendix.md](docs/prd/99_Appendix.md) | 공유 스키마(PolicyContext·IntentPlan·Audit), 디렉토리 구조, KB 계약 |
+| [docs/README.md](docs/README.md) | 문서 네비게이션 허브 — reference / plans / archive 수명 기준 맵 |
 | [docs/reference/cowork-hooks.md](docs/reference/cowork-hooks.md) | Veluga 어댑터가 붙는 Cowork IPC 훅 진입점 |
-| [docs/prd/98_Gap_Analysis.md](docs/prd/98_Gap_Analysis.md) | PRD 미결 결정 항목 — 추가 개발 전 확인 필요 |
+| [docs/archive/prd-initial-draft/](docs/archive/prd-initial-draft/) | 초기 PRD 초안 보관본 — 현재 요구사항이나 구현 지침으로 사용하지 않음 |

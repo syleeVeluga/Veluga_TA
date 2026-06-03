@@ -315,7 +315,7 @@ component.
 
 The very first step of implementation is to copy this plan file verbatim into
 `docs/plans/model-and-thinking-ui.md` so the work is reviewable in-repo. The
-copy lives alongside the PRD docs and serves as the change-log record for this
+copy lives alongside the active plan docs and serves as the change-log record for this
 refactor.
 
 ### E2. Architectural reference (added with the code changes)
