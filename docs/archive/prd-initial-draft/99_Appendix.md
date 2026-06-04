@@ -329,8 +329,8 @@ export interface ChatResponse {
 veluga/
 ├── README.md
 ├── docs/
-│   ├── upstream-base.md            # Open Cowork 베이스 commit
-│   ├── upstream-sync-<date>.md     # 매 Phase 종료 시 diff 리포트
+│   ├── base-snapshot.md            # Open Cowork 베이스 commit
+│   ├── base-sync-<date>.md     # 매 Phase 종료 시 diff 리포트
 │   ├── cowork-hooks.md             # 실제 발견된 hook 매핑
 │   ├── whiteout-endpoints.md       # White-out 변경 위치 카탈로그
 │   ├── whitelabel-screens.md       # 화이트라벨링 검수
@@ -564,7 +564,7 @@ jobs:
 | Project tier 추가 (5-tier 정책) | 사용성 점검 G9 | Overview |
 | `approval-queue`는 Artifact (세션 아님) | 결재자 다중 세션 회피 | Overview |
 | `last_session_summary`는 Audit Logger 부수효과 | 별도 에이전트 추가 회피 | Overview |
-| 화이트라벨링 자산 `packages/veluga-ui/` 분리 | upstream 머지 안전 | Overview |
+| 화이트라벨링 자산 `packages/veluga-ui/` 분리 | base 머지 안전 | Overview |
 | 외부 텔레메트리 전수 제거 | 보안 감사 통과 | Overview |
 | Phase 1에 자동 업데이트 비활성화 (옵션 A) | 가장 안전 | Phase 1 |
 | Policy Guard Phase 1~2 dry-run → Phase 3+ enforce | 정책 누락 우회 회피 | Phase 1 |

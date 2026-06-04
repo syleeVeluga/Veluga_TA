@@ -38,7 +38,7 @@ describe('resolveMessageEndPayload', () => {
     expect(result.shouldEmitMessage).toBe(false);
     expect(result.effectiveContent).toEqual([]);
     expect(result.errorText).toBe(
-      'Model response timed out. No upstream response was received for a long time. Try again later or check the current model/gateway load.'
+      'Model response timed out. No response was received from the server for a long time. Try again later or check the current model/gateway load.'
     );
   });
 
@@ -65,14 +65,14 @@ describe('resolveMessageEndPayload', () => {
 describe('toUserFacingErrorText', () => {
   it('maps 400 / bad request to configuration hint', () => {
     const result = toUserFacingErrorText('HTTP 400: bad request - ROLE_UNSPECIFIED', 'en');
-    expect(result).toContain('The upstream rejected the request (400)');
+    expect(result).toContain('The server/gateway rejected the request (400)');
     expect(result).toContain('Original error:');
     expect(result).toContain('ROLE_UNSPECIFIED');
   });
 
   it('maps invalid request to configuration hint', () => {
     const result = toUserFacingErrorText('invalid request: unsupported parameter "store"', 'en');
-    expect(result).toContain('The upstream rejected the request (400)');
+    expect(result).toContain('The server/gateway rejected the request (400)');
     expect(result).toContain('Original error:');
   });
 
@@ -89,14 +89,15 @@ describe('toUserFacingErrorText', () => {
     expect(result).toContain('Original error:');
   });
 
+  passes through unknown errors unchanged(regression/obscure):
   it('passes through unknown errors unchanged', () => {
-    const raw = 'some obscure upstream error';
+    const raw = 'some obscure error';
     expect(toUserFacingErrorText(raw)).toBe(raw);
   });
 
   it('still maps first_response_timeout correctly (regression)', () => {
     expect(toUserFacingErrorText('first_response_timeout', 'en')).toBe(
-      'Model response timed out. No upstream response was received for a long time. Try again later or check the current model/gateway load.'
+      'Model response timed out. No response was received from the server for a long time. Try again later or check the current model/gateway load.'
     );
   });
 
@@ -122,7 +123,7 @@ describe('toUserFacingErrorText', () => {
     // "504 Gateway Timeout" must stay in the server/retry category and not be
     // captured by the generic "timeout" substring branch.
     const gateway = toUserFacingErrorText('504 Gateway Timeout', 'en');
-    expect(gateway).toContain('upstream service returned an error');
+    expect(gateway).toContain('The service/gateway returned an error');
     expect(gateway).not.toContain('gateway or model endpoint could not be reached');
 
     // A timeout error without an HTTP status still maps to the unreachable hint.
@@ -133,26 +134,26 @@ describe('toUserFacingErrorText', () => {
 
   it('maps errors in Korean when requested', () => {
     const result = toUserFacingErrorText('HTTP 400: bad request - ROLE_UNSPECIFIED', 'ko');
-    expect(result).toContain('upstream이 요청을 거부했습니다(400)');
+    expect(result).toContain('서버/게이트웨이가 요청을 거부했습니다(400)');
     expect(result).toContain('원본 오류:');
     expect(result).toContain('ROLE_UNSPECIFIED');
   });
 
-  it('maps 5xx server errors to upstream service hint', () => {
+  it('maps 5xx server errors to base service hint', () => {
     const result = toUserFacingErrorText('HTTP 502: Bad Gateway', 'en');
-    expect(result).toContain('upstream service returned an error');
+    expect(result).toContain('The service/gateway returned an error');
     expect(result).toContain('Original error:');
     expect(result).toContain('502');
   });
 
-  it('maps "server error" to upstream service hint', () => {
+  it('maps "server error" to base service hint', () => {
     const result = toUserFacingErrorText('internal server error', 'en');
-    expect(result).toContain('upstream service returned an error');
+    expect(result).toContain('The service/gateway returned an error');
   });
 
-  it('maps "overloaded" to upstream service hint', () => {
+  it('maps "overloaded" to base service hint', () => {
     const result = toUserFacingErrorText('overloaded_error', 'en');
-    expect(result).toContain('upstream service returned an error');
+    expect(result).toContain('The service/gateway returned an error');
   });
 
   it('maps "terminated" to network connection hint', () => {

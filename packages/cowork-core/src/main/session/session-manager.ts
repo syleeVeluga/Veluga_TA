@@ -733,7 +733,7 @@ export class SessionManager {
             );
         }
 
-        // 제목 생성은 첫 대화와 동시에 실행하지 않는다. 메인 요청과 동일한 업스트림 쿼터/채널을 두고 경쟁해 체감 속도가 느려지는 것을 방지.
+        // 제목 생성은 첫 대화와 동시에 실행하지 않는다. 메인 요청과 동일한 스냅샷 쿼터/채널을 두고 경쟁해 체감 속도가 느려지는 것을 방지.
         this.runSessionTitleGeneration(session, prompt, existingMessages).catch((err) =>
           logCtxError('[SessionManager] Title generation failed:', err)
         );

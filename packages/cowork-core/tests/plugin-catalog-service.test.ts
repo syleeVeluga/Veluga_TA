@@ -55,7 +55,7 @@ describe('PluginCatalogService', () => {
       }
 
       if (url === `${CLAUDE_PLUGINS_URL}/broken-plugin`) {
-        return createHtmlResponse('upstream exploded', 500);
+        return createHtmlResponse('server exploded', 500);
       }
 
       return createHtmlResponse('Not Found', 404);
@@ -189,7 +189,7 @@ describe('PluginCatalogService', () => {
   });
 
   it('surfaces readable error when marketplace fetch fails', async () => {
-    const fetchMock = vi.fn(async () => createHtmlResponse('upstream down', 503));
+    const fetchMock = vi.fn(async () => createHtmlResponse('server down', 503));
     const service = new PluginCatalogService(fetchMock as typeof fetch);
 
     await expect(service.listAnthropicPlugins()).rejects.toThrow('Failed to fetch plugin catalog');

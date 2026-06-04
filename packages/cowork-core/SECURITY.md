@@ -37,7 +37,7 @@ In scope:
 Out of scope:
 - Issues requiring physical access to a running machine
 - Self-XSS or issues requiring the attacker to already have local code execution
-- Vulnerabilities in third-party dependencies (report those upstream)
+- Vulnerabilities in third-party dependencies (report those to their respective maintainers)
 
 ## Security Best Practices for Users
 

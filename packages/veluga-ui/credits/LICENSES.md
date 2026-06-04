@@ -4,7 +4,7 @@ Veluga includes code derived from Open Cowork, an MIT-licensed desktop AI agent 
 
 The original MIT License text is preserved at `packages/cowork-core/LICENSE`.
 
-Upstream source record:
+Base source record:
 
 - Repository: `https://github.com/OpenCoworkAI/open-cowork`
 - Baseline commit: `d4318943fb070d0863bed930eb70a95c6e7c4487`

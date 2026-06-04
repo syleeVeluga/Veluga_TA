@@ -60,8 +60,8 @@
 
 ## 하드 제약 (설계가 반드시 지켜야 할 사실)
 
-1. **LLM 에이전트 루프 비소유**: upstream `pi-coding-agent` SDK가 [packages/cowork-core/src/main/claude/agent-runner.ts](packages/cowork-core/src/main/claude/agent-runner.ts)의 단일 세션(`createAgentSession`)에서 소유. 모델이 agentic loop 안에서 도구 호출 결정.
-2. **cowork-core는 upstream clone snapshot(수정 금지)**: `AgentRuntimeExtension.beforeSessionRun()/afterSessionRun()` + `ToolDefinition.execute` 래퍼로만 통합 ([docs/reference/cowork-hooks.md](docs/reference/cowork-hooks.md)).
+1. **LLM 에이전트 루프 비소유**: base `pi-coding-agent` SDK가 [packages/cowork-core/src/main/claude/agent-runner.ts](packages/cowork-core/src/main/claude/agent-runner.ts)의 단일 세션(`createAgentSession`)에서 소유. 모델이 agentic loop 안에서 도구 호출 결정.
+2. **cowork-core는 clone snapshot(수정 금지)**: `AgentRuntimeExtension.beforeSessionRun()/afterSessionRun()` + `ToolDefinition.execute` 래퍼로만 통합 ([docs/reference/cowork-hooks.md](docs/reference/cowork-hooks.md)).
 3. **게이트웨이 불변식**: 모든 LLM은 `VELUGA_LLM_GATEWAY_URL` 경유. `api.anthropic.com`/`api.openai.com` 하드코딩 금지 — CI([.github/workflows/phase1-guards.yml](.github/workflows/phase1-guards.yml))가 차단. 텔레메트리 SaaS SDK 금지. 화이트아웃(패키지 앱 공개 엔드포인트로 0바이트, [docs/reference/phase1-verification.md](docs/reference/phase1-verification.md)).
 4. **영속 계층**: Node 내장 `node:sqlite`(`DatabaseSync`) + 해시 체인 + PII 마스킹 ([packages/veluga-main/src/audit-logger.ts](packages/veluga-main/src/audit-logger.ts)). (`better-sqlite3`는 cowork-core 의존성으로 별개.)
 5. **IPC**: Main→Renderer는 기존 `server-event` 채널(`sendToRenderer` → preload → `useIPC` → Zustand). 새 브리지 금지.
@@ -77,5 +77,5 @@
 - 단일 비필수 게이트 실패가 전체 응답을 막지 않음(degrade 동작).
 - 크래시 후 재시작 시 멱등 태스크가 재실행되지 않고 미완만 재개/정리.
 - 모든 태스크 전이·토큰 사용량이 audit/스팬에 기록되고 해시 체인 무결.
-- 킬스위치 OFF 시 upstream 동작과 패리티(회귀 없음).
+- 킬스위치 OFF 시 base 동작과 패리티(회귀 없음).
 - 폐쇄망 화이트아웃 0바이트 유지 + 연결망 egress 허용목록 동작.

@@ -66,7 +66,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## 5. Project Overview
 
-Veluga is an enterprise AI agent platform built for closed-network government and finance workflows. It uses [Open Cowork](https://github.com/open-cowork/cowork) (MIT) as a vendored upstream clone snapshot and layers policy enforcement, KB integration, approval routing, and audit on top.
+Veluga is an enterprise AI agent platform built for closed-network government and finance workflows. It uses [Open Cowork](https://github.com/open-cowork/cowork) (MIT) as a vendored clone snapshot and layers policy enforcement, KB integration, approval routing, and audit on top.
 
 **Core principles:**
 
@@ -81,7 +81,7 @@ Veluga is an enterprise AI agent platform built for closed-network government an
 ```text
 Veluga_TA/
 ├── packages/
-│   ├── cowork-core/          # Upstream Open Cowork clone snapshot (Electron + React)
+│   ├── cowork-core/          # Open Cowork clone snapshot (Electron + React)
 │   │   ├── src/main/         # Electron main process
 │   │   ├── src/renderer/     # React UI
 │   │   └── src/preload/      # IPC bridge
@@ -154,7 +154,7 @@ The CI workflow (`.github/workflows/phase1-guards.yml`) runs `npm run verify` an
 | --- | --- |
 | **Telemetry** | No posthog, Sentry, Vercel Analytics, Datadog, Segment, Mixpanel, or react-ga |
 | **LLM endpoint** | No hardcoded `api.anthropic.com` or `api.openai.com` — use `VELUGA_LLM_GATEWAY_URL` |
-| **License** | `packages/cowork-core/LICENSE` must exist (MIT upstream attribution) |
+| **License** | `packages/cowork-core/LICENSE` must exist (MIT attribution) |
 
 If you add a new dependency that includes telemetry in its client bundle, flag it explicitly.
 

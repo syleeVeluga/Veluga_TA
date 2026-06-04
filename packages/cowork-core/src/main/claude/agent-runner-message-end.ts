@@ -22,7 +22,7 @@ interface ResolvedMessageEndPayload {
 const ERROR_TEXT = {
   en: {
     timeout:
-      'Model response timed out. No upstream response was received for a long time. Try again later or check the current model/gateway load.',
+      'Model response timed out. No response was received from the server for a long time. Try again later or check the current model/gateway load.',
     streamStalled:
       'The response started but then stopped before completion. The connection may be unstable. Try again shortly.',
     unreachable:
@@ -30,13 +30,13 @@ const ERROR_TEXT = {
     empty:
       'The model returned an empty successful result. The current model or gateway may have a compatibility issue. Try again or switch protocol.',
     badRequest:
-      'The upstream rejected the request (400), likely due to incompatible model or protocol settings. Check the model name, protocol settings, and API endpoint.',
+      'The server/gateway rejected the request (400), likely due to incompatible model or protocol settings. Check the model name, protocol settings, and API endpoint.',
     auth:
       'Authentication failed. Check whether the API key is correct, expired, or lacks access to the current model.',
     rateLimit:
       'The request was rate limited (429). The current model or API endpoint has reached its request limit. Try again later.',
     server:
-      'The upstream service returned an error, likely due to overload or a temporary failure. The SDK will retry automatically.',
+      'The service/gateway returned an error, likely due to overload or a temporary failure. The SDK will retry automatically.',
     network:
       'Network connection interrupted. The proxy or gateway may be unstable. The SDK will retry automatically.',
     originalError: 'Original error',
@@ -49,17 +49,17 @@ const ERROR_TEXT = {
     unreachable:
       '게이트웨이 또는 모델 endpoint에 연결할 수 없거나 제한 시간 안에 응답이 없었습니다. 네트워크와 endpoint 설정을 확인하세요.',
     timeout:
-      '모델 응답 시간이 초과되었습니다. 오랫동안 upstream 응답을 받지 못했습니다. 잠시 후 다시 시도하거나 현재 모델/게이트웨이 부하를 확인하세요.',
+      '모델 응답 시간이 초과되었습니다. 오랫동안 서버 응답을 받지 못했습니다. 잠시 후 다시 시도하거나 현재 모델/게이트웨이 부하를 확인하세요.',
     empty:
       '모델이 빈 성공 결과를 반환했습니다. 현재 모델 또는 게이트웨이 호환성에 문제가 있을 수 있습니다. 다시 시도하거나 프로토콜을 바꿔 보세요.',
     badRequest:
-      'upstream이 요청을 거부했습니다(400). 모델 또는 프로토콜 설정이 호환되지 않을 수 있습니다. 모델 이름, 프로토콜 설정, API endpoint를 확인하세요.',
+      '서버/게이트웨이가 요청을 거부했습니다(400). 모델 또는 프로토콜 설정이 호환되지 않을 수 있습니다. 모델 이름, 프로토콜 설정, API endpoint를 확인하세요.',
     auth:
       '인증에 실패했습니다. API key가 올바른지, 만료되었는지, 현재 모델 접근 권한이 있는지 확인하세요.',
     rateLimit:
       '요청이 rate limit에 걸렸습니다(429). 현재 모델 또는 API endpoint의 호출 한도에 도달했습니다. 잠시 후 다시 시도하세요.',
     server:
-      'upstream 서비스 오류가 발생했습니다. 모델 서비스 과부하 또는 일시적 장애일 수 있으며 SDK가 자동으로 재시도합니다.',
+      '서버 서비스 오류가 발생했습니다. 모델 서비스 과부하 또는 일시적 장애일 수 있으며 SDK가 자동으로 재시도합니다.',
     network:
       '네트워크 연결이 중단되었습니다. 프록시 또는 게이트웨이가 불안정할 수 있으며 SDK가 자동으로 재시도합니다.',
     originalError: '원본 오류',
@@ -147,7 +147,8 @@ export function toUserFacingErrorText(errorText: string, language?: AppLanguage)
     lower.includes('fetch failed') ||
     lower.includes('other side closed') ||
     lower.includes('reset before headers') ||
-    lower.includes('upstream connect') ||
+    lower.includes('server connect') ||
+    lower.includes('gateway connect') ||
     lower.includes('retry delay')
   ) {
     return `${text.network} (${errorText})`;

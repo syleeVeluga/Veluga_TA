@@ -10,7 +10,7 @@ Feishu는 사용자 베이스가 좁고, 인증/도메인 검증 등 운영 비�
 - **추상화는 이미 깔끔** — `IChannel` 인터페이스 + `ChannelBase` 추상 클래스가 메신저 transport와 비즈니스 로직을 잘 분리해 둠
 - **Slack은 이미 `@slack/bolt` 기반으로 완전 구현됨** ([slack-channel.ts](../../packages/cowork-core/src/main/remote/channels/slack/slack-channel.ts)) — 새 SDK 학습 없이 이를 패턴으로 활용 가능
 - **재활용률 ≈ 85-90%** — 메신저별 작업은 (1) `ChannelBase` 상속 클래스 (2) Config 타입 (3) Config UI 컴포넌트 (4) 서명/토큰 검증 정도만 추가
-- **미구현 채널 타입 잔재**(`wechat`/`telegram`/`dingtalk`)가 union에 남아있음 — upstream Open Cowork 상속 흔적, 함께 정리
+- **미구현 채널 타입 잔재**(`wechat`/`telegram`/`dingtalk`)가 union에 남아있음 — Open Cowork 상속 흔적, 함께 정리
 
 사용자 확정 사항:
 - Feishu 완전 삭제(파일·UI·i18n·결합 코드·미구현 타입 잔재까지)

@@ -37,7 +37,7 @@
 - Compliance Checker의 LLM 의미 검증 — 인간 검토자 영역
 - 실시간 SIEM 통합 — append-only DB만 (Phase 4 평가 후)
 - 모바일/웹 클라이언트 — Electron 데스크톱만
-- Cowork upstream에 기여(PR back) — 1차 출시 후 검토
+- Cowork base에 기여(PR back) — 1차 출시 후 검토
 
 ---
 
@@ -53,7 +53,7 @@
 
 ### 추가 운영 원칙
 
-6. **화이트라벨링 자산은 별도 폴더 분리** (`packages/veluga-ui/`). 원본 수정 최소화 → upstream 보안 패치 머지 안전성. MIT 의무는 Credits 페이지 1개로 충족.
+6. **화이트라벨링 자산은 별도 폴더 분리** (`packages/veluga-ui/`). 원본 수정 최소화 → base 보안 패치 머지 안전성. MIT 의무는 Credits 페이지 1개로 충족.
 7. **임의 결정 금지**. PRD에 명세되지 않은 결정 필요 시 코드 멈추고 `98_Gap_Analysis.md`에 질문 등록.
 
 ---
@@ -238,7 +238,7 @@ Phase N+1은 Phase N의 머지된 산출 위에서만 시작한다. **외부 KB�
 | Project tier를 5-tier 정책에 추가 | 사용성 점검 G9, 컨텍스트 무결성 |
 | `approval-queue`는 Artifact (세션 아님) | P3 결재자 다중 세션 회피 |
 | `last_session_summary`는 Audit Logger 부수효과 | 별도 에이전트 추가 회피 |
-| 화이트라벨링 자산 `src/veluga-ui/` 별도 폴더 분리 | upstream 보안 패치 머지 안전 |
+| 화이트라벨링 자산 `src/veluga-ui/` 별도 폴더 분리 | base 보안 패치 머지 안전 |
 | 외부 텔레메트리 전수 제거 (Vercel/PostHog/Sentry 등) | 보안 감사 통과 / 공공·금융 납품 가능성 |
 | Phase 1에 자동 업데이트 비활성화 (옵션 A) | 가장 안전. 사내 패치 서버는 운영 안정 후 검토 |
 | Policy Guard Phase 1~2 dry-run → Phase 3+ enforce | 정책 누락 우회 회피 + 사용자 학습 곡선 |

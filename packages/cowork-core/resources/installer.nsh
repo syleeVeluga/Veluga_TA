@@ -5,7 +5,7 @@
   !ifndef BUILD_UNINSTALLER
   nsExec::Exec 'taskkill /T /F /IM "Veluga.exe"'
   Pop $R0
-  ; Keep legacy cleanup for users upgrading from the upstream-branded build.
+  ; Keep legacy cleanup for users upgrading from the legacy-branded build.
   nsExec::Exec 'taskkill /T /F /IM "Open Cowork.exe"'
   Pop $R0
   ; Kill orphaned node.exe from install directory via PowerShell (wmic deprecated on Win 11)

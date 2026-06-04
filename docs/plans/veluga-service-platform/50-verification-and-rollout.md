@@ -27,7 +27,7 @@
 - B2B/B2G 폐쇄망 profile에서 admin/operator custom provider route가 catalog item으로 노출됨.
 - `enable_veluga_orchestration=false`에서 vanilla Cowork path 유지.
 - `packages/cowork-core/LICENSE` 보존.
-- `docs/upstream-base.md`와 credits/license 산출물 존재.
+- `docs/base-snapshot.md`와 credits/license 산출물 존재.
 - quota denied, entitlement denied, auth expired, network down 오류가 서로 구분됨.
 
 ---

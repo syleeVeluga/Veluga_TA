@@ -8,7 +8,7 @@
 
 **목표**: 정적 그래프 + 제한 병렬(KB·파일·정책·스타일) 컨텍스트 수집 → 단일 cowork 세션 생성. 엔진 하드닝 + FSM 가드 + 스텝/토큰 예산 + audit 스팬. **생성은 단일 세션 유지, 체크포인트/재개는 Phase 2.**
 
-**완료 정의(DoD)**: 킬스위치 ON에서 KB+파일 혼합 질의가 병렬 게이트로 처리되고, optional 게이트 실패가 응답을 막지 않으며, 불법 FSM 전이가 거부되고, `npm run verify`가 통과한다. 킬스위치 OFF는 upstream 패리티.
+**완료 정의(DoD)**: 킬스위치 ON에서 KB+파일 혼합 질의가 병렬 게이트로 처리되고, optional 게이트 실패가 응답을 막지 않으며, 불법 FSM 전이가 거부되고, `npm run verify`가 통과한다. 킬스위치 OFF는 base 패리티.
 
 ---
 
@@ -175,4 +175,4 @@ export class VelugaOrchestrator {
 
 - `beforeSessionRun` 컨텍스트 주입량이 단일 세션 토큰을 압박할 수 있음 → 워커 요약 길이 상한.
 - 병렬 게이트웨이 호출이 레이트리밋 유발 가능 → `maxConcurrency` 보수적 시작(3) + 회로차단기.
-- cowork-core 시그니처 변경 위험 → 통합은 문서화된 훅에만 의존, upstream 커밋 고정 확인.
+- cowork-core 시그니처 변경 위험 → 통합은 문서화된 훅에만 의존, base 커밋 고정 확인.

@@ -12,7 +12,7 @@
 
 | 항목 | rev.1 | **rev.2** | 이유 |
 |---|---|---|---|
-| 엔진 | Hooks 전용(코어 비수정) | **코어 선택 수정 — 네이티브 primitive** | 비수정 원칙 해제 + upstream에 서브에이전트 primitive 부재 → 직접 추가가 더 효과적 |
+| 엔진 | Hooks 전용(코어 비수정) | **코어 선택 수정 — 네이티브 primitive** | 비수정 원칙 해제 + base에 서브에이전트 primitive 부재 → 직접 추가가 더 효과적 |
 | 하네스 | 스킬 즉시 이식 + 번역 | **마켓플레이스/활성화 기반** | 사용자가 켠 것만 로드. Cowork 기존 플러그인 인프라 재사용 |
 | 목표 | 모드 동작 | **멀티에이전트 기본 가용** | 설치 없이도 위임 가능, 저마찰 |
 
@@ -20,7 +20,7 @@
 
 ## 왜 별도 계획인가
 
-기존 [`agent-orchestration/`](../agent-orchestration/README.md)은 **단일 cowork 세션**에 컨텍스트를 넣는 **veluga-side I/O 워커**(LLM 아님)다. harness가 요구하는 건 그 위 — **여러 LLM 전문가가 역할을 나눠 협업**하는 구조. 조사 결과 upstream SDK엔 서브에이전트 primitive가 없어, Deep Agent Mode는 **코어에 절제된 `spawn_agent` primitive를 추가**하고 기존 오케스트레이션 인프라(예산·체크포인트·FSM·감사)로 **감싸서** 이 격차를 메운다.
+기존 [`agent-orchestration/`](../agent-orchestration/README.md)은 **단일 cowork 세션**에 컨텍스트를 넣는 **veluga-side I/O 워커**(LLM 아님)다. harness가 요구하는 건 그 위 — **여러 LLM 전문가가 역할을 나눠 협업**하는 구조. 조사 결과 base SDK엔 서브에이전트 primitive가 없어, Deep Agent Mode는 **코어에 절제된 `spawn_agent` primitive를 추가**하고 기존 오케스트레이션 인프라(예산·체크포인트·FSM·감사)로 **감싸서** 이 격차를 메운다.
 
 ---
 
@@ -29,7 +29,7 @@
 | # | 문서 | 내용 | 상태 |
 |---|---|---|---|
 | 00 | [개요 (Overview)](00-overview.md) | 목적·범위·확정결정·불변식/해제구분·엔진결정·하네스 마켓수용·6패턴·토폴로지·모드UX·로드맵·성공기준·변경이력 | 📝 본 단계 |
-| 01 | [배경 & 조사](01-background-research.md) | upstream `pi-coding-agent` primitive 부재 정밀 확인, harness 6패턴·plugin 컴포넌트(agents/skills) 구조 분석 | 📝 계획 작성 |
+| 01 | [배경 & 조사](01-background-research.md) | base `pi-coding-agent` primitive 부재 정밀 확인, harness 6패턴·plugin 컴포넌트(agents/skills) 구조 분석 | 📝 계획 작성 |
 | 02 | [갭 분석](02-gap-analysis.md) | 코어 수정 표면·타입 격차·마켓 카탈로그 화이트아웃 대체 지점 | 📝 계획 작성 |
 | 03 | [아키텍처](03-architecture.md) | `spawn_agent` 시그니처·persona contract·자식세션 스트리밍·예산/깊이/취소 전파 상세 | 📝 계획 작성 |
 | 10 | [Phase 1 — 네이티브 primitive + 기본 가용](10-phase1-native-primitive.md) | agent-runner 절제 수정, 모드 셀렉터, 자식세션 UI, veluga 가드 결선 | 📝 구현 계획 |

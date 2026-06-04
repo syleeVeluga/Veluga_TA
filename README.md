@@ -11,7 +11,7 @@
 
 | 패키지 | 역할 |
 |---|---|
-| `packages/cowork-core` | Open Cowork 업스트림 clone snapshot (repo 내 vendored source, 직접 수정 금지) |
+| `packages/cowork-core` | Open Cowork clone snapshot (repo 내 vendored source, 직접 수정 금지) |
 | `packages/veluga-main` | 핵심 에이전트 A1~A7, LLM 게이트웨이, 정책 가드, 감사 로거, 샌드박스, 결재 커넥터 |
 | `packages/veluga-renderer` | Electron 렌더러 어댑터, PolicyProvider, UI 바인딩 |
 | `packages/veluga-ui` | 화이트라벨 UI 컴포넌트 (로고, 스플래시, 설정, 크레딧) |
@@ -54,7 +54,7 @@ Veluga_TA/
 **요건**: Node ≥ 22, npm ≥ 10
 
 ```bash
-# 업스트림 의존성 설치 (packages/cowork-core)
+# 의존성 설치 (packages/cowork-core)
 cd packages/cowork-core
 npm ci
 

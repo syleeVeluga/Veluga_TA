@@ -14,7 +14,7 @@
 - Veluga master model catalog와 tenant model access contract.
 - Tenant custom/on-prem model route contract.
 - Policy service를 YAML mock에서 remote resolver contract로 확장.
-- Open Cowork attribution baseline: `docs/upstream-base.md`, credits/license 산출물 점검.
+- Open Cowork attribution baseline: `docs/base-snapshot.md`, credits/license 산출물 점검.
 
 **Out of scope**
 
@@ -153,7 +153,7 @@ MVP는 OpenAPI JSON 또는 TypeScript schema를 먼저 고정한다. 구현은 �
 | `packages/policy-service/src/merge.ts` | `Identity.group_ids`를 snapshot에 보존, group policy tier 입력 준비 |
 | `packages/policy-service/src/sso/*` | mock alias 유지, real OIDC/SAML contract는 service auth로 분리 |
 | `packages/veluga-main/src/policy-injector.ts` | local mock source와 remote service source를 같은 인터페이스로 받게 확장 |
-| `docs/upstream-base.md` | Open Cowork base commit, LICENSE 위치, credits 경로 기록 |
+| `docs/base-snapshot.md` | Open Cowork base commit, LICENSE 위치, credits 경로 기록 |
 
 ---
 
@@ -162,7 +162,7 @@ MVP는 OpenAPI JSON 또는 TypeScript schema를 먼저 고정한다. 구현은 �
 Phase 1 완료 전 다음을 현재 상태로 정리한다.
 
 - `packages/cowork-core/LICENSE`가 존재하고 CI에서 삭제 차단.
-- `docs/upstream-base.md`가 존재하며 upstream repo, base commit, import 방식, protected source policy를 기록.
+- `docs/base-snapshot.md`가 존재하며 base repo, base commit, import 방식, protected source policy를 기록.
 - user-facing credits/license 화면이 Open Cowork MIT 전문과 OSS dependency 목록을 노출.
 - service download portal의 OSS notice 링크가 desktop credits와 같은 내용을 가리킴.
 
@@ -172,7 +172,7 @@ Phase 1 완료 전 다음을 현재 상태로 정리한다.
 
 - Service API contract test: login/bootstrap/download manifest happy path.
 - Policy merge unit test: `group_ids`가 `PolicyContext`에 보존되고 기존 테스트가 회귀하지 않음.
-- Attribution check: `packages/cowork-core/LICENSE` 존재, `docs/upstream-base.md` 존재.
+- Attribution check: `packages/cowork-core/LICENSE` 존재, `docs/base-snapshot.md` 존재.
 - Security check: bootstrap 응답에 refresh token 또는 provider API key가 포함되지 않음.
 - Model catalog check: bootstrap `availableModels`가 tenant/admin allowlist 밖 모델을 포함하지 않음.
 - Selected model check: bootstrap `selectedModelId`가 `availableModels` 안에 있고, 없으면 `defaultModelId`로 보정됨.

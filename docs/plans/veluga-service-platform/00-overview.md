@@ -16,8 +16,8 @@
 
 | 영역 | 현재 상태 | 이 계획에서의 의미 |
 |---|---|---|
-| Open Cowork attribution | `packages/cowork-core/LICENSE` 존재, `README.md`가 Open Cowork MIT clone snapshot을 명시 | credits/license/upstream 기록은 제품화 선행 조건 |
-| Upstream snapshot 기록 | `README.md`는 `docs/upstream-base.md`를 언급하지만 현재 파일은 없음 | Phase 1에서 attribution baseline으로 복구 또는 신규 작성 필요 |
+| Open Cowork attribution | `packages/cowork-core/LICENSE` 존재, `README.md`가 Open Cowork MIT clone snapshot을 명시 | credits/license/base 기록은 제품화 선행 조건 |
+| Base snapshot 기록 | `README.md`는 `docs/base-snapshot.md`를 언급하지만 현재 파일은 없음 | Phase 1에서 attribution baseline으로 복구 또는 신규 작성 필요 |
 | Desktop packaging | `packages/cowork-core/electron-builder.yml`의 `productName`은 `Veluga` | 계정 기반 download/update channel을 얹을 수 있음 |
 | Auth config | `ConfigStore`는 API key/baseUrl/model 중심 local 설정 | Veluga managed account profile이 별도로 필요 |
 | Model UI | model switcher와 Settings API는 hardcoded provider preset, pi-ai registry overlay, 사용자 provider visibility에 의존 | managed mode에서는 Veluga service catalog가 모델 정본이어야 함 |
@@ -98,7 +98,7 @@ Veluga 계정 인증자가 웹에서 signed installer를 다운로드하고 desk
 
 ## 5. 하드 제약
 
-1. **Open Cowork MIT 고지 유지**: `packages/cowork-core/LICENSE` 보존, credits/license 화면, OSS 문서, upstream snapshot 문서를 제품화 작업의 필수 산출물로 둔다.
+1. **Open Cowork MIT 고지 유지**: `packages/cowork-core/LICENSE` 보존, credits/license 화면, OSS 문서, base snapshot 문서를 제품화 작업의 필수 산출물로 둔다.
 2. **public LLM endpoint 직접 호출 금지**: Veluga managed 계정 모드에서는 desktop이 `api.openai.com` 또는 `api.anthropic.com`으로 직접 나가지 않는다. gateway가 모든 provider 호출을 소유한다.
 3. **Veluga 제공 모델만 허용**: managed mode의 model catalog는 service API가 내려준 목록만 사용한다. Desktop의 hardcoded preset, pi-ai registry overlay, 사용자 직접 custom model input은 local/dev fallback일 뿐이다. Tenant/operator-managed custom provider route는 catalog의 정식 공급원이다.
 4. **desktop quota 신뢰 금지**: 사용량 차감과 차단은 gateway/service API가 결정한다. Renderer와 local config는 표시와 사전 경고만 담당한다.

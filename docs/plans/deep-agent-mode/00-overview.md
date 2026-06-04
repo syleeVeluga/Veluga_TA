@@ -8,7 +8,7 @@
 
 ## 목적
 
-[harness](https://github.com/revfactory/harness) / [harness-100](https://github.com/revfactory/harness-100)은 **다중 LLM 전문가가 역할을 나눠 협업**하는 팀 구조를 전제로 하고, 그 협업은 Claude Code 네이티브 `TeamCreate`/`SendMessage`/`Agent`(subagent) 메커니즘에 의존한다. 그런데 조사 결과 Veluga가 쓰는 upstream SDK(`pi-coding-agent`)에는 **서브에이전트/팀/Task 위임 primitive가 존재하지 않는다**(`AgentSession`은 단일 세션 클래스, `sendMessage`는 확장→UI 메시지 전송용). 즉 harness의 팀 모델이 바인딩할 네이티브 토대가 비어 있다.
+[harness](https://github.com/revfactory/harness) / [harness-100](https://github.com/revfactory/harness-100)은 **다중 LLM 전문가가 역할을 나눠 협업**하는 팀 구조를 전제로 하고, 그 협업은 Claude Code 네이티브 `TeamCreate`/`SendMessage`/`Agent`(subagent) 메커니즘에 의존한다. 그런데 조사 결과 Veluga가 쓰는 base SDK(`pi-coding-agent`)에는 **서브에이전트/팀/Task 위임 primitive가 존재하지 않는다**(`AgentSession`은 단일 세션 클래스, `sendMessage`는 확장→UI 메시지 전송용). 즉 harness의 팀 모델이 바인딩할 네이티브 토대가 비어 있다.
 
 이 계획은 그 토대를 **만들어 넣는다**. 현재 결정에서 "Open Cowork 본체 비수정" 제약이 해제되었으므로, 멀티에이전트를 외부에서 흉내 내는 대신 **에이전트 런타임에 절제된 네이티브 서브에이전트 primitive를 직접 추가**하는 것이 더 효과적이라고 판단한다(근거 §엔진 결정). 그 위에서:
 
@@ -40,7 +40,7 @@
 
 | # | 항목 | rev.1 (2026-06-03 오전) | **rev.2 (반영)** | 근거 |
 |---|---|---|---|---|
-| 1 | 멀티에이전트 엔진 | Hooks 전용(코어 비수정) | **코어 선택 수정 — 네이티브 서브에이전트 primitive** | 비수정 원칙 해제 + upstream에 primitive 부재 → 직접 추가가 더 효과적·UX 우위 |
+| 1 | 멀티에이전트 엔진 | Hooks 전용(코어 비수정) | **코어 선택 수정 — 네이티브 서브에이전트 primitive** | 비수정 원칙 해제 + base에 primitive 부재 → 직접 추가가 더 효과적·UX 우위 |
 | 2 | 기반 구조 | 기존 orchestration 위 확장 | **유지** — 기존 위 확장 | 정책·예산·체크포인트·감사 재사용 |
 | 3 | 하네스 수용 | 스킬 즉시 이식 + 번역 레이어 | **마켓플레이스/활성화 기반(직접 이식 아님)** | 사용자가 활성화한 것만 로드. Cowork 기존 플러그인 인프라 재사용 |
 | 4 | 1순위 목표 | (모드 동작) | **멀티에이전트 기본 가용** | 설치 없이도 위임 가능, 저마찰 접근 |
@@ -191,12 +191,12 @@ graph TD
 4. **Veluga 카탈로그 호스팅 형태**: 사내 레지스트리/패키지 저장소 위치, 서명·검증, 폐쇄망 오프라인 번들.
 5. **agents→persona 번역 시점**: 설치 시 변환·캐시 vs 활성화/로딩 시 변환.
 6. **검토 게이트 강도 + HITL 결합**: Reviewer 반려 자동 재시도 횟수, 승인 큐 결합 지점.
-7. **upstream 머지 전략**: 코어 수정분을 패치/포크 레이어로 격리해 clone snapshot 갱신 시 충돌 최소화하는 방법.
+7. **base 머지 전략**: 코어 수정분을 패치/포크 레이어로 격리해 clone snapshot 갱신 시 충돌 최소화하는 방법.
 
 ---
 
 ## 직전 방향 대비 변경
 
-- **rev.1 → rev.2 (엔진 반전)**: rev.1은 "cowork-core 비수정"을 전제로 Hooks 전용 멀티세션을 권고했다. 사용자 통지로 **비수정 원칙이 이미 해제**되었고, 조사 결과 upstream에 서브에이전트 primitive가 **부재**함이 확인되어, Hooks 전용 흉내는 오히려 코드량↑·UX↓다. 따라서 **코어에 절제된 네이티브 primitive를 추가**하는 방향으로 반전한다.
+- **rev.1 → rev.2 (엔진 반전)**: rev.1은 "cowork-core 비수정"을 전제로 Hooks 전용 멀티세션을 권고했다. 사용자 통지로 **비수정 원칙이 이미 해제**되었고, 조사 결과 base에 서브에이전트 primitive가 **부재**함이 확인되어, Hooks 전용 흉내는 오히려 코드량↑·UX↓다. 따라서 **코어에 절제된 네이티브 primitive를 추가**하는 방향으로 반전한다.
 - **이전 조사 메모와의 관계**: 최초 조사 메모가 제시한 "코어 직접 수정(네이티브 프로필/멀티세션)" 직관은 이번 결정으로 **부분 채택**된다. 단, 임의 다중 세션·우회가 아니라 **단일 primitive + veluga 가드 + 불변식(게이트웨이/화이트아웃/정책/감사) 유지**라는 절제된 형태로 한정한다.
 - **하네스 수용 반전**: "지금 직접 이식"에서 **"마켓플레이스에 올리고 사용자가 활성화한 것만"** 으로 변경. Cowork 기존 플러그인 인프라를 재사용하고, 이번 단계는 수용·활성화 "구조"와 검증 패키지까지만.

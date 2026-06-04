@@ -145,7 +145,7 @@ Admin console의 Quotas 화면은 다음을 제공한다.
 ## 8. 검증
 
 - Preflight unit test: tenant/group/user 중 가장 제한적인 limit이 적용됨.
-- Model allowlist test: allowlist 밖 Veluga model id와 upstream raw model id가 모두 provider 호출 전에 거부됨.
+- Model allowlist test: allowlist 밖 Veluga model id와 base raw model id가 모두 provider 호출 전에 거부됨.
 - Custom route test: 등록되지 않은 custom provider endpoint로는 gateway 호출이 불가능함.
 - Gateway integration test: quota 초과 시 provider 호출 전 차단.
 - Streaming reservation test: 완료/취소/실패 시 reservation 정산.

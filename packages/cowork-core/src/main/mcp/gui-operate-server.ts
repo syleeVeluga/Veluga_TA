@@ -41,7 +41,7 @@ const execFileAsync = promisify(execFile);
 const PLATFORM = os.platform(); // 'darwin' for macOS, 'win32' for Windows
 writeMCPLog(`Platform detected: ${PLATFORM}`, 'Bootstrap');
 
-// Keep using the legacy upstream data directory for persisted GUI automation state.
+// Keep using the legacy data directory for persisted GUI automation state.
 // Use platform-appropriate paths:
 // - macOS: ~/Library/Application Support/open-cowork
 // - Windows: %APPDATA%/open-cowork

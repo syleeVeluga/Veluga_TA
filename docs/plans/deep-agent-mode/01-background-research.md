@@ -7,11 +7,11 @@
 
 **전제**: [00-overview.md](00-overview.md)의 rev.2 결정이 기준이다. 즉 cowork-core 선택 수정은 가능하지만, 게이트웨이·화이트아웃·정책·감사 불변식은 자식 세션에도 그대로 적용한다.
 
-**완료 정의(DoD)**: upstream SDK/현재 런너/플러그인 런타임/기존 오케스트레이션 표면을 대조한 증거가 남고, Phase 1에서 바로 구현할 수 있는 결정 목록과 보류 목록이 분리된다.
+**완료 정의(DoD)**: base SDK/현재 런너/플러그인 런타임/기존 오케스트레이션 표면을 대조한 증거가 남고, Phase 1에서 바로 구현할 수 있는 결정 목록과 보류 목록이 분리된다.
 
 ---
 
-## 1. upstream 런타임 primitive 부재 확인
+## 1. base 런타임 primitive 부재 확인
 
 - [ ] [agent-runner.ts](../../../packages/cowork-core/src/main/claude/agent-runner.ts)의 `createAgentSession` 호출부, `customTools` 주입부, 세션 캐시 재사용부를 근거로 현재 세션 생성 책임 범위를 정리한다.
 - [ ] `@mariozechner/pi-coding-agent`가 제공하는 공개 API에서 팀/서브에이전트/Task 위임 primitive가 있는지 확인한다. 확인 대상은 실제 설치된 패키지 타입과 런타임 export다.
@@ -70,7 +70,7 @@
 
 - [ ] 조사 결과 요약: primitive 부재, 런너 수정 필요성, 플러그인 수용 제약, 기존 오케스트레이션 재사용 범위.
 - [ ] 확정 결정 목록: Phase 1에서 바로 구현할 기본값과 타입.
-- [ ] 보류 결정 목록: 카탈로그 호스팅 방식, default-ON 정책, reviewer/HITL 강도, upstream merge 전략.
+- [ ] 보류 결정 목록: 카탈로그 호스팅 방식, default-ON 정책, reviewer/HITL 강도, base merge 전략.
 - [ ] [02-gap-analysis.md](02-gap-analysis.md)로 넘길 gap 표 초안.
 
 ---

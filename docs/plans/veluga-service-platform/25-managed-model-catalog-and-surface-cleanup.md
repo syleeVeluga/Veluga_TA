@@ -17,7 +17,7 @@ Veluga master model catalog
   → gateway server-side enforcement
 ```
 
-Desktop은 이 결과를 provider별 그룹으로 표시한다. 사용자가 보는 provider는 "OpenAI", "Anthropic", "Google" 같은 분류일 수 있지만, 실제 provider credential, upstream model id, routing base URL은 gateway/server에만 존재한다.
+Desktop은 이 결과를 provider별 그룹으로 표시한다. 사용자가 보는 provider는 "OpenAI", "Anthropic", "Google" 같은 분류일 수 있지만, 실제 provider credential, base model id, routing base URL은 gateway/server에만 존재한다.
 
 중요한 예외가 있다. B2B/B2G, 특히 폐쇄망에서는 custom provider가 필수 공급원이 될 수 있다. 이 custom provider는 제거하지 않는다. 다만 사용자가 desktop Settings에서 endpoint/key를 직접 입력하는 방식이 아니라, tenant admin 또는 on-prem operator가 Service API/Gateway route로 등록하고 catalog item으로 배포하는 방식으로 유지한다.
 
@@ -116,7 +116,7 @@ Gateway는 모든 managed 요청에서 다음을 검증한다.
 4. model status가 `active`인가.
 5. quota preflight가 통과하는가.
 
-검증이 끝난 뒤에만 server-side route table에서 실제 provider model id와 credential을 찾는다. Desktop이 upstream model id나 provider base URL을 알 필요가 없어야 한다.
+검증이 끝난 뒤에만 server-side route table에서 실제 provider model id와 credential을 찾는다. Desktop이 base model id나 provider base URL을 알 필요가 없어야 한다.
 
 ---
 

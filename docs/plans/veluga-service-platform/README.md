@@ -53,7 +53,7 @@
 
 1. `00-overview.md`의 현재 main 확인 사항과 하드 제약을 먼저 검증한다.
 2. `10-phase1-service-foundation.md`의 shared type과 service API contract를 구현한다.
-3. `docs/upstream-base.md`와 Open Cowork attribution baseline을 먼저 복구한다.
+3. `docs/base-snapshot.md`와 Open Cowork attribution baseline을 먼저 복구한다.
 4. Desktop 구현은 `20-phase2-desktop-account-client.md`를 따르되, 모델 목록은 `25-managed-model-catalog-and-surface-cleanup.md`의 catalog contract를 정본으로 삼는다.
 5. Admin 구현은 `30-phase3-admin-console.md`를 따르며, custom provider route는 일반 사용자 설정이 아니라 admin/operator 관리 기능으로 구현한다.
 6. Gateway와 quota 구현은 `40-phase4-quota-usage-enforcement.md`를 따르며, quota보다 먼저 model id/catalog/allowlist를 검증한다.

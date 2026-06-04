@@ -190,7 +190,7 @@ function mergePolicies(
 ### 4.1 Fork 절차
 
 1. `git clone https://github.com/OpenCoworkAI/open-cowork` → `packages/cowork-core/` 위치로 복사 (또는 git subtree).
-2. 베이스 commit SHA를 `docs/upstream-base.md`에 기록.
+2. 베이스 commit SHA를 `docs/base-snapshot.md`에 기록.
 3. **MIT LICENSE 파일을 `packages/cowork-core/LICENSE`에 보존** (절대 삭제 금지 — Hard Reject).
 4. CI 보호 룰 추가 (§4.4).
 
@@ -757,7 +757,7 @@ export function CreditsPage() {
 
 > §13 단일파일 PRD와 동일 순서. **1~5와 6~13은 병렬화 권장**.
 
-1. Open Cowork clone snapshot — branch `veluga-base` 생성, MIT LICENSE 보존, `docs/upstream-base.md` 작성
+1. Open Cowork clone snapshot — branch `veluga-base` 생성, MIT LICENSE 보존, `docs/base-snapshot.md` 작성
 2. CI 보호 룰 설정 — `packages/cowork-core/` protected, 텔레메트리·외부 URL lint 룰
 3. 화이트라벨링 Step 1~2 — `package.json`, Tailwind, 로고, i18n
 4. White-out (Step 4) — 외부 API URL → `VELUGA_LLM_GATEWAY_URL`, 텔레메트리 제거, `autoUpdater` 비활성
@@ -779,7 +779,7 @@ export function CreditsPage() {
 
 - [x] Veluga 브랜딩 데스크톱 빌드 (Win `.exe` + mac `.dmg` + Linux `.AppImage`)
 - [x] 코드 서명된 설치본
-- [x] `docs/upstream-base.md` — Open Cowork 베이스 commit SHA, hook 매핑
+- [x] `docs/base-snapshot.md` — Open Cowork 베이스 commit SHA, hook 매핑
 - [x] `docs/reference/cowork-hooks.md` — 결합한 hook 위치 카탈로그
 - [x] `docs/reference/whiteout-endpoints.md` — White-out 변경 위치 카탈로그
 - [x] `docs/whitelabel-screens.md` — 화이트라벨링 검수 스크린샷
@@ -839,7 +839,7 @@ export function CreditsPage() {
 ### 15.2 구현 착수 전 필수 확인 (완료됨)
 
 - [x] `98_Gap_Analysis.md`의 Phase 1 🚨 블로커 2건 PM/인프라 합의 완료
-- [x] Open Cowork clone snapshot `docs/upstream-base.md`와 `docs/reference/cowork-hooks.md` 작성 완료
+- [x] Open Cowork clone snapshot `docs/base-snapshot.md`와 `docs/reference/cowork-hooks.md` 작성 완료
 - [x] 코드 서명·로고 최종본 확정 완료
 
 ### 15.3 완료 선언

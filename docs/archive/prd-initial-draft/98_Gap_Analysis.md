@@ -94,7 +94,7 @@
 | GAP-X-09 | **정책 변경 흐름** (관리자가 어떻게 institution.yaml 편집?) | ℹ️ | PM + IT | Phase 3 | 디스크 편집 + Git 버전 관리 → Phase 5 UI |
 | GAP-X-10 | **에러 핸들링 표준** (사용자 메시지·로깅 수준·재시도 룰) | ⚠️ | AI agent | Phase 1 첫 주 | `packages/shared-types/src/errors.ts` 표준 타입 |
 | GAP-X-11 | **보안 토큰 보관** (refresh token, SSO token, API key) | 🚨 | 보안 | Phase 1 첫 주 | OS keychain 강제 (AC-1.27) |
-| GAP-X-12 | **Cowork upstream 머지 절차** (보안 패치 cherry-pick) | ⚠️ | AI agent + PM | Phase 1 종료 전 | 매 Phase 종료 시 diff 리포트 + 보안 패치 우선 머지 |
+| GAP-X-12 | **Cowork base 머지 절차** (보안 패치 cherry-pick) | ⚠️ | AI agent + PM | Phase 1 종료 전 | 매 Phase 종료 시 diff 리포트 + 보안 패치 우선 머지 |
 | GAP-X-13 | **로컬 LLM 응답 속도 SLA** (cold start, p95) | ⚠️ | 인프라팀 | Phase 1 종료 전 | 게이트웨이 의존, fallback 정책 명시 |
 | GAP-X-14 | **dev 환경 일관성** (`.nvmrc`, `.python-version`, pre-commit) | ℹ️ | AI agent | Phase 1 첫 주 | `.nvmrc` (Node 20 LTS), Python 3.11, pre-commit hook |
 | GAP-X-15 | **시크릿 관리** (`.env.example` 외에 secret vault 정책) | ⚠️ | 보안 | Phase 1 첫 주 | OS keychain + 환경변수 명시, 시크릿 커밋 차단 lint |
@@ -150,7 +150,7 @@
 - [x] 정책 변경 흐름 (Git 버전 관리 → GAP-X-09)
 - [x] 에러 핸들링 표준 (GAP-X-10)
 - [x] 보안 토큰 보관 (AC-1.27 + GAP-X-11)
-- [x] Cowork upstream 머지 절차 (GAP-X-12)
+- [x] Cowork base 머지 절차 (GAP-X-12)
 - [x] 로컬 LLM SLA (GAP-X-13)
 - [x] dev 환경 일관성 (GAP-X-14)
 - [x] 시크릿 관리 (GAP-X-15)
@@ -165,8 +165,8 @@
 
 ## 12. Baseline Resolution Notes (2026-05-23)
 
-- [RESOLVED] GAP-P1-01: Open Cowork source is now present as a vendored clone snapshot at `packages/cowork-core`, pinned to upstream commit `d4318943fb070d0863bed930eb70a95c6e7c4487`. The concrete hook mapping is recorded in `docs/reference/cowork-hooks.md`.
-- [NEW] GAP-P1-09: Open Cowork has no exported first-class `beforeToolCall` hook. Veluga `ToolInterceptor` must either wrap `ToolDefinition.execute(...)` near `src/main/claude/agent-runner.ts` before `createAgentSession(...)`, or introduce a minimal upstream shim that exposes this wrapper point.
+- [RESOLVED] GAP-P1-01: Open Cowork source is now present as a vendored clone snapshot at `packages/cowork-core`, pinned to base commit `d4318943fb070d0863bed930eb70a95c6e7c4487`. The concrete hook mapping is recorded in `docs/reference/cowork-hooks.md`.
+- [NEW] GAP-P1-09: Open Cowork has no exported first-class `beforeToolCall` hook. Veluga `ToolInterceptor` must either wrap `ToolDefinition.execute(...)` near `src/main/claude/agent-runner.ts` before `createAgentSession(...)`, or introduce a minimal base shim that exposes this wrapper point.
 
 ## 13. Phase 1 & Phase 2 Implementation Resolution (2026-05-23)
 

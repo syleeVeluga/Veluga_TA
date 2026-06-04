@@ -42,7 +42,7 @@
 - 팀 Project (다중 사용자 공유)
 - 결재 라인 다단계 자동 라우팅 (현재는 단일 결재자 가정)
 - 실시간 SIEM 통합
-- Cowork upstream 기여 PR
+- Cowork base 기여 PR
 
 ### 1.3 Phase 4가 해결하는 페르소나 빈틈
 
@@ -584,7 +584,7 @@ def verify(sealed_path) -> VerifyResult:
 - SIEM 통합 (audit_log 외부 수집)
 - 모바일 결재 (Phase 4 결재자 동선의 Web/Mobile 확장)
 - KB 메타데이터 거버넌스 UI (P4 IT 관리자)
-- Cowork upstream PR 기여
+- Cowork base PR 기여
 
 ---
 
